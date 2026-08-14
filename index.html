@@ -329,7 +329,7 @@
         </div>
       </div>
 
-      <div>
+      <div id="subtaskSection">
         <div class="flex justify-between items-center">
           <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
         </div>
@@ -588,6 +588,17 @@
   </div>
 </div>
 
+<!-- Stats Person Detail Modal -->
+<div id="statsPersonModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[80vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div id="statsPersonModalTitle" class="text-lg font-bold"></div>
+      <button onclick="closeModal('statsPersonModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="statsPersonModalList" class="space-y-2"></div>
+  </div>
+</div>
+
 <!-- Poke Modal -->
 <div id="pokeModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
@@ -652,6 +663,7 @@ let state = {
   pokes: [],             // {id,fromPersonId,toPersonId,message,ts,read}
   marketChores: [],      // marketplace listing templates, see market engine below
   marketClaims: {},      // key `${marketId}_${scopeKey}` -> {personId,dueDate,claimedAt,completed,completedAt,subtaskState}
+  marketCompletions: [], // archived record of completed marketplace claims that survives "Release" — {id,title,personId,dueDate,completedAt}
   settings: { myProfileId: null, syncConfig: null, weekStart: 'sunday', weeklyQuota: 2 }
 };
 
@@ -798,13 +810,22 @@ function ruleTitleForDate(rule, dateStr) {
   const stageIdx = Math.floor(Math.max(0,w) / stageWeeks) % stages.length;
   return stages[stageIdx].title || rule.title;
 }
+function ruleSubtasksForDate(rule, dateStr) {
+  if (rule.frequency !== 'rotation') return rule.subtasks || [];
+  const stages = (rule.rotation && rule.rotation.stages) || [];
+  if (!stages.length) return rule.subtasks || [];
+  const w = weekDiff(rule.startDate, dateStr);
+  const stageWeeks = Math.max(1, Number((rule.rotation && rule.rotation.stageWeeks) || 1));
+  const stageIdx = Math.floor(Math.max(0,w) / stageWeeks) % stages.length;
+  return stages[stageIdx].subtasks || [];
+}
 function getRecurringForDate(dateStr) {
   return state.recurring.filter(r => ruleFiresOnDate(r, dateStr)).map(r => {
     const key = r.id+'_'+dateStr;
     const comp = state.recurringCompletions[key] || {};
     return {
       kind: 'recurring', id: r.id, dateStr, title: ruleTitleForDate(r, dateStr), personId: r.personId,
-      time: r.time, subtasks: r.subtasks || [], reward: r.reward,
+      time: r.time, subtasks: ruleSubtasksForDate(r, dateStr), reward: r.reward,
       completed: !!comp.completed, subtaskState: comp.subtaskState || {}
     };
   });
@@ -822,6 +843,17 @@ function getSingleForDate(dateStr) {
 // flexible window (never shown on the calendar until someone claims it and picks a date).
 function marketClaimKey(marketId, scopeKey) { return marketId+'_'+scopeKey; }
 function getMarketClaim(marketId, scopeKey) { return state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
+// Called right before a claim is deleted (release/unclaim). If it was completed, archive it to
+// marketCompletions first so stats still count it — releasing shouldn't erase completion history.
+function archiveMarketClaimIfCompleted(marketId, scopeKey) {
+  const claim = getMarketClaim(marketId, scopeKey);
+  if (!claim || !claim.completed) return;
+  const market = state.marketChores.find(m => m.id === marketId);
+  if (!market) return;
+  const dueDate = resolvedMarketDueDate(market, scopeKey, claim);
+  if (!dueDate) return;
+  state.marketCompletions.push({ id: uid('mkc'), title: market.title, personId: claim.personId, dueDate, completedAt: claim.completedAt || new Date().toISOString() });
+}
 
 // Returns one "instance" per market chore for the week containing refDateStr (or the single instance for one-time items)
 function activeMarketInstances(refDateStr) {
@@ -881,6 +913,30 @@ function getMarketForCalendarDate(dateStr) {
     // unclaimed flexible listings never show on the calendar — they only live in the Marketplace tab
   });
   return items;
+}
+function resolvedMarketDueDate(market, scopeKey, claim) {
+  if (market.scheduleType === 'fixed') {
+    if (market.repeats === 'weekly') {
+      const dd = parseLocalDate(scopeKey);
+      dd.setDate(dd.getDate() + (market.dueDayOffset||0));
+      return formatLocalDate(dd);
+    }
+    return market.dueDate;
+  }
+  return claim ? claim.dueDate : null;
+}
+// Flattens every stored claim (current and past weeks) into entries with a resolved due date —
+// used for stats/history so completed marketplace chores are counted even after being released.
+function allMarketClaimEntries() {
+  return Object.keys(state.marketClaims).map(key => {
+    const idx = key.indexOf('_');
+    const marketId = key.slice(0, idx);
+    const scopeKey = key.slice(idx+1);
+    const market = state.marketChores.find(m => m.id === marketId);
+    if (!market) return null;
+    const claim = state.marketClaims[key];
+    return { market, scopeKey, claim, dueDate: resolvedMarketDueDate(market, scopeKey, claim) };
+  }).filter(Boolean);
 }
 function weeklyClaimCountForPerson(personId) {
   const weekStartStr = currentWeekStartStr();
@@ -981,7 +1037,8 @@ function choreRowHtml(c) {
   const subDone = subCount ? (c.subtasks||[]).filter(s => c.subtaskState[s.id]).length : 0;
   const isUnclaimed = c.kind === 'market' && c.unclaimed;
   const borderColor = isUnclaimed ? '#9CA3AF' : (p?p.color:'#cbd5e1');
-  return `<div onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')" class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2.5 flex items-center justify-between cursor-pointer" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
+  const clickable = c.id != null && c.dateStr != null;
+  return `<div ${clickable?`onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')"`:''} class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2.5 flex items-center justify-between ${clickable?'cursor-pointer':''}" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
     <div class="min-w-0 flex-1">
       <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}${escapeHtml(c.title)}</div>
       <div class="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -989,6 +1046,7 @@ function choreRowHtml(c) {
         ${c.time ? `<span class="text-[10px] text-gray-400 font-mono">${formatTime(c.time)}</span>` : ''}
         ${subCount ? `<span class="text-[10px] text-gray-400">${subDone}/${subCount} steps</span>` : ''}
         ${c.reward && c.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(c.reward)}</span>` : ''}
+        ${!clickable ? `<span class="text-[10px] text-gray-400">${c.dateStr}</span>` : ''}
       </div>
     </div>
     <i class="fa-solid ${isUnclaimed?'fa-hand text-pink-400':(c.completed?'fa-circle-check text-emerald-500':'fa-chevron-right text-gray-300')} text-sm flex-shrink-0 ml-2"></i>
@@ -1016,7 +1074,7 @@ function openChoreDetail(kind, id, dateStr) {
     comp = { completed: c.completed, subtaskState: c.subtaskState||{} };
   } else if (kind === 'recurring') {
     c = state.recurring.find(x => x.id === id);
-    c = { ...c, title: ruleTitleForDate(c, dateStr) };
+    c = { ...c, title: ruleTitleForDate(c, dateStr), subtasks: ruleSubtasksForDate(c, dateStr) };
     comp = state.recurringCompletions[id+'_'+dateStr] || {completed:false, subtaskState:{}};
   } else if (kind === 'market') {
     const [marketId, scopeKey] = id.split('::');
@@ -1143,6 +1201,7 @@ function deleteCurrentChore() {
     const claim = getMarketClaim(marketId, scopeKey);
     if (!claim) { closeModal('choreDetailModal'); return; }
     if (!confirm('Release this chore back to the marketplace?')) return;
+    archiveMarketClaimIfCompleted(marketId, scopeKey);
     delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
     closeModal('choreDetailModal');
     saveState();
@@ -1199,6 +1258,7 @@ function updateRecurUI() {
   document.getElementById('recurWeeklyBox').classList.toggle('hidden', f !== 'weekly');
   document.getElementById('recurMonthlyBox').classList.toggle('hidden', f !== 'monthly');
   document.getElementById('recurRotationBox').classList.toggle('hidden', f !== 'rotation');
+  document.getElementById('subtaskSection').classList.toggle('hidden', f === 'rotation');
   const intervalBox = document.getElementById('recurIntervalBox');
   intervalBox.classList.toggle('hidden', f === 'yearly' || f === 'rotation');
   const unitLabel = document.getElementById('recurIntervalUnitLabel');
@@ -1208,21 +1268,44 @@ function updateRecurUI() {
     addRotationStageRow('Clean up after dinner');
   }
 }
-function addRotationStageRow(title) {
+function addRotationStageRow(title, subtasks) {
   rotationStageCount++;
   const rowId = uid('rs');
   const div = document.createElement('div');
-  div.className = 'flex items-center gap-1.5';
+  div.className = 'border border-gray-200 rounded-lg p-2 bg-white space-y-1.5';
   div.dataset.stageid = rowId;
-  div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
-    <input type="text" value="${escapeHtml(title||'')}" placeholder="Shift ${rotationStageCount} name" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm rotation-stage-title">
-    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+  div.innerHTML = `<div class="flex items-center gap-1.5">
+      <i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
+      <input type="text" value="${escapeHtml(title||'')}" placeholder="Shift ${rotationStageCount} name" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm rotation-stage-title">
+      <button type="button" onclick="this.closest('[data-stageid]').remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>
+    </div>
+    <div class="pl-4">
+      <div class="text-[10px] font-bold text-gray-400 mb-1">Steps for this shift <span class="font-normal">(only apply while it's active)</span></div>
+      <div class="stage-subtask-list space-y-1"></div>
+      <button type="button" onclick="addStageSubtaskRow(this)" class="stage-add-btn text-[11px] font-bold text-purple-500 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
+    </div>`;
   document.getElementById('rotationStageBuilder').appendChild(div);
+  (subtasks||[]).forEach(s => addStageSubtaskRow(div.querySelector('.stage-add-btn'), s.text, s.id));
+}
+function addStageSubtaskRow(triggerEl, text, id) {
+  const stageEl = triggerEl.closest('[data-stageid]');
+  const list = stageEl.querySelector('.stage-subtask-list');
+  const rowId = id || uid('rst');
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-1.5';
+  row.dataset.subid = rowId;
+  row.innerHTML = `<input type="text" value="${escapeHtml(text||'')}" placeholder="Step" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1 text-xs stage-subtask-text-input">
+    <button type="button" onclick="this.parentElement.remove()" class="w-6 h-6 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-[10px]"></i></button>`;
+  list.appendChild(row);
 }
 function readRotationStagesFromBuilder() {
-  return Array.from(document.getElementById('rotationStageBuilder').children).map(row => ({
-    title: row.querySelector('.rotation-stage-title').value.trim(), daysOfWeek: [0,1,2,3,4,5,6]
-  })).filter(s => s.title);
+  return Array.from(document.getElementById('rotationStageBuilder').children).map(stageEl => {
+    const title = stageEl.querySelector('.rotation-stage-title').value.trim();
+    const subtasks = Array.from(stageEl.querySelectorAll('.stage-subtask-text-input')).map(inp => ({
+      id: inp.closest('[data-subid]').dataset.subid, text: inp.value.trim()
+    })).filter(s => s.text);
+    return { title, daysOfWeek: [0,1,2,3,4,5,6], subtasks };
+  }).filter(s => s.title);
 }
 function buildRecurDaysGrid(selected) {
   const grid = document.getElementById('recurDaysGrid');
@@ -1275,7 +1358,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     setChoreRepeatMode('recurring');
     document.getElementById('recurFreq').value = r.frequency;
     if (r.frequency === 'rotation') {
-      (r.rotation && r.rotation.stages || []).forEach(s => addRotationStageRow(s.title));
+      (r.rotation && r.rotation.stages || []).forEach(s => addRotationStageRow(s.title, s.subtasks));
       document.getElementById('rotationStageWeeks').value = (r.rotation && r.rotation.stageWeeks) || 1;
     }
     updateRecurUI();
@@ -1394,8 +1477,13 @@ function setMarketRepeats(mode) {
   });
   document.getElementById('marketRepeatsHelp').textContent = mode === 'once'
     ? 'One-time: posted once, gone once claimed & done.'
-    : 'Weekly Pool: reopens every week for someone new to claim (great for the shared weekly chore list).';
-  updateMarketScheduleUI();
+    : "Weekly Pool: reopens every week for someone new to claim — whoever claims it picks that week's date, so it never gets stuck.";
+  // Weekly pool chores always let the claimer pick a fresh date each week — a locked-in due
+  // date would get stuck on release, so "Specific Due Date" isn't offered for these.
+  const fixedBtn = document.getElementById('marketSchedFixedBtn');
+  fixedBtn.disabled = (mode === 'weekly');
+  fixedBtn.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (mode === 'weekly' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white text-gray-500 border-gray-200');
+  if (mode === 'weekly') setMarketSchedule('flexible'); else updateMarketScheduleUI();
 }
 function setMarketSchedule(mode) {
   marketSchedule = mode;
@@ -1455,7 +1543,8 @@ function openMarketModal(marketId) {
   if (marketId) {
     const m = state.marketChores.find(x => x.id === marketId);
     document.getElementById('marketTitle').value = m.title;
-    setMarketRepeats(m.repeats); setMarketSchedule(m.scheduleType);
+    setMarketRepeats(m.repeats);
+    if (!(m.repeats === 'weekly' && m.scheduleType === 'fixed')) setMarketSchedule(m.scheduleType);
     document.getElementById('marketDueDate').value = m.dueDate || '';
     document.getElementById('marketDueDayOfWeek').value = m.dueDayOffset || 0;
     document.getElementById('marketWindowStart').value = m.windowStart || '';
@@ -1522,9 +1611,17 @@ function deleteMarketChore() {
   const id = document.getElementById('marketId').value;
   if (!id) return;
   if (!confirm('Delete this listing? Any current claim will be removed too.')) return;
+  Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
   state.marketChores = state.marketChores.filter(x => x.id !== id);
-  Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) delete state.marketClaims[k]; });
   closeModal('marketModal');
+  saveState(); renderMarketplace();
+}
+function quickDeleteMarketChore(id) {
+  const m = state.marketChores.find(x => x.id === id);
+  if (!m) return;
+  if (!confirm(`Delete "${m.title}" from the marketplace? Any current claim will be removed too.`)) return;
+  Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
+  state.marketChores = state.marketChores.filter(x => x.id !== id);
   saveState(); renderMarketplace();
 }
 
@@ -1569,6 +1666,7 @@ function confirmClaimMarket() {
 }
 function unclaimMarket(marketId, scopeKey) {
   if (!confirm('Release this chore back to the marketplace?')) return;
+  archiveMarketClaimIfCompleted(marketId, scopeKey);
   delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
   saveState(); renderMarketplace();
 }
@@ -1600,7 +1698,8 @@ function marketListingCardHtml(x, claimedView) {
       ${claimedView
         ? `<button onclick="unclaimMarket('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-gray-200 text-gray-600 rounded-lg px-2 py-1.5">Release</button>`
         : `<button onclick="openMarketClaimModal('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-pink-500 text-white rounded-lg px-2.5 py-1.5"><i class="fa-solid fa-hand"></i> Claim</button>`}
-      ${x.market.repeats==='once' && !claimedView ? `<button onclick="openMarketModal('${x.market.id}')" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
+      ${!claimedView ? `<button onclick="openMarketModal('${x.market.id}')" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-pen text-xs"></i></button>
+      <button onclick="quickDeleteMarketChore('${x.market.id}')" class="w-7 h-7 flex-shrink-0 rounded-lg bg-red-50 text-red-400"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
     </div>
   </div>`;
 }
@@ -1636,15 +1735,20 @@ function renderLog() {
   if (filterSel.options.length <= 1) filterSel.innerHTML = '<option value="all">Everyone</option>' + personOptions(null);
   const filter = filterSel.value;
 
-  // Build combined list: all single chores + recurring occurrences for the last 60 / next 60 days
+  // Build combined list: all single chores (any status) + only the recurring/marketplace
+  // occurrences that were actually completed — otherwise a daily chore floods the log with
+  // one entry per day whether or not it was done.
   const items = [];
   state.chores.forEach(c => items.push({ kind:'single', id:c.id, dateStr:c.date, title:c.title, personId:c.personId, time:c.time, completed:c.completed, subtasks:c.subtasks||[], reward:c.reward }));
   const start = new Date(); start.setDate(start.getDate()-45);
   const end = new Date(); end.setDate(end.getDate()+45);
   for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
     const ds = formatLocalDate(d);
-    getRecurringForDate(ds).forEach(o => items.push(o));
+    getRecurringForDate(ds).forEach(o => { if (o.completed) items.push(o); });
   }
+  const marketStart = formatLocalDate(start), marketEnd = formatLocalDate(end);
+  completedChoresInRange(marketStart, marketEnd).forEach(c => { if (c.kind === 'market') items.push(c); });
+
   let filtered = filter === 'all' ? items : items.filter(i => i.personId === filter);
   filtered.sort((a,b) => b.dateStr.localeCompare(a.dateStr));
 
@@ -1665,11 +1769,21 @@ function periodRange(period) {
 
 function completedChoresInRange(start, end) {
   const results = [];
-  state.chores.forEach(c => { if (c.completed && c.date >= start && c.date <= end) results.push(c); });
+  state.chores.forEach(c => { if (c.completed && c.date >= start && c.date <= end) results.push({ ...c, dateStr: c.date }); });
   for (let d = parseLocalDate(start); d <= parseLocalDate(end); d.setDate(d.getDate()+1)) {
     const ds = formatLocalDate(d);
     getRecurringForDate(ds).forEach(o => { if (o.completed) results.push(o); });
   }
+  allMarketClaimEntries().forEach(x => {
+    if (x.claim.completed && x.dueDate && x.dueDate >= start && x.dueDate <= end) {
+      results.push({ kind:'market', dateStr:x.dueDate, title:x.market.title, personId:x.claim.personId, completed:true, subtasks:[] });
+    }
+  });
+  state.marketCompletions.forEach(m => {
+    if (m.dueDate >= start && m.dueDate <= end) {
+      results.push({ kind:'market', dateStr:m.dueDate, title:m.title, personId:m.personId, completed:true, subtasks:[] });
+    }
+  });
   return results;
 }
 
@@ -1696,7 +1810,7 @@ function renderStats() {
   document.getElementById('statsPersonCards').innerHTML = state.people.map(p => {
     const banked = state.bankedRewards.filter(b => b.personId === p.id && !b.redeemed);
     const bankedMoney = banked.filter(b=>b.reward.type==='money').reduce((s,b)=>s+Number(b.reward.amount||0),0);
-    return `<div class="bg-white rounded-2xl shadow-sm p-3 flex items-center justify-between">
+    return `<div onclick="openStatsPersonDetail('${p.id}')" class="bg-white rounded-2xl shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50">
       <div class="flex items-center gap-2.5">
         <span class="person-dot" style="background:${p.color};width:12px;height:12px"></span>
         <div>
@@ -1704,13 +1818,34 @@ function renderStats() {
           <div class="text-[11px] text-gray-500">${counts[p.id]||0} chores completed</div>
         </div>
       </div>
-      <div class="text-right">
+      <div class="text-right flex items-center gap-2">
         <div class="text-sm font-mono font-bold text-purple-600">${bankedMoney>0?'$'+bankedMoney.toFixed(2):(banked.length?banked.length+' banked':'')}</div>
+        <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
       </div>
     </div>`;
   }).join('');
 
   renderBankList();
+}
+
+function openStatsPersonDetail(personId) {
+  const p = getPerson(personId);
+  if (!p) return;
+  const period = document.getElementById('statsPeriod').value;
+  const { start, end } = periodRange(period);
+  const items = completedChoresInRange(start, end).filter(c => c.personId === personId)
+    .sort((a,b) => b.dateStr.localeCompare(a.dateStr));
+  document.getElementById('statsPersonModalTitle').innerHTML = `${personChip(personId)} <span class="text-gray-400 font-normal text-sm">· ${items.length} completed</span>`;
+  document.getElementById('statsPersonModalList').innerHTML = items.length
+    ? items.map(c => `<div class="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-semibold text-gray-800 truncate">${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}${escapeHtml(c.title)}</div>
+          <div class="text-[10px] text-gray-400 mt-0.5">${c.dateStr}</div>
+        </div>
+        <i class="fa-solid fa-circle-check text-emerald-500 text-sm flex-shrink-0 ml-2"></i>
+      </div>`).join('')
+    : '<div class="text-xs text-gray-400 text-center py-4">Nothing completed in this period yet.</div>';
+  openModal('statsPersonModal');
 }
 
 function renderBankList() {
