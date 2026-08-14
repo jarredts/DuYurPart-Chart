@@ -412,7 +412,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.0.0</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.1.0</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -426,12 +426,12 @@
       <div>
         <label class="text-xs font-bold text-gray-500">Whose phone is this?</label>
         <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
+        <div class="text-[10px] text-gray-400 mt-0.5">Saved locally on this device only.</div>
       </div>
 
       <div>
         <label class="text-xs font-bold text-gray-500">Firebase VAPID Public Key</label>
         <input id="fcmVapidKeyInput" type="text" placeholder="Paste FCM Web Push Certificate Key here" onchange="saveVapidKey(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mt-1">
-        <div class="text-[10px] text-gray-400 mt-0.5">Found in Firebase Console → Project Settings → Cloud Messaging → Web Push certificates.</div>
       </div>
       
       <button onclick="requestPushNotificationPermission()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 text-white shadow-sm flex items-center justify-center gap-2">
@@ -454,12 +454,12 @@
     <div class="font-bold text-sm mb-2">Dark Mode</div>
     <button onclick="toggleDarkMode()" class="w-full mb-4 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Toggle Dark Mode</button>
 
-    <!-- App Update / Version Center -->
+    <!-- App Update Center -->
     <div class="font-bold text-sm mb-2">App Updates</div>
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.0.0</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.1.0</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -670,7 +670,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.0.0"; // Current visual version identifier
+const APP_VERSION = "v6.1.0";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -713,12 +713,15 @@ let state = {
   honeyDo: [],
   bankedRewards: [],
   pokes: [],
-  deviceTokens: {},
+  deviceTokens: {}, // Map of personId -> fcmToken
   marketChores: [],
   marketClaims: {},
   marketCompletions: [],
-  settings: { myProfileId: null, syncConfig: null, weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' }
+  settings: { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' }
 };
+
+// Isolated local-only device profile ID (never overwritten by cloud sync)
+let localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || null;
 
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
@@ -741,14 +744,12 @@ function uid(prefix) { return prefix+'-'+Date.now()+'-'+Math.floor(Math.random()
 async function forceAppUpdate() {
   toast("Updating app and refreshing cache...", "fa-rotate");
   try {
-    // 1. Unregister all service workers
     if ('serviceWorker' in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations();
       for (let reg of registrations) {
         await reg.unregister();
       }
     }
-    // 2. Clear all CacheStorage
     if ('caches' in window) {
       const keys = await caches.keys();
       for (let key of keys) {
@@ -758,18 +759,29 @@ async function forceAppUpdate() {
   } catch (e) {
     console.error("Cache purge error:", e);
   }
-  // 3. Reload with cache buster
   setTimeout(() => {
     window.location.href = window.location.origin + window.location.pathname + '?update=' + Date.now();
   }, 400);
 }
 
 /* =========================== PERSIST =========================== */
-function saveState() { persist(); if (firestoreDb) pushToCloud(); renderApp(); }
-function persist() { try { localStorage.setItem('chores_state', JSON.stringify(state)); } catch(e){ console.error(e); } }
+function saveState() { 
+  persist(); 
+  if (firestoreDb) pushToCloud(); 
+  renderApp(); 
+}
+
+function persist() { 
+  try { 
+    localStorage.setItem('chores_state', JSON.stringify(state)); 
+    localStorage.setItem('chores_local_profile_id', localDeviceProfileId || '');
+  } catch(e){ console.error(e); } 
+}
+
 async function loadState() {
   try {
     const raw = localStorage.getItem('chores_state');
+    localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || null;
     if (raw) {
       const loaded = JSON.parse(raw);
       state = Object.assign(state, loaded);
@@ -1469,7 +1481,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   document.getElementById('choreId').value = choreId || '';
   document.getElementById('subtaskBuilder').innerHTML = ''; subtaskBuilderCount = 0;
   document.getElementById('rotationStageBuilder').innerHTML = ''; rotationStageCount = 0;
-  document.getElementById('chorePerson').innerHTML = personOptions(state.settings.myProfileId);
+  document.getElementById('chorePerson').innerHTML = personOptions(localDeviceProfileId);
   document.getElementById('recurStart').value = presetDate || todayStr();
   document.getElementById('recurEnd').value = '';
   document.getElementById('recurInterval').value = 1;
@@ -1536,7 +1548,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     document.getElementById('rewardDesc').value = '';
     document.getElementById('rewardBanked').checked = false;
     setChoreRepeatMode('single');
-    if (isKidLog && state.settings.myProfileId) document.getElementById('chorePerson').value = state.settings.myProfileId;
+    if (isKidLog && localDeviceProfileId) document.getElementById('chorePerson').value = localDeviceProfileId;
   }
   openModal('choreModal');
 }
@@ -1774,7 +1786,7 @@ function openMarketClaimModal(marketId, scopeKey) {
   document.getElementById('claimMarketId').value = marketId;
   document.getElementById('claimScopeKey').value = scopeKey;
   document.getElementById('claimChoreTitle').textContent = m.title;
-  document.getElementById('claimPerson').innerHTML = personOptions(state.settings.myProfileId);
+  document.getElementById('claimPerson').innerHTML = personOptions(localDeviceProfileId);
   const dateBox = document.getElementById('claimDateBox');
   if (m.scheduleType === 'flexible') {
     dateBox.classList.remove('hidden');
@@ -2188,7 +2200,7 @@ function renderProfiles() {
   </div>`).join('');
 
   const mySel = document.getElementById('myProfileSelect');
-  mySel.innerHTML = '<option value="">-- select --</option>' + personOptions(state.settings.myProfileId);
+  mySel.innerHTML = '<option value="">-- select --</option>' + personOptions(localDeviceProfileId);
 
   const vapidInput = document.getElementById('fcmVapidKeyInput');
   if (vapidInput) vapidInput.value = state.settings.vapidKey || '';
@@ -2224,16 +2236,18 @@ function removePerson(id) {
   state.people = state.people.filter(p => p.id !== id);
   saveState(); renderProfiles();
 }
+
 function setMyProfile(id) { 
-  state.settings.myProfileId = id; 
-  persist(); 
+  localDeviceProfileId = id || null;
+  localStorage.setItem('chores_local_profile_id', localDeviceProfileId || '');
   renderApp(); 
-  toast('Profile device selected', 'fa-check'); 
+  toast('Profile selected for this device', 'fa-check'); 
   registerDeviceToken();
 }
+
 function saveVapidKey(val) {
   state.settings.vapidKey = val.trim();
-  persist();
+  saveState();
   toast('VAPID key saved', 'fa-key');
 }
 function setWeekStart(val) { state.settings.weekStart = val; saveState(); toast('Calendar updated', 'fa-calendar-days'); }
@@ -2253,7 +2267,7 @@ async function requestPushNotificationPermission() {
 }
 
 async function registerDeviceToken() {
-  if (!fcmMessaging || !state.settings.myProfileId) return;
+  if (!fcmMessaging || !localDeviceProfileId) return;
   try {
     const swReg = await navigator.serviceWorker.ready;
     const vapidKey = state.settings.vapidKey;
@@ -2263,9 +2277,9 @@ async function registerDeviceToken() {
     });
     if (token) {
       state.deviceTokens = state.deviceTokens || {};
-      state.deviceTokens[state.settings.myProfileId] = token;
+      state.deviceTokens[localDeviceProfileId] = token;
       saveState();
-      toast('Device token registered with Firebase', 'fa-shield-halved');
+      toast('Device push token registered!', 'fa-shield-halved');
     }
   } catch (err) {
     console.error('FCM Token registration error:', err);
@@ -2281,7 +2295,7 @@ function openPokeModal(presetTarget) {
 function sendPoke() {
   const toId = document.getElementById('pokeTarget').value;
   const message = document.getElementById('pokeMessage').value.trim() || 'Poke!';
-  const poke = { id: uid('poke'), fromPersonId: state.settings.myProfileId, toPersonId: toId, message, ts: Date.now(), read: false };
+  const poke = { id: uid('poke'), fromPersonId: localDeviceProfileId, toPersonId: toId, message, ts: Date.now(), read: false };
   state.pokes.unshift(poke);
   if (state.pokes.length > 100) state.pokes.length = 100;
   saveState();
@@ -2299,14 +2313,14 @@ function renderPokeHistory() {
   </div>`).join('') : '';
 }
 function maybeShowLocalNotification(poke) {
-  if ('Notification' in window && Notification.permission === 'granted' && poke.toPersonId === state.settings.myProfileId) {
+  if ('Notification' in window && Notification.permission === 'granted' && poke.toPersonId === localDeviceProfileId) {
     new Notification('Poke from '+((getPerson(poke.fromPersonId)||{}).name||'Family'), { body: poke.message, icon: 'icon-192.png' });
   }
 }
 let lastSeenPokeCount = 0;
 function checkForNewPokesTargetingMe() {
-  if (!state.settings.myProfileId) return;
-  const mine = state.pokes.filter(p => p.toPersonId === state.settings.myProfileId);
+  if (!localDeviceProfileId) return;
+  const mine = state.pokes.filter(p => p.toPersonId === localDeviceProfileId);
   if (mine.length > lastSeenPokeCount) {
     const newest = mine[0];
     if (newest && Date.now() - newest.ts < 60000) maybeShowLocalNotification(newest);
@@ -2368,6 +2382,15 @@ async function enableCloudSync() {
 async function pushToCloud() {
   if (!firestoreDb) return;
   try {
+    // Preserve other people's device tokens when pushing
+    const doc = await firestoreDb.collection('chores_sync').doc('family-chores-shared').get();
+    let mergedTokens = { ...(state.deviceTokens || {}) };
+    if (doc.exists && doc.data().data) {
+      const remote = JSON.parse(doc.data().data);
+      mergedTokens = { ...(remote.deviceTokens || {}), ...mergedTokens };
+    }
+    state.deviceTokens = mergedTokens;
+
     await firestoreDb.collection('chores_sync').doc('family-chores-shared').set({
       data: JSON.stringify(state), updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -2379,6 +2402,7 @@ async function pullFromCloud() {
     const doc = await firestoreDb.collection('chores_sync').doc('family-chores-shared').get();
     if (doc.exists && doc.data().data) {
       const remote = JSON.parse(doc.data().data);
+      // Merge remote state without wiping local profile selection
       state = Object.assign(state, remote);
       persist();
       renderApp();
