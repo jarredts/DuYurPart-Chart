@@ -410,7 +410,10 @@
 <div id="profilesModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-3">
-      <div class="text-lg font-bold">Profiles & Settings</div>
+      <div>
+        <div class="text-lg font-bold">Profiles & Settings</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.0.0</div>
+      </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
@@ -450,6 +453,19 @@
 
     <div class="font-bold text-sm mb-2">Dark Mode</div>
     <button onclick="toggleDarkMode()" class="w-full mb-4 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Toggle Dark Mode</button>
+
+    <!-- App Update / Version Center -->
+    <div class="font-bold text-sm mb-2">App Updates</div>
+    <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
+      <div class="flex justify-between items-center">
+        <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.0.0</span>
+      </div>
+      <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
+      </button>
+      <div class="text-[10px] text-gray-400 leading-tight">Pulls the newest app version directly from the web server without needing to uninstall.</div>
+    </div>
 
     <div class="font-bold text-sm mb-2">Cloud Sync</div>
     <div class="text-[11px] text-gray-500 mb-2">Sync across devices using Firebase Firestore.</div>
@@ -653,7 +669,9 @@
 <div id="toastBox" class="fixed top-3 left-1/2 -translate-x-1/2 z-[60] space-y-2 w-full max-w-xs px-3"></div>
 
 <script>
-/* =========================== STATE =========================== */
+/* =========================== STATE & APP VERSION =========================== */
+const APP_VERSION = "v6.0.0"; // Current visual version identifier
+
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
   {name:'Orange', hex:'#F97316'},
@@ -718,6 +736,33 @@ function todayStr() { return formatLocalDate(new Date()); }
 function formatLocalDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function parseLocalDate(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); }
 function uid(prefix) { return prefix+'-'+Date.now()+'-'+Math.floor(Math.random()*10000); }
+
+/* =========================== FORCE UPDATE ENGINE =========================== */
+async function forceAppUpdate() {
+  toast("Updating app and refreshing cache...", "fa-rotate");
+  try {
+    // 1. Unregister all service workers
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (let reg of registrations) {
+        await reg.unregister();
+      }
+    }
+    // 2. Clear all CacheStorage
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      for (let key of keys) {
+        await caches.delete(key);
+      }
+    }
+  } catch (e) {
+    console.error("Cache purge error:", e);
+  }
+  // 3. Reload with cache buster
+  setTimeout(() => {
+    window.location.href = window.location.origin + window.location.pathname + '?update=' + Date.now();
+  }, 400);
+}
 
 /* =========================== PERSIST =========================== */
 function saveState() { persist(); if (firestoreDb) pushToCloud(); renderApp(); }
@@ -2159,7 +2204,13 @@ function renderProfiles() {
   } else {
     notifStatus.textContent = 'Notifications not supported in this browser.';
   }
+
+  const verDisplay = document.getElementById('appVersionDisplay');
+  if (verDisplay) verDisplay.textContent = APP_VERSION;
+  const verBadge = document.getElementById('appVersionBadge');
+  if (verBadge) verBadge.textContent = APP_VERSION;
 }
+
 function addPersonRow() {
   const usedColors = state.people.map(p => p.color);
   const nextColor = DEFAULT_COLORS.find(c => !usedColors.includes(c.hex)) || DEFAULT_COLORS[state.people.length % 5];
@@ -2204,20 +2255,17 @@ async function requestPushNotificationPermission() {
 async function registerDeviceToken() {
   if (!fcmMessaging || !state.settings.myProfileId) return;
   try {
-    // Wait for the active service worker registration
     const swReg = await navigator.serviceWorker.ready;
     const vapidKey = state.settings.vapidKey;
-
     const token = await fcmMessaging.getToken({
       vapidKey: vapidKey || undefined,
       serviceWorkerRegistration: swReg
     });
-
     if (token) {
       state.deviceTokens = state.deviceTokens || {};
       state.deviceTokens[state.settings.myProfileId] = token;
       saveState();
-      toast('Device token registered for phone!', 'fa-shield-halved');
+      toast('Device token registered with Firebase', 'fa-shield-halved');
     }
   } catch (err) {
     console.error('FCM Token registration error:', err);
@@ -2271,7 +2319,6 @@ function parseConfigInput(raw) {
   try {
     return JSON.parse(raw);
   } catch(e) {
-    // If strict JSON parse fails, attempt to evaluate JS object syntax
     try {
       return (new Function("return " + raw))();
     } catch(err) {
@@ -2438,10 +2485,6 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
       reg.update().catch(() => {});
     }).catch(err => console.error('SW registration failed', err));
-
-    navigator.serviceWorker.register('firebase-messaging-sw.js').catch(err => {
-      console.warn('FCM SW registration optional/failed:', err);
-    });
   });
 }
 </script>
