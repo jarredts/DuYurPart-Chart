@@ -58,7 +58,6 @@
   .subtask-row:last-child { border-bottom:none; }
   .chk { width:18px; height:18px; flex-shrink:0; accent-color:#7C3AED; }
   
-  /* Larger calendar day cell and bar indicators */
   .day-cell { min-height:56px; }
   .day-bar { height:4px; border-radius:2px; width:100%; transition:all .2s ease; }
   
@@ -149,9 +148,9 @@
       <!-- Filter controls for Chore Log -->
       <div class="grid grid-cols-2 gap-2 mb-2">
         <select id="logStatusFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
-          <option value="all">All Statuses</option>
-          <option value="completed">Completed Only</option>
-          <option value="pending">To-Do / Pending</option>
+          <option value="all">All</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
         </select>
         <select id="logRangeFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
           <option value="all">All Time</option>
@@ -700,7 +699,7 @@ let currentChoreDetail = null;
 let subtaskBuilderCount = 0;
 let marketSubtaskBuilderCount = 0;
 let rotationStageCount = 0;
-let currentItemType = 'chore'; // 'chore' or 'task'
+let currentItemType = 'chore';
 let calendarFilter = new Set();
 let firestoreDb = null, firebaseApp = null, unsubscribeSync = null;
 
@@ -967,9 +966,7 @@ function weeklyClaimCountForPerson(personId) {
   return n;
 }
 
-// Tasks show on calendar:
-// 1. If Everyone view is active, only tasks belonging to this device's profile show.
-// 2. If a specific person is filtered, that person's tasks show.
+// Personal tasks only show when that specific person is filtered. In "Everyone" view, personal tasks are hidden.
 function getChoresForDate(dateStr) {
   let items = [...getSingleForDate(dateStr), ...getRecurringForDate(dateStr), ...getMarketForCalendarDate(dateStr)];
   
@@ -979,11 +976,7 @@ function getChoresForDate(dateStr) {
       return calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__'));
     });
   } else {
-    // In "Everyone" view, hide other people's personal tasks
-    items = items.filter(c => {
-      if (!c.isTask) return true;
-      return state.settings.myProfileId && c.personId === state.settings.myProfileId;
-    });
+    items = items.filter(c => !c.isTask);
   }
   return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
@@ -1045,7 +1038,6 @@ function renderCalendar() {
     cell.className = 'day-cell rounded-xl flex flex-col items-center justify-between p-1 cursor-pointer text-xs transition-all '
       + (isSelected ? 'bg-purple-100 font-bold text-purple-700 shadow-inner' : isToday ? 'bg-purple-50 font-bold text-purple-600 border border-purple-200' : 'hover:bg-gray-50 text-gray-700 bg-white border border-gray-100');
     
-    // Stacked horizontal lines instead of tiny dots
     const barsHtml = chores.slice(0,3).map(c => {
       const p = getPerson(c.personId);
       const color = c.unclaimed ? '#9CA3AF' : (p ? p.color : '#cbd5e1');
@@ -1246,7 +1238,7 @@ function toggleChoreComplete() {
 }
 
 function handleRewardOnComplete(c) {
-  if (c.isTask) return; // Personal tasks don't generate banked family rewards
+  if (c.isTask) return;
   if (c.reward && c.reward.enabled && c.reward.banked) {
     state.bankedRewards.push({
       id: uid('bank'), personId: c.personId, choreTitle: c.title,
@@ -1833,7 +1825,6 @@ function renderLog() {
   const rangeFilter = document.getElementById('logRangeFilter') ? document.getElementById('logRangeFilter').value : 'all';
 
   const items = [];
-  // Personal tasks are excluded from the family chore log
   state.chores.filter(c => !c.isTask).forEach(c => items.push({ kind:'single', id:c.id, dateStr:c.date, title:c.title, personId:c.personId, time:c.time, completed:c.completed, subtasks:c.subtasks||[], reward:c.reward }));
   
   const start = new Date(); start.setDate(start.getDate()-45);
@@ -1848,14 +1839,11 @@ function renderLog() {
   const today = todayStr();
   let filtered = items;
 
-  // Person filter
   if (personFilter !== 'all') filtered = filtered.filter(i => i.personId === personFilter);
 
-  // Status filter
   if (statusFilter === 'completed') filtered = filtered.filter(i => i.completed);
   else if (statusFilter === 'pending') filtered = filtered.filter(i => !i.completed);
 
-  // Range filter
   if (rangeFilter === 'past7') {
     const p7 = new Date(); p7.setDate(p7.getDate()-7);
     const p7Str = formatLocalDate(p7);
@@ -1888,7 +1876,6 @@ function periodRange(period) {
 
 function completedChoresInRange(start, end) {
   const results = [];
-  // Exclude personal tasks from stats
   state.chores.filter(c => !c.isTask).forEach(c => {
     if (c.completed) {
       const compDate = (c.completedAt ? c.completedAt.slice(0,10) : c.date);
@@ -2204,7 +2191,7 @@ function sendPoke() {
 }
 function renderPokeHistory() {
   const box = document.getElementById('pokeHistory');
-  const recent = state.pokes.slice(0,8);
+  const recent = state.pokes.slice(0, 3);
   box.innerHTML = recent.length ? '<div class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Recent Pokes</div>' + recent.map(p => `<div class="text-xs text-gray-600 flex items-center gap-1.5">
     <i class="fa-solid fa-bell text-purple-400 text-[10px]"></i>
     <span>${personChip(p.fromPersonId)} → ${personChip(p.toPersonId)}</span>
