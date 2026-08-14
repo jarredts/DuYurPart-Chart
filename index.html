@@ -2269,7 +2269,7 @@ async function requestPushNotificationPermission() {
 async function registerDeviceToken() {
   if (!fcmMessaging || !localDeviceProfileId) return;
   try {
-    const swReg = await navigator.serviceWorker.ready;
+    const swReg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
     const vapidKey = state.settings.vapidKey;
     const token = await fcmMessaging.getToken({
       vapidKey: vapidKey || undefined,
