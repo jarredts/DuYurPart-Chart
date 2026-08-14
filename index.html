@@ -57,8 +57,11 @@
   html.dark .subtask-row { border-bottom-color:rgba(255,255,255,0.06); }
   .subtask-row:last-child { border-bottom:none; }
   .chk { width:18px; height:18px; flex-shrink:0; accent-color:#7C3AED; }
-  .day-cell { min-height:44px; }
-  .day-dot { width:5px; height:5px; border-radius:9999px; }
+  
+  /* Larger calendar day cell and bar indicators */
+  .day-cell { min-height:56px; }
+  .day-bar { height:4px; border-radius:2px; width:100%; transition:all .2s ease; }
+  
   .modal-backdrop { backdrop-filter:blur(2px); }
   .fade-in { animation: fadeIn .15s ease; }
   @keyframes fadeIn { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
@@ -114,14 +117,14 @@
   <section id="tab-calendar" class="space-y-3">
     <div class="bg-white rounded-2xl shadow-sm p-2.5 flex items-center gap-1.5 overflow-x-auto" id="calendarFilterBar"></div>
 
-    <div class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-3">
-      <div class="flex items-center justify-between mb-2">
+    <div class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-3.5">
+      <div class="flex items-center justify-between mb-3">
         <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
-        <div id="calMonthLabel" class="font-bold text-sm"></div>
+        <div id="calMonthLabel" class="font-bold text-base text-gray-900"></div>
         <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
       </div>
-      <div id="calWeekdayHeader" class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-1"></div>
-      <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
+      <div id="calWeekdayHeader" class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-gray-400 mb-1.5"></div>
+      <div id="calendarGrid" class="grid grid-cols-7 gap-1.5"></div>
     </div>
 
     <div class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3">
@@ -140,8 +143,24 @@
         <select id="logPersonFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1">
           <option value="all">Everyone</option>
         </select>
-        <button onclick="openChoreModal()" class="text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add Chore</button>
+        <button onclick="openChoreModal()" class="text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
+      
+      <!-- Filter controls for Chore Log -->
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <select id="logStatusFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+          <option value="all">All Statuses</option>
+          <option value="completed">Completed Only</option>
+          <option value="pending">To-Do / Pending</option>
+        </select>
+        <select id="logRangeFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+          <option value="all">All Time</option>
+          <option value="past7">Past 7 Days</option>
+          <option value="next7">Next 7 Days</option>
+          <option value="thisMonth">This Month</option>
+        </select>
+      </div>
+
       <button onclick="openChoreModal(null, todayStr(), true)" class="w-full text-xs font-bold border-2 border-dashed border-blue-300 text-blue-600 rounded-lg py-2 mb-2">
         <i class="fa-solid fa-bolt"></i> Log an extra chore I already did
       </button>
@@ -239,34 +258,44 @@
     <div id="cdNotes" class="text-xs text-gray-500 mb-3 hidden"></div>
     <div class="flex gap-2">
       <button id="cdCompleteBtn" onclick="toggleChoreComplete()" class="flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-emerald-600"><i class="fa-solid fa-check"></i> Mark Complete</button>
-      <button onclick="pokeFromChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-bell"></i></button>
+      <button id="cdPokeBtn" onclick="pokeFromChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-bell"></i></button>
       <button id="cdEditBtn" onclick="editCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
       <button id="cdDeleteBtn" onclick="deleteCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
     </div>
   </div>
 </div>
 
-<!-- Add/Edit Chore Modal -->
+<!-- Add/Edit Chore / Task Modal -->
 <div id="choreModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-3">
-      <div id="choreModalTitle" class="text-lg font-bold">Add Chore</div>
+      <div id="choreModalTitle" class="text-lg font-bold">Add Item</div>
       <button onclick="closeModal('choreModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
+
+    <!-- Mode Selector: Family Chore vs Personal Task -->
+    <div class="flex gap-2 bg-gray-100 p-1 rounded-xl mb-3">
+      <button type="button" id="itemTypeChoreBtn" onclick="setItemType('chore')" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700">Family Chore</button>
+      <button type="button" id="itemTypeTaskBtn" onclick="setItemType('task')" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500">Personal Task</button>
+    </div>
+
     <input type="hidden" id="choreId">
     <div class="space-y-3">
       <div>
-        <label class="text-xs font-bold text-gray-500">Chore Name</label>
+        <label class="text-xs font-bold text-gray-500" id="itemTitleLabel">Chore Name</label>
         <input id="choreTitle" type="text" placeholder="Feed the dogs" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
       <div>
-        <label class="text-xs font-bold text-gray-500">Assign To</label>
+        <label class="text-xs font-bold text-gray-500" id="itemPersonLabel">Assign To</label>
         <select id="chorePerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
       </div>
+
+      <!-- Repeat Mode Selector (Single vs Recurring) -->
       <div class="flex gap-2">
         <button type="button" onclick="setChoreRepeatMode('single')" id="repeatModeSingleBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Single</button>
         <button type="button" onclick="setChoreRepeatMode('recurring')" id="repeatModeRecurBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Recurring</button>
       </div>
+
       <div id="singleDateBox" class="grid grid-cols-2 gap-2">
         <div>
           <label class="text-xs font-bold text-gray-500">Due Date</label>
@@ -277,6 +306,7 @@
           <input id="choreTime" type="time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
         </div>
       </div>
+
       <div id="recurBox" class="hidden space-y-2 bg-gray-50 rounded-lg p-2.5">
         <label class="text-xs font-bold text-gray-500">Repeats</label>
         <select id="recurFreq" onchange="updateRecurUI()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
@@ -284,13 +314,12 @@
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>
-          <option value="rotation">Rotating (alternating chores)</option>
+          <option value="rotation" id="recurRotationOption">Rotating (alternating chores)</option>
         </select>
 
         <div id="recurIntervalBox" class="hidden">
           <label class="text-xs font-bold text-gray-500">Every <span id="recurIntervalUnitLabel">week(s)</span></label>
           <input id="recurInterval" type="number" min="1" max="52" value="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-          <div class="text-[10px] text-gray-400 mt-1">e.g. "2" = every other week — perfect for biweekly rotations.</div>
         </div>
 
         <div id="recurWeeklyBox" class="hidden">
@@ -303,9 +332,8 @@
         </div>
 
         <div id="recurRotationBox" class="hidden">
-          <label class="text-xs font-bold text-gray-500">Rotating shifts <span class="font-normal">(cycles through in order)</span></label>
-          <div class="text-[10px] text-gray-400 mb-1">e.g. "Feed the dogs" for a week, then "Clean up after dinner" for a week, then back to feeding — set weeks-per-shift below.</div>
-          <div id="rotationStageBuilder" class="space-y-1.5"></div>
+          <label class="text-xs font-bold text-gray-500">Rotating shifts</label>
+          <div id="rotationStageBuilder" class="space-y-1.5 mt-1"></div>
           <button type="button" onclick="addRotationStageRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add shift</button>
           <div class="mt-2">
             <label class="text-xs font-bold text-gray-500">Weeks per shift</label>
@@ -337,7 +365,7 @@
         <button type="button" onclick="addSubtaskRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
       </div>
 
-      <div class="bg-purple-50 rounded-lg p-2.5">
+      <div id="rewardSectionWrapper" class="bg-purple-50 rounded-lg p-2.5">
         <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
           <input type="checkbox" id="rewardEnabled" onchange="updateRewardUI()" class="chk"> Assign a Reward
         </label>
@@ -349,7 +377,7 @@
           <input id="rewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
           <input id="rewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
           <label class="flex items-center gap-2 text-xs font-semibold text-gray-600">
-            <input type="checkbox" id="rewardBanked" class="chk"> Bank it (extra, above normal allowance) instead of paying right away
+            <input type="checkbox" id="rewardBanked" class="chk"> Bank it (extra, above normal allowance)
           </label>
         </div>
       </div>
@@ -374,7 +402,7 @@
       <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="dayListItems" class="space-y-2 mb-3"></div>
-    <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Chore This Day</button>
+    <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Item This Day</button>
   </div>
 </div>
 
@@ -392,7 +420,7 @@
 
     <div class="font-bold text-sm mb-2">This Device</div>
     <div class="mb-4">
-      <label class="text-xs font-bold text-gray-500">Whose phone is this? (used for pokes)</label>
+      <label class="text-xs font-bold text-gray-500">Whose phone is this? (used for pokes & default view)</label>
       <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
       <button onclick="requestNotifPermission()" class="w-full mt-2 rounded-lg py-2 text-xs font-bold bg-purple-50 text-purple-600 border border-purple-200">
         <i class="fa-solid fa-bell"></i> Enable in-app poke notifications
@@ -415,7 +443,7 @@
     <button onclick="toggleDarkMode()" class="w-full mb-4 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Toggle Dark Mode</button>
 
     <div class="font-bold text-sm mb-2">Cloud Sync</div>
-    <div class="text-[11px] text-gray-500 mb-2">Sync across all 4 phones using a shared Firebase project (same one your budgeting app used, or a new free one).</div>
+    <div class="text-[11px] text-gray-500 mb-2">Sync across devices using Firebase Firestore.</div>
     <textarea id="syncConfigInput" rows="3" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
     <div class="flex gap-2 mb-2">
       <button onclick="enableCloudSync()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-purple-600 text-white">Enable Sync</button>
@@ -458,7 +486,7 @@
         <input id="honeyTitle" type="text" placeholder="Reseal the deck" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
       <div>
-        <label class="text-xs font-bold text-gray-500">Assign To <span class="font-normal">(optional)</span></label>
+        <label class="text-xs font-bold text-gray-500">Assign To</label>
         <select id="honeyPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"><option value="">Anyone / Whole family</option></select>
       </div>
       <div>
@@ -509,7 +537,6 @@
       <div id="marketFixedOnceBox" class="hidden">
         <label class="text-xs font-bold text-gray-500">Due Date</label>
         <input id="marketDueDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-        <div class="text-[10px] text-gray-400 mt-1">Shows as "Unassigned" on the calendar on this date until someone claims it.</div>
       </div>
       <div id="marketFixedWeeklyBox" class="hidden">
         <label class="text-xs font-bold text-gray-500">Due Day (every week)</label>
@@ -531,7 +558,6 @@
           <select id="marketWindowStartOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
           <select id="marketWindowEndOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
         </div>
-        <div class="text-[10px] text-gray-400 mt-1">e.g. Monday → Sunday means open all week, at their leisure. Resets automatically each week.</div>
       </div>
 
       <div>
@@ -633,37 +659,36 @@ const DEFAULT_COLORS = [
 ];
 const WEEKDAY_LABELS_SUN = ['S','M','T','W','T','F','S'];
 const WEEKDAY_LABELS_MON = ['M','T','W','T','F','S','S'];
-const WEEKDAY_LABELS = WEEKDAY_LABELS_SUN; // kept for back-compat references
-// A colorful gradient per calendar month, used to give the header banner (and yearly editor) more color variety
+const WEEKDAY_LABELS = WEEKDAY_LABELS_SUN;
 const MONTH_GRADIENTS = [
-  ['#8B5CF6','#EC4899'], // Jan - purple/pink
-  ['#EC4899','#F97316'], // Feb
-  ['#F97316','#F59E0B'], // Mar
-  ['#22C55E','#14B8A6'], // Apr
-  ['#14B8A6','#3B82F6'], // May
-  ['#F59E0B','#EF4444'], // Jun
-  ['#3B82F6','#6366F1'], // Jul
-  ['#F43F5E','#F59E0B'], // Aug
-  ['#84CC16','#14B8A6'], // Sep
-  ['#F97316','#F43F5E'], // Oct
-  ['#6366F1','#8B5CF6'], // Nov
-  ['#EF4444','#8B5CF6']  // Dec
+  ['#8B5CF6','#EC4899'],
+  ['#EC4899','#F97316'],
+  ['#F97316','#F59E0B'],
+  ['#22C55E','#14B8A6'],
+  ['#14B8A6','#3B82F6'],
+  ['#F59E0B','#EF4444'],
+  ['#3B82F6','#6366F1'],
+  ['#F43F5E','#F59E0B'],
+  ['#84CC16','#14B8A6'],
+  ['#F97316','#F43F5E'],
+  ['#6366F1','#8B5CF6'],
+  ['#EF4444','#8B5CF6']
 ];
 const NAV_COLORS = { calendar:'purple', market:'pink', log:'blue', stats:'emerald', honeydo:'orange' };
 
 let state = {
   people: [],
-  chores: [],           // single-instance chores: {id,title,personId,date,time,subtasks[],reward,completed,completedAt,notes,loggedByKid}
-  recurring: [],         // {id,title,personId,frequency,daysOfWeek[],dayOfMonth,startDate,endDate,time,subtasks[],reward,active}
+  chores: [],           // single instances: {id,title,personId,date,time,subtasks[],reward,completed,completedAt,notes,isTask}
+  recurring: [],         // recurring rules: {..., isTask}
   recurringCompletions: {}, // key `${ruleId}_${dateStr}` -> {completed,completedAt,subtaskState:{id:bool}}
-  yearlyChores: [],      // 12: {id,month(1-12),title,subtasks:[{id,text,personId}]}
-  yearlyCompletions: {}, // key `${year}-${month}` -> {subtaskId: true}
-  honeyDo: [],           // {id,title,personId,priority,notes,done,createdAt,doneAt}
-  bankedRewards: [],     // {id,personId,choreTitle,reward,date,redeemed,redeemedAt}
-  pokes: [],             // {id,fromPersonId,toPersonId,message,ts,read}
-  marketChores: [],      // marketplace listing templates, see market engine below
-  marketClaims: {},      // key `${marketId}_${scopeKey}` -> {personId,dueDate,claimedAt,completed,completedAt,subtaskState}
-  marketCompletions: [], // archived record of completed marketplace claims that survives "Release" — {id,title,personId,dueDate,completedAt}
+  yearlyChores: [],
+  yearlyCompletions: {},
+  honeyDo: [],
+  bankedRewards: [],
+  pokes: [],
+  marketChores: [],
+  marketClaims: {},
+  marketCompletions: [],
   settings: { myProfileId: null, syncConfig: null, weekStart: 'sunday', weeklyQuota: 2 }
 };
 
@@ -671,11 +696,12 @@ let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
 let selectedDate = todayStr();
 let dayListDate = null;
-let currentChoreDetail = null; // {kind:'single'|'recurring'|'market', id, dateStr}
+let currentChoreDetail = null;
 let subtaskBuilderCount = 0;
 let marketSubtaskBuilderCount = 0;
 let rotationStageCount = 0;
-let calendarFilter = new Set(); // empty = show everyone; may contain personIds or '__unassigned__'
+let currentItemType = 'chore'; // 'chore' or 'task'
+let calendarFilter = new Set();
 let firestoreDb = null, firebaseApp = null, unsubscribeSync = null;
 
 function todayStr() { return formatLocalDate(new Date()); }
@@ -699,7 +725,7 @@ async function loadState() {
 }
 
 function seedDefaultData() {
-  state.people = DEFAULT_COLORS.map((c,i) => ({ id: uid('p'), name: i===0?'You':i===1?'Spouse':'Kid '+(i-1), color: c.hex }));
+  state.people = DEFAULT_COLORS.slice(0,4).map((c,i) => ({ id: uid('p'), name: i===0?'Jarred':i===1?'Jaclyn':i===2?'Jiana':'Juliette', color: c.hex }));
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   state.yearlyChores = monthNames.map((m,i) => ({ id: uid('yc'), month: i+1, title: m+' Family Chore', subtasks: [] }));
 }
@@ -736,10 +762,10 @@ function switchTab(tab) {
 
 /* =========================== PEOPLE HELPERS =========================== */
 function getPerson(id) { return state.people.find(p => p.id === id); }
-function personChip(id, size) {
+function personChip(id, isTask) {
   const p = getPerson(id);
   if (!p) return '<span class="person-chip bg-gray-100 text-gray-400">Unassigned</span>';
-  return `<span class="person-chip" style="background:${p.color}22;color:${p.color}"><span class="person-dot" style="background:${p.color}"></span>${escapeHtml(p.name)}</span>`;
+  return `<span class="person-chip" style="background:${p.color}22;color:${p.color}"><span class="person-dot" style="background:${p.color}"></span>${escapeHtml(p.name)}${isTask?' · Task':''}</span>`;
 }
 function personOptions(selectedId, includeBlankLabel) {
   let html = includeBlankLabel ? `<option value="">${escapeHtml(includeBlankLabel)}</option>` : '';
@@ -751,7 +777,7 @@ function personOptions(selectedId, includeBlankLabel) {
 function getWeekStartSetting() { return (state.settings && state.settings.weekStart) || 'sunday'; }
 function startOfWeek(dateStr, weekStart) {
   const d = parseLocalDate(dateStr);
-  const dow = d.getDay(); // 0=Sun..6=Sat
+  const dow = d.getDay();
   const diff = (weekStart||getWeekStartSetting()) === 'monday' ? ((dow + 6) % 7) : dow;
   d.setDate(d.getDate() - diff);
   return d;
@@ -825,7 +851,7 @@ function getRecurringForDate(dateStr) {
     const comp = state.recurringCompletions[key] || {};
     return {
       kind: 'recurring', id: r.id, dateStr, title: ruleTitleForDate(r, dateStr), personId: r.personId,
-      time: r.time, subtasks: ruleSubtasksForDate(r, dateStr), reward: r.reward,
+      time: r.time, subtasks: ruleSubtasksForDate(r, dateStr), reward: r.reward, isTask: !!r.isTask,
       completed: !!comp.completed, subtaskState: comp.subtaskState || {}
     };
   });
@@ -833,18 +859,14 @@ function getRecurringForDate(dateStr) {
 function getSingleForDate(dateStr) {
   return state.chores.filter(c => c.date === dateStr).map(c => ({
     kind: 'single', id: c.id, dateStr, title: c.title, personId: c.personId,
-    time: c.time, subtasks: c.subtasks || [], reward: c.reward,
+    time: c.time, subtasks: c.subtasks || [], reward: c.reward, isTask: !!c.isTask,
     completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid
   }));
 }
+
 /* =========================== MARKETPLACE ENGINE =========================== */
-// A market chore is a "listing" that anyone can claim. It can be one-time or a weekly pool item,
-// and can either have a specific due date (shows "Unassigned" on the calendar until claimed) or a
-// flexible window (never shown on the calendar until someone claims it and picks a date).
 function marketClaimKey(marketId, scopeKey) { return marketId+'_'+scopeKey; }
 function getMarketClaim(marketId, scopeKey) { return state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
-// Called right before a claim is deleted (release/unclaim). If it was completed, archive it to
-// marketCompletions first so stats still count it — releasing shouldn't erase completion history.
 function archiveMarketClaimIfCompleted(marketId, scopeKey) {
   const claim = getMarketClaim(marketId, scopeKey);
   if (!claim || !claim.completed) return;
@@ -855,7 +877,6 @@ function archiveMarketClaimIfCompleted(marketId, scopeKey) {
   state.marketCompletions.push({ id: uid('mkc'), title: market.title, personId: claim.personId, dueDate, completedAt: claim.completedAt || new Date().toISOString() });
 }
 
-// Returns one "instance" per market chore for the week containing refDateStr (or the single instance for one-time items)
 function activeMarketInstances(refDateStr) {
   const ref = refDateStr || todayStr();
   const weekStartStr = currentWeekStartStr(ref);
@@ -897,7 +918,7 @@ function getMarketForCalendarDate(dateStr) {
         items.push({
           kind:'market', id: x.market.id+'::'+x.scopeKey, marketId:x.market.id, scopeKey:x.scopeKey, dateStr,
           title: x.market.title, personId: x.claim ? x.claim.personId : null, time: null,
-          subtasks: x.market.subtasks||[], reward: x.market.reward,
+          subtasks: x.market.subtasks||[], reward: x.market.reward, isTask: false,
           completed: !!(x.claim && x.claim.completed), subtaskState: (x.claim && x.claim.subtaskState) || {},
           unclaimed: !x.claim
         });
@@ -906,11 +927,10 @@ function getMarketForCalendarDate(dateStr) {
       items.push({
         kind:'market', id: x.market.id+'::'+x.scopeKey, marketId:x.market.id, scopeKey:x.scopeKey, dateStr,
         title: x.market.title, personId: x.claim.personId, time: null,
-        subtasks: x.market.subtasks||[], reward: x.market.reward,
+        subtasks: x.market.subtasks||[], reward: x.market.reward, isTask: false,
         completed: !!x.claim.completed, subtaskState: x.claim.subtaskState || {}, unclaimed:false
       });
     }
-    // unclaimed flexible listings never show on the calendar — they only live in the Marketplace tab
   });
   return items;
 }
@@ -925,8 +945,6 @@ function resolvedMarketDueDate(market, scopeKey, claim) {
   }
   return claim ? claim.dueDate : null;
 }
-// Flattens every stored claim (current and past weeks) into entries with a resolved due date —
-// used for stats/history so completed marketplace chores are counted even after being released.
 function allMarketClaimEntries() {
   return Object.keys(state.marketClaims).map(key => {
     const idx = key.indexOf('_');
@@ -949,10 +967,23 @@ function weeklyClaimCountForPerson(personId) {
   return n;
 }
 
+// Tasks show on calendar:
+// 1. If Everyone view is active, only tasks belonging to this device's profile show.
+// 2. If a specific person is filtered, that person's tasks show.
 function getChoresForDate(dateStr) {
   let items = [...getSingleForDate(dateStr), ...getRecurringForDate(dateStr), ...getMarketForCalendarDate(dateStr)];
+  
   if (calendarFilter.size) {
-    items = items.filter(c => calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__')));
+    items = items.filter(c => {
+      if (c.isTask) return calendarFilter.has(c.personId);
+      return calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__'));
+    });
+  } else {
+    // In "Everyone" view, hide other people's personal tasks
+    items = items.filter(c => {
+      if (!c.isTask) return true;
+      return state.settings.myProfileId && c.personId === state.settings.myProfileId;
+    });
   }
   return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
@@ -999,7 +1030,7 @@ function renderCalendar() {
   const grid = document.getElementById('calendarGrid');
   grid.innerHTML = '';
   const first = new Date(calYear, calMonth, 1);
-  const rawOffset = first.getDay(); // 0=Sun
+  const rawOffset = first.getDay();
   const startOffset = weekStart === 'monday' ? ((rawOffset + 6) % 7) : rawOffset;
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
 
@@ -1011,11 +1042,24 @@ function renderCalendar() {
     const cell = document.createElement('div');
     const isToday = dateStr === todayStr();
     const isSelected = dateStr === selectedDate;
-    cell.className = 'day-cell rounded-lg flex flex-col items-center justify-start pt-1 cursor-pointer text-xs '
-      + (isSelected ? 'bg-purple-100 font-bold text-purple-700' : isToday ? 'bg-purple-50 font-bold text-purple-600' : 'hover:bg-gray-50 text-gray-700');
-    cell.innerHTML = `<div>${day}</div><div class="flex gap-0.5 mt-1 flex-wrap justify-center max-w-full">${
-      chores.slice(0,4).map(c => { const p = getPerson(c.personId); const dot = c.unclaimed ? '#9CA3AF' : (p?p.color:'#cbd5e1'); return `<span class="day-dot" style="background:${dot};opacity:${c.completed?0.3:1};${c.unclaimed?'border:1px dashed #6B7280':''}"></span>`; }).join('')
-    }</div>`;
+    cell.className = 'day-cell rounded-xl flex flex-col items-center justify-between p-1 cursor-pointer text-xs transition-all '
+      + (isSelected ? 'bg-purple-100 font-bold text-purple-700 shadow-inner' : isToday ? 'bg-purple-50 font-bold text-purple-600 border border-purple-200' : 'hover:bg-gray-50 text-gray-700 bg-white border border-gray-100');
+    
+    // Stacked horizontal lines instead of tiny dots
+    const barsHtml = chores.slice(0,3).map(c => {
+      const p = getPerson(c.personId);
+      const color = c.unclaimed ? '#9CA3AF' : (p ? p.color : '#cbd5e1');
+      return `<div class="day-bar" style="background:${color};opacity:${c.completed?0.3:1};${c.unclaimed?'border:1px dashed #6B7280':''}"></div>`;
+    }).join('');
+    
+    const extraCount = chores.length > 3 ? `<div class="text-[8px] font-bold text-gray-400 leading-none">+${chores.length-3}</div>` : '';
+
+    cell.innerHTML = `
+      <div class="text-xs font-semibold">${day}</div>
+      <div class="w-full space-y-1 px-1 flex flex-col items-center mb-0.5">
+        ${barsHtml}
+        ${extraCount}
+      </div>`;
     cell.onclick = () => { selectedDate = dateStr; openDayList(dateStr); renderCalendar(); renderSelectedDay(); };
     grid.appendChild(cell);
   }
@@ -1027,22 +1071,26 @@ function renderSelectedDay() {
   document.getElementById('selectedDayLabel').textContent = label + d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
   const list = document.getElementById('selectedDayList');
   const chores = getChoresForDate(selectedDate);
-  if (!chores.length) { list.innerHTML = '<div class="text-xs text-gray-400 py-3 text-center">No chores this day 🎉</div>'; return; }
+  if (!chores.length) { list.innerHTML = '<div class="text-xs text-gray-400 py-3 text-center">No items for this day 🎉</div>'; return; }
   list.innerHTML = chores.map(choreRowHtml).join('');
 }
 
 function choreRowHtml(c) {
   const p = getPerson(c.personId);
   const subCount = (c.subtasks||[]).length;
-  const subDone = subCount ? (c.subtasks||[]).filter(s => c.subtaskState[s.id]).length : 0;
+  const subDone = subCount ? (c.subtasks||[]).filter(s => c.subtaskState && c.subtaskState[s.id]).length : 0;
   const isUnclaimed = c.kind === 'market' && c.unclaimed;
   const borderColor = isUnclaimed ? '#9CA3AF' : (p?p.color:'#cbd5e1');
   const clickable = c.id != null && c.dateStr != null;
   return `<div ${clickable?`onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')"`:''} class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2.5 flex items-center justify-between ${clickable?'cursor-pointer':''}" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
     <div class="min-w-0 flex-1">
-      <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}${escapeHtml(c.title)}</div>
+      <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">
+        ${c.isTask ? '<i class="fa-solid fa-user-check text-purple-400 text-[11px] mr-1.5" title="Personal Task"></i>' : ''}
+        ${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}
+        ${escapeHtml(c.title)}
+      </div>
       <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-        ${isUnclaimed ? '<span class="person-chip bg-gray-200 text-gray-500">Unassigned · Up for grabs</span>' : personChip(c.personId)}
+        ${isUnclaimed ? '<span class="person-chip bg-gray-200 text-gray-500">Unassigned · Up for grabs</span>' : personChip(c.personId, c.isTask)}
         ${c.time ? `<span class="text-[10px] text-gray-400 font-mono">${formatTime(c.time)}</span>` : ''}
         ${subCount ? `<span class="text-[10px] text-gray-400">${subDone}/${subCount} steps</span>` : ''}
         ${c.reward && c.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(c.reward)}</span>` : ''}
@@ -1060,7 +1108,7 @@ function openDayList(dateStr) {
   const d = parseLocalDate(dateStr);
   document.getElementById('dayListTitle').textContent = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
   const chores = getChoresForDate(dateStr);
-  document.getElementById('dayListItems').innerHTML = chores.length ? chores.map(choreRowHtml).join('') : '<div class="text-xs text-gray-400 py-3 text-center">No chores this day 🎉</div>';
+  document.getElementById('dayListItems').innerHTML = chores.length ? chores.map(choreRowHtml).join('') : '<div class="text-xs text-gray-400 py-3 text-center">No items this day 🎉</div>';
   openModal('dayListModal');
 }
 
@@ -1081,7 +1129,7 @@ function openChoreDetail(kind, id, dateStr) {
     const m = state.marketChores.find(x => x.id === marketId);
     const claim = getMarketClaim(marketId, scopeKey);
     isUnclaimed = !claim;
-    c = { title: m.title, personId: claim?claim.personId:null, time: null, reward: m.reward, notes: m.notes, subtasks: m.subtasks||[] };
+    c = { title: m.title, personId: claim?claim.personId:null, time: null, reward: m.reward, notes: m.notes, subtasks: m.subtasks||[], isTask:false };
     comp = claim ? { completed: claim.completed, subtaskState: claim.subtaskState||{} } : { completed:false, subtaskState:{} };
   }
   if (!c) return;
@@ -1089,10 +1137,10 @@ function openChoreDetail(kind, id, dateStr) {
   document.getElementById('cdTitle').textContent = c.title;
   document.getElementById('cdMeta').innerHTML = isUnclaimed
     ? `<span class="person-chip bg-gray-200 text-gray-500">Unassigned</span> · <span class="text-pink-500 font-semibold">In the Marketplace</span>`
-    : `${personChip(c.personId)} ${c.time?('· '+formatTime(c.time)):''} ${kind==='recurring'?'· <span class=\"text-purple-500 font-semibold\">Recurring</span>':''} ${kind==='market'?'· <span class=\"text-pink-500 font-semibold\">From Marketplace</span>':''}`;
+    : `${personChip(c.personId, c.isTask)} ${c.time?('· '+formatTime(c.time)):''} ${c.isTask?'· <span class=\"text-purple-600 font-semibold\">Personal Task</span>':''}`;
 
   const rBox = document.getElementById('cdRewardBox');
-  if (c.reward && c.reward.enabled) {
+  if (c.reward && c.reward.enabled && !c.isTask) {
     rBox.classList.remove('hidden');
     rBox.className = 'rounded-xl p-2.5 mb-3 text-sm bg-purple-50 text-purple-700 font-semibold';
     rBox.innerHTML = `<i class="fa-solid fa-gift"></i> ${rewardLabel(c.reward)}`;
@@ -1118,6 +1166,9 @@ function openChoreDetail(kind, id, dateStr) {
     btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white ' + (comp.completed ? 'bg-gray-400' : 'bg-emerald-600');
     btn.innerHTML = comp.completed ? '<i class="fa-solid fa-rotate-left"></i> Undo Complete' : '<i class="fa-solid fa-check"></i> Mark Complete';
   }
+
+  const pokeBtn = document.getElementById('cdPokeBtn');
+  if (pokeBtn) pokeBtn.classList.toggle('hidden', !!c.isTask);
 
   const editBtn = document.getElementById('cdEditBtn');
   if (editBtn) editBtn.classList.toggle('hidden', kind === 'market');
@@ -1151,15 +1202,26 @@ function toggleSubtask(subId, checked) {
 
 function toggleChoreComplete() {
   const { kind, id, dateStr } = currentChoreDetail;
+  const today = todayStr();
+  
   if (kind === 'single') {
     const c = state.chores.find(x => x.id === id);
     c.completed = !c.completed;
-    if (c.completed) { c.completedAt = new Date().toISOString(); handleRewardOnComplete(c); }
+    if (c.completed) {
+      c.completedAt = new Date().toISOString();
+      if (c.date > today) {
+        if (confirm(`Completed early! Update due date from ${c.date} to today (${today})?`)) {
+          c.date = today;
+        }
+      }
+      handleRewardOnComplete(c);
+    }
   } else if (kind === 'recurring') {
     const key = id+'_'+dateStr;
     state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
     state.recurringCompletions[key].completed = !state.recurringCompletions[key].completed;
     if (state.recurringCompletions[key].completed) {
+      state.recurringCompletions[key].completedAt = new Date().toISOString();
       const rule = state.recurring.find(r => r.id === id);
       if (rule) handleRewardOnComplete(rule);
     }
@@ -1170,6 +1232,11 @@ function toggleChoreComplete() {
     claim.completed = !claim.completed;
     if (claim.completed) {
       claim.completedAt = new Date().toISOString();
+      if (claim.dueDate && claim.dueDate > today) {
+        if (confirm(`Completed ahead of time! Update logged date to today (${today}) for immediate stats?`)) {
+          claim.dueDate = today;
+        }
+      }
       const m = state.marketChores.find(x => x.id === marketId);
       if (m) handleRewardOnComplete({ ...m, personId: claim.personId });
     }
@@ -1179,6 +1246,7 @@ function toggleChoreComplete() {
 }
 
 function handleRewardOnComplete(c) {
+  if (c.isTask) return; // Personal tasks don't generate banked family rewards
   if (c.reward && c.reward.enabled && c.reward.banked) {
     state.bankedRewards.push({
       id: uid('bank'), personId: c.personId, choreTitle: c.title,
@@ -1208,7 +1276,7 @@ function deleteCurrentChore() {
     return;
   }
   const idToDelete = detail ? detail.id : document.getElementById('choreId').value;
-  if (!confirm('Delete this chore?')) return;
+  if (!confirm('Delete this item?')) return;
   if (kind === 'single') state.chores = state.chores.filter(c => c.id !== idToDelete);
   else { state.recurring = state.recurring.filter(r => r.id !== idToDelete); }
   closeModal('choreDetailModal'); closeModal('choreModal');
@@ -1230,9 +1298,23 @@ function pokeFromChore() {
   openPokeModal(personId);
 }
 
-/* =========================== ADD/EDIT CHORE MODAL =========================== */
+/* =========================== ADD/EDIT ITEM MODAL =========================== */
 let choreRepeatMode = 'single';
 let rewardType = 'money';
+
+function setItemType(type) {
+  currentItemType = type;
+  const isChore = type === 'chore';
+  document.getElementById('itemTypeChoreBtn').className = isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
+  document.getElementById('itemTypeTaskBtn').className = !isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
+  
+  document.getElementById('itemTitleLabel').textContent = isChore ? 'Chore Name' : 'Task Name';
+  document.getElementById('itemPersonLabel').textContent = isChore ? 'Assign To' : 'Whose Task';
+  document.getElementById('choreTitle').placeholder = isChore ? 'Feed the dogs' : 'Balance checkbook';
+  
+  document.getElementById('rewardSectionWrapper').classList.toggle('hidden', !isChore);
+  document.getElementById('recurRotationOption').classList.toggle('hidden', !isChore);
+}
 
 function setChoreRepeatMode(mode) {
   choreRepeatMode = mode;
@@ -1280,7 +1362,7 @@ function addRotationStageRow(title, subtasks) {
       <button type="button" onclick="this.closest('[data-stageid]').remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>
     </div>
     <div class="pl-4">
-      <div class="text-[10px] font-bold text-gray-400 mb-1">Steps for this shift <span class="font-normal">(only apply while it's active)</span></div>
+      <div class="text-[10px] font-bold text-gray-400 mb-1">Steps for this shift</div>
       <div class="stage-subtask-list space-y-1"></div>
       <button type="button" onclick="addStageSubtaskRow(this)" class="stage-add-btn text-[11px] font-bold text-purple-500 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
     </div>`;
@@ -1336,11 +1418,11 @@ function readSubtasksFromBuilder() {
 }
 
 function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
-  document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Chore' : 'Add Chore';
+  document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Item' : 'Add Item';
   document.getElementById('choreId').value = choreId || '';
   document.getElementById('subtaskBuilder').innerHTML = ''; subtaskBuilderCount = 0;
   document.getElementById('rotationStageBuilder').innerHTML = ''; rotationStageCount = 0;
-  document.getElementById('chorePerson').innerHTML = personOptions(null);
+  document.getElementById('chorePerson').innerHTML = personOptions(state.settings.myProfileId);
   document.getElementById('recurStart').value = presetDate || todayStr();
   document.getElementById('recurEnd').value = '';
   document.getElementById('recurInterval').value = 1;
@@ -1349,12 +1431,14 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   document.getElementById('choreDeleteBtn').classList.add('hidden');
   document.getElementById('rewardEnabled').checked = false;
   setRewardType('money'); updateRewardUI();
+  setItemType('chore');
 
   if (recurringId) {
     const r = state.recurring.find(x => x.id === recurringId);
     document.getElementById('choreId').value = 'REC:'+recurringId;
     document.getElementById('choreTitle').value = r.title;
     document.getElementById('chorePerson').value = r.personId;
+    setItemType(r.isTask ? 'task' : 'chore');
     setChoreRepeatMode('recurring');
     document.getElementById('recurFreq').value = r.frequency;
     if (r.frequency === 'rotation') {
@@ -1382,6 +1466,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     const c = state.chores.find(x => x.id === choreId);
     document.getElementById('choreTitle').value = c.title;
     document.getElementById('chorePerson').value = c.personId;
+    setItemType(c.isTask ? 'task' : 'chore');
     setChoreRepeatMode('single');
     document.getElementById('choreDate').value = c.date;
     document.getElementById('choreTime').value = c.time || '';
@@ -1412,10 +1497,11 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
 function saveChore() {
   const idRaw = document.getElementById('choreId').value;
   const title = document.getElementById('choreTitle').value.trim();
-  if (!title) { toast('Give the chore a name', 'fa-triangle-exclamation'); return; }
+  if (!title) { toast('Give it a name', 'fa-triangle-exclamation'); return; }
   const personId = document.getElementById('chorePerson').value;
+  const isTask = (currentItemType === 'task');
   const subtasks = readSubtasksFromBuilder();
-  const rewardEnabled = document.getElementById('rewardEnabled').checked;
+  const rewardEnabled = !isTask && document.getElementById('rewardEnabled').checked;
   const reward = rewardEnabled ? {
     enabled: true, type: rewardType,
     amount: rewardType === 'money' ? Number(document.getElementById('rewardAmount').value || 0) : null,
@@ -1428,7 +1514,7 @@ function saveChore() {
     const isEditingRec = idRaw.startsWith('REC:');
     const freq = document.getElementById('recurFreq').value;
     const ruleData = {
-      title, personId, frequency: freq,
+      title, personId, frequency: freq, isTask,
       daysOfWeek: freq === 'weekly' ? getSelectedRecurDays() : [],
       dayOfMonth: freq === 'monthly' ? Number(document.getElementById('recurDayOfMonth').value || 1) : null,
       interval: (freq === 'daily' || freq === 'weekly' || freq === 'monthly') ? Math.max(1, Number(document.getElementById('recurInterval').value || 1)) : 1,
@@ -1453,25 +1539,21 @@ function saveChore() {
     const time = document.getElementById('choreTime').value || null;
     if (idRaw && !idRaw.startsWith('REC:')) {
       const c = state.chores.find(x => x.id === idRaw);
-      Object.assign(c, { title, personId, date, time, subtasks, reward, notes });
+      Object.assign(c, { title, personId, date, time, subtasks, reward, notes, isTask });
     } else {
-      state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false });
+      state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false, isTask });
     }
   }
   closeModal('choreModal');
   saveState();
-  toast('Chore saved', 'fa-check');
+  toast(isTask ? 'Personal task saved' : 'Chore saved', 'fa-check');
 }
 
 /* =========================== MARKETPLACE MODAL =========================== */
 let marketRepeats = 'once';
 let marketSchedule = 'fixed';
 let marketRewardType = 'money';
-// Day-offset labels for the marketplace's weekly-window pickers. Offset i always means
-// "i days after this family's configured week start" — so the label at index i must be
-// whatever weekday that actually lands on, not a fixed Sunday-first list. Mismatching these
-// (e.g. showing "Sunday" for offset 0 when the week actually starts Monday) makes end dates
-// silently resolve to before the start date, breaking the window.
+
 function offsetDayLabels() {
   const base = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const shift = getWeekStartSetting() === 'monday' ? 1 : 0;
@@ -1487,8 +1569,6 @@ function setMarketRepeats(mode) {
   document.getElementById('marketRepeatsHelp').textContent = mode === 'once'
     ? 'One-time: posted once, gone once claimed & done.'
     : "Weekly Pool: reopens every week for someone new to claim — whoever claims it picks that week's date, so it never gets stuck.";
-  // Weekly pool chores always let the claimer pick a fresh date each week — a locked-in due
-  // date would get stuck on release, so "Specific Due Date" isn't offered for these.
   const fixedBtn = document.getElementById('marketSchedFixedBtn');
   fixedBtn.disabled = (mode === 'weekly');
   fixedBtn.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (mode === 'weekly' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white text-gray-500 border-gray-200');
@@ -1590,7 +1670,7 @@ function saveMarketChore() {
   const reward = rewardEnabled ? {
     enabled: true, type: marketRewardType,
     amount: marketRewardType === 'money' ? Number(document.getElementById('marketRewardAmount').value || 0) : null,
-    description: marketRewardType === 'other' ? document.getElementById('marketRewardDesc').value.trim() : null
+    description: marketRewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null
   } : { enabled:false };
   const notes = document.getElementById('marketNotes').value.trim();
 
@@ -1748,27 +1828,51 @@ function renderMarketplace() {
 function renderLog() {
   const filterSel = document.getElementById('logPersonFilter');
   if (filterSel.options.length <= 1) filterSel.innerHTML = '<option value="all">Everyone</option>' + personOptions(null);
-  const filter = filterSel.value;
+  const personFilter = filterSel.value;
+  const statusFilter = document.getElementById('logStatusFilter') ? document.getElementById('logStatusFilter').value : 'all';
+  const rangeFilter = document.getElementById('logRangeFilter') ? document.getElementById('logRangeFilter').value : 'all';
 
-  // Build combined list: all single chores (any status) + only the recurring/marketplace
-  // occurrences that were actually completed — otherwise a daily chore floods the log with
-  // one entry per day whether or not it was done.
   const items = [];
-  state.chores.forEach(c => items.push({ kind:'single', id:c.id, dateStr:c.date, title:c.title, personId:c.personId, time:c.time, completed:c.completed, subtasks:c.subtasks||[], reward:c.reward }));
+  // Personal tasks are excluded from the family chore log
+  state.chores.filter(c => !c.isTask).forEach(c => items.push({ kind:'single', id:c.id, dateStr:c.date, title:c.title, personId:c.personId, time:c.time, completed:c.completed, subtasks:c.subtasks||[], reward:c.reward }));
+  
   const start = new Date(); start.setDate(start.getDate()-45);
   const end = new Date(); end.setDate(end.getDate()+45);
   for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
     const ds = formatLocalDate(d);
-    getRecurringForDate(ds).forEach(o => { if (o.completed) items.push(o); });
+    getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => { if (o.completed) items.push(o); });
   }
   const marketStart = formatLocalDate(start), marketEnd = formatLocalDate(end);
   completedChoresInRange(marketStart, marketEnd).forEach(c => { if (c.kind === 'market') items.push(c); });
 
-  let filtered = filter === 'all' ? items : items.filter(i => i.personId === filter);
+  const today = todayStr();
+  let filtered = items;
+
+  // Person filter
+  if (personFilter !== 'all') filtered = filtered.filter(i => i.personId === personFilter);
+
+  // Status filter
+  if (statusFilter === 'completed') filtered = filtered.filter(i => i.completed);
+  else if (statusFilter === 'pending') filtered = filtered.filter(i => !i.completed);
+
+  // Range filter
+  if (rangeFilter === 'past7') {
+    const p7 = new Date(); p7.setDate(p7.getDate()-7);
+    const p7Str = formatLocalDate(p7);
+    filtered = filtered.filter(i => i.dateStr >= p7Str && i.dateStr <= today);
+  } else if (rangeFilter === 'next7') {
+    const n7 = new Date(); n7.setDate(n7.getDate()+7);
+    const n7Str = formatLocalDate(n7);
+    filtered = filtered.filter(i => i.dateStr >= today && i.dateStr <= n7Str);
+  } else if (rangeFilter === 'thisMonth') {
+    const mStr = today.slice(0,7);
+    filtered = filtered.filter(i => i.dateStr && i.dateStr.startsWith(mStr));
+  }
+
   filtered.sort((a,b) => b.dateStr.localeCompare(a.dateStr));
 
   const list = document.getElementById('logList');
-  list.innerHTML = filtered.length ? filtered.slice(0,150).map(c => choreRowHtml(c)).join('') : '<div class="text-xs text-gray-400 py-4 text-center">No chores yet.</div>';
+  list.innerHTML = filtered.length ? filtered.slice(0,150).map(c => choreRowHtml(c)).join('') : '<div class="text-xs text-gray-400 py-4 text-center">No matching chores found.</div>';
 }
 
 /* =========================== STATS TAB =========================== */
@@ -1784,19 +1888,34 @@ function periodRange(period) {
 
 function completedChoresInRange(start, end) {
   const results = [];
-  state.chores.forEach(c => { if (c.completed && c.date >= start && c.date <= end) results.push({ ...c, dateStr: c.date }); });
-  for (let d = parseLocalDate(start); d <= parseLocalDate(end); d.setDate(d.getDate()+1)) {
-    const ds = formatLocalDate(d);
-    getRecurringForDate(ds).forEach(o => { if (o.completed) results.push(o); });
-  }
-  allMarketClaimEntries().forEach(x => {
-    if (x.claim.completed && x.dueDate && x.dueDate >= start && x.dueDate <= end) {
-      results.push({ kind:'market', dateStr:x.dueDate, title:x.market.title, personId:x.claim.personId, completed:true, subtasks:[] });
+  // Exclude personal tasks from stats
+  state.chores.filter(c => !c.isTask).forEach(c => {
+    if (c.completed) {
+      const compDate = (c.completedAt ? c.completedAt.slice(0,10) : c.date);
+      if (compDate >= start && compDate <= end) {
+        results.push({ ...c, dateStr: compDate });
+      }
     }
   });
+
+  for (let d = parseLocalDate(start); d <= parseLocalDate(end); d.setDate(d.getDate()+1)) {
+    const ds = formatLocalDate(d);
+    getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => { if (o.completed) results.push(o); });
+  }
+
+  allMarketClaimEntries().forEach(x => {
+    if (x.claim.completed) {
+      const compDate = (x.claim.completedAt ? x.claim.completedAt.slice(0,10) : x.dueDate);
+      if (compDate && compDate >= start && compDate <= end) {
+        results.push({ kind:'market', dateStr:compDate, title:x.market.title, personId:x.claim.personId, completed:true, subtasks:[] });
+      }
+    }
+  });
+
   state.marketCompletions.forEach(m => {
-    if (m.dueDate >= start && m.dueDate <= end) {
-      results.push({ kind:'market', dateStr:m.dueDate, title:m.title, personId:m.personId, completed:true, subtasks:[] });
+    const compDate = (m.completedAt ? m.completedAt.slice(0,10) : m.dueDate);
+    if (compDate >= start && compDate <= end) {
+      results.push({ kind:'market', dateStr:compDate, title:m.title, personId:m.personId, completed:true, subtasks:[] });
     }
   });
   return results;
@@ -2050,11 +2169,11 @@ function addPersonRow() {
 function updatePersonName(id, val) { getPerson(id).name = val; saveState(); renderProfiles(); }
 function updatePersonColor(id, val) { getPerson(id).color = val; saveState(); renderProfiles(); }
 function removePerson(id) {
-  if (!confirm('Remove this person? Their assigned chores will stay but show as unassigned until reassigned.')) return;
+  if (!confirm('Remove this person? Their assigned chores will stay but show as unassigned.')) return;
   state.people = state.people.filter(p => p.id !== id);
   saveState(); renderProfiles();
 }
-function setMyProfile(id) { state.settings.myProfileId = id; persist(); toast('Saved — this phone is set up.', 'fa-check'); }
+function setMyProfile(id) { state.settings.myProfileId = id; persist(); renderApp(); toast('Profile device selected', 'fa-check'); }
 function setWeekStart(val) { state.settings.weekStart = val; saveState(); toast('Calendar updated', 'fa-calendar-days'); }
 function setWeeklyQuota(val) { state.settings.weeklyQuota = Math.max(0, Number(val||0)); saveState(); }
 
@@ -2093,15 +2212,10 @@ function renderPokeHistory() {
   </div>`).join('') : '';
 }
 function maybeShowLocalNotification(poke) {
-  if (poke.toPersonId !== state.settings.myProfileId && state.settings.myProfileId) {
-    // Not for this device's profile — on a real device this only fires for whichever
-    // profile is targeted, checked again on sync pull below.
-  }
   if ('Notification' in window && Notification.permission === 'granted' && poke.toPersonId === state.settings.myProfileId) {
     new Notification('Poke from '+((getPerson(poke.fromPersonId)||{}).name||'Family'), { body: poke.message, icon: 'icon-192.png' });
   }
 }
-// Called after a cloud sync pulls new data, to catch pokes meant for this device.
 let lastSeenPokeCount = 0;
 function checkForNewPokesTargetingMe() {
   if (!state.settings.myProfileId) return;
@@ -2113,7 +2227,7 @@ function checkForNewPokesTargetingMe() {
   lastSeenPokeCount = mine.length;
 }
 
-/* =========================== CLOUD SYNC (Firebase) =========================== */
+/* =========================== CLOUD SYNC =========================== */
 function loadSyncConfigFromStorage() {
   try { const raw = localStorage.getItem('chores_sync_config'); return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
 }
