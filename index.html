@@ -1467,7 +1467,16 @@ function saveChore() {
 let marketRepeats = 'once';
 let marketSchedule = 'fixed';
 let marketRewardType = 'money';
-const OFFSET_LABELS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+// Day-offset labels for the marketplace's weekly-window pickers. Offset i always means
+// "i days after this family's configured week start" — so the label at index i must be
+// whatever weekday that actually lands on, not a fixed Sunday-first list. Mismatching these
+// (e.g. showing "Sunday" for offset 0 when the week actually starts Monday) makes end dates
+// silently resolve to before the start date, breaking the window.
+function offsetDayLabels() {
+  const base = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const shift = getWeekStartSetting() === 'monday' ? 1 : 0;
+  return Array.from({length:7}, (_,i) => base[(shift+i)%7]);
+}
 
 function setMarketRepeats(mode) {
   marketRepeats = mode;
@@ -1525,14 +1534,14 @@ function readMarketSubtasksFromBuilder() {
   })).filter(s => s.text);
 }
 function fillOffsetSelect(id, selected) {
-  document.getElementById(id).innerHTML = OFFSET_LABELS.map((l,i) => `<option value="${i}" ${i===selected?'selected':''}>${l}</option>`).join('');
+  document.getElementById(id).innerHTML = offsetDayLabels().map((l,i) => `<option value="${i}" ${i===selected?'selected':''}>${l}</option>`).join('');
 }
 
 function openMarketModal(marketId) {
   document.getElementById('marketModalTitle').textContent = marketId ? 'Edit Listing' : 'Post to Marketplace';
   document.getElementById('marketId').value = marketId || '';
   document.getElementById('marketSubtaskBuilder').innerHTML = ''; marketSubtaskBuilderCount = 0;
-  document.getElementById('marketDueDayOfWeek').innerHTML = OFFSET_LABELS.map((l,i)=>`<option value="${i}">${l}</option>`).join('');
+  document.getElementById('marketDueDayOfWeek').innerHTML = offsetDayLabels().map((l,i)=>`<option value="${i}">${l}</option>`).join('');
   fillOffsetSelect('marketWindowStartOffset', 0);
   fillOffsetSelect('marketWindowEndOffset', 6);
   document.getElementById('marketRewardEnabled').checked = false;
@@ -1591,10 +1600,16 @@ function saveMarketChore() {
   if (marketSchedule === 'flexible' && marketRepeats === 'once') {
     data.windowStart = document.getElementById('marketWindowStart').value || todayStr();
     data.windowEnd = document.getElementById('marketWindowEnd').value || data.windowStart;
+    if (data.windowEnd < data.windowStart) { toast('Window end must be on or after the start date', 'fa-triangle-exclamation'); return; }
   }
   if (marketSchedule === 'flexible' && marketRepeats === 'weekly') {
     data.windowStartOffset = Number(document.getElementById('marketWindowStartOffset').value || 0);
     data.windowEndOffset = Number(document.getElementById('marketWindowEndOffset').value || 6);
+    if (data.windowEndOffset < data.windowStartOffset) {
+      const labels = offsetDayLabels();
+      toast(`${labels[data.windowEndOffset]} comes before ${labels[data.windowStartOffset]} in your week — pick a later end day`, 'fa-triangle-exclamation');
+      return;
+    }
   }
 
   if (id) {
@@ -1674,10 +1689,10 @@ function unclaimMarket(marketId, scopeKey) {
 /* =========================== MARKETPLACE TAB RENDER =========================== */
 function marketScheduleLabel(x) {
   if (x.market.scheduleType === 'fixed') {
-    return x.market.repeats === 'weekly' ? `Due every ${OFFSET_LABELS[x.market.dueDayOffset||0]}` : `Due ${x.dueDate}`;
+    return x.market.repeats === 'weekly' ? `Due every ${offsetDayLabels()[x.market.dueDayOffset||0]}` : `Due ${x.dueDate}`;
   }
   return x.market.repeats === 'weekly'
-    ? `Open ${OFFSET_LABELS[x.market.windowStartOffset||0]}–${OFFSET_LABELS[x.market.windowEndOffset!=null?x.market.windowEndOffset:6]}, at their leisure`
+    ? `Open ${offsetDayLabels()[x.market.windowStartOffset||0]}–${offsetDayLabels()[x.market.windowEndOffset!=null?x.market.windowEndOffset:6]}, at their leisure`
     : `Open ${x.windowStart} to ${x.windowEnd}, at their leisure`;
 }
 function marketListingCardHtml(x, claimedView) {
