@@ -2204,13 +2204,20 @@ async function requestPushNotificationPermission() {
 async function registerDeviceToken() {
   if (!fcmMessaging || !state.settings.myProfileId) return;
   try {
+    // Wait for the active service worker registration
+    const swReg = await navigator.serviceWorker.ready;
     const vapidKey = state.settings.vapidKey;
-    const token = await fcmMessaging.getToken(vapidKey ? { vapidKey } : undefined);
+
+    const token = await fcmMessaging.getToken({
+      vapidKey: vapidKey || undefined,
+      serviceWorkerRegistration: swReg
+    });
+
     if (token) {
       state.deviceTokens = state.deviceTokens || {};
       state.deviceTokens[state.settings.myProfileId] = token;
       saveState();
-      toast('Device token registered with Firebase', 'fa-shield-halved');
+      toast('Device token registered for phone!', 'fa-shield-halved');
     }
   } catch (err) {
     console.error('FCM Token registration error:', err);
