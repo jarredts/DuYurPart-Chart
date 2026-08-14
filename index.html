@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script>
   try { if (localStorage.getItem('chores_dark_mode') === '1') document.documentElement.classList.add('dark'); } catch(e){}
@@ -289,7 +290,7 @@
         <select id="chorePerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
       </div>
 
-      <!-- Repeat Mode Selector (Single vs Recurring) -->
+      <!-- Repeat Mode Selector -->
       <div class="flex gap-2">
         <button type="button" onclick="setChoreRepeatMode('single')" id="repeatModeSingleBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Single</button>
         <button type="button" onclick="setChoreRepeatMode('recurring')" id="repeatModeRecurBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Recurring</button>
@@ -393,7 +394,7 @@
   </div>
 </div>
 
-<!-- Day List Modal (tap a calendar day) -->
+<!-- Day List Modal -->
 <div id="dayListModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-2">
@@ -417,14 +418,23 @@
     <div id="peopleList" class="space-y-2 mb-2"></div>
     <button onclick="addPersonRow()" class="text-xs font-bold text-purple-600 mb-4"><i class="fa-solid fa-plus"></i> Add person</button>
 
-    <div class="font-bold text-sm mb-2">This Device</div>
-    <div class="mb-4">
-      <label class="text-xs font-bold text-gray-500">Whose phone is this? (used for pokes & default view)</label>
-      <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
-      <button onclick="requestNotifPermission()" class="w-full mt-2 rounded-lg py-2 text-xs font-bold bg-purple-50 text-purple-600 border border-purple-200">
-        <i class="fa-solid fa-bell"></i> Enable in-app poke notifications
+    <div class="font-bold text-sm mb-2">This Device & Push Notifications</div>
+    <div class="mb-4 space-y-2">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Whose phone is this?</label>
+        <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-gray-500">Firebase VAPID Public Key</label>
+        <input id="fcmVapidKeyInput" type="text" placeholder="Paste FCM Web Push Certificate Key here" onchange="saveVapidKey(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mt-1">
+        <div class="text-[10px] text-gray-400 mt-0.5">Found in Firebase Console → Project Settings → Cloud Messaging → Web Push certificates.</div>
+      </div>
+      
+      <button onclick="requestPushNotificationPermission()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 text-white shadow-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-bell"></i> Enable Phone Push Notifications
       </button>
-      <div id="notifPermStatus" class="text-[10px] text-gray-500 mt-1"></div>
+      <div id="notifPermStatus" class="text-[10px] text-gray-500"></div>
     </div>
 
     <div class="font-bold text-sm mb-2">Calendar</div>
@@ -434,7 +444,7 @@
         <option value="sunday">Sunday</option>
         <option value="monday">Monday</option>
       </select>
-      <label class="text-xs font-bold text-gray-500">Weekly marketplace quota <span class="font-normal">(chores everyone should claim each week)</span></label>
+      <label class="text-xs font-bold text-gray-500">Weekly marketplace quota</label>
       <input id="weeklyQuotaInput" type="number" min="0" max="14" onchange="setWeeklyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
     </div>
 
@@ -443,7 +453,7 @@
 
     <div class="font-bold text-sm mb-2">Cloud Sync</div>
     <div class="text-[11px] text-gray-500 mb-2">Sync across devices using Firebase Firestore.</div>
-    <textarea id="syncConfigInput" rows="3" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
+    <textarea id="syncConfigInput" rows="4" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
     <div class="flex gap-2 mb-2">
       <button onclick="enableCloudSync()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-purple-600 text-white">Enable Sync</button>
       <button onclick="manualSyncNow()" class="rounded-lg py-2 px-3 text-xs font-bold bg-gray-100 text-gray-700"><i class="fa-solid fa-rotate"></i></button>
@@ -677,18 +687,19 @@ const NAV_COLORS = { calendar:'purple', market:'pink', log:'blue', stats:'emeral
 
 let state = {
   people: [],
-  chores: [],           // single instances: {id,title,personId,date,time,subtasks[],reward,completed,completedAt,notes,isTask}
-  recurring: [],         // recurring rules: {..., isTask}
-  recurringCompletions: {}, // key `${ruleId}_${dateStr}` -> {completed,completedAt,subtaskState:{id:bool}}
+  chores: [],
+  recurring: [],
+  recurringCompletions: {},
   yearlyChores: [],
   yearlyCompletions: {},
   honeyDo: [],
   bankedRewards: [],
   pokes: [],
+  deviceTokens: {},
   marketChores: [],
   marketClaims: {},
   marketCompletions: [],
-  settings: { myProfileId: null, syncConfig: null, weekStart: 'sunday', weeklyQuota: 2 }
+  settings: { myProfileId: null, syncConfig: null, weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' }
 };
 
 let calMonth = new Date().getMonth();
@@ -701,7 +712,7 @@ let marketSubtaskBuilderCount = 0;
 let rotationStageCount = 0;
 let currentItemType = 'chore';
 let calendarFilter = new Set();
-let firestoreDb = null, firebaseApp = null, unsubscribeSync = null;
+let firestoreDb = null, firebaseApp = null, fcmMessaging = null, unsubscribeSync = null;
 
 function todayStr() { return formatLocalDate(new Date()); }
 function formatLocalDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -966,7 +977,6 @@ function weeklyClaimCountForPerson(personId) {
   return n;
 }
 
-// Personal tasks only show when that specific person is filtered. In "Everyone" view, personal tasks are hidden.
 function getChoresForDate(dateStr) {
   let items = [...getSingleForDate(dateStr), ...getRecurringForDate(dateStr), ...getMarketForCalendarDate(dateStr)];
   
@@ -2135,6 +2145,9 @@ function renderProfiles() {
   const mySel = document.getElementById('myProfileSelect');
   mySel.innerHTML = '<option value="">-- select --</option>' + personOptions(state.settings.myProfileId);
 
+  const vapidInput = document.getElementById('fcmVapidKeyInput');
+  if (vapidInput) vapidInput.value = state.settings.vapidKey || '';
+
   const weekStartSel = document.getElementById('weekStartSelect');
   if (weekStartSel) weekStartSel.value = state.settings.weekStart || 'sunday';
   const quotaInput = document.getElementById('weeklyQuotaInput');
@@ -2142,7 +2155,7 @@ function renderProfiles() {
 
   const notifStatus = document.getElementById('notifPermStatus');
   if ('Notification' in window) {
-    notifStatus.textContent = 'Browser permission: ' + Notification.permission;
+    notifStatus.textContent = 'Notification permission: ' + Notification.permission;
   } else {
     notifStatus.textContent = 'Notifications not supported in this browser.';
   }
@@ -2160,16 +2173,48 @@ function removePerson(id) {
   state.people = state.people.filter(p => p.id !== id);
   saveState(); renderProfiles();
 }
-function setMyProfile(id) { state.settings.myProfileId = id; persist(); renderApp(); toast('Profile device selected', 'fa-check'); }
+function setMyProfile(id) { 
+  state.settings.myProfileId = id; 
+  persist(); 
+  renderApp(); 
+  toast('Profile device selected', 'fa-check'); 
+  registerDeviceToken();
+}
+function saveVapidKey(val) {
+  state.settings.vapidKey = val.trim();
+  persist();
+  toast('VAPID key saved', 'fa-key');
+}
 function setWeekStart(val) { state.settings.weekStart = val; saveState(); toast('Calendar updated', 'fa-calendar-days'); }
 function setWeeklyQuota(val) { state.settings.weeklyQuota = Math.max(0, Number(val||0)); saveState(); }
 
-async function requestNotifPermission() {
+/* =========================== PUSH NOTIFICATIONS (FCM) =========================== */
+async function requestPushNotificationPermission() {
   if (!('Notification' in window)) { toast('Notifications not supported here', 'fa-triangle-exclamation'); return; }
   const perm = await Notification.requestPermission();
   renderProfiles();
-  if (perm === 'granted') toast('Notifications enabled on this phone', 'fa-bell');
-  else toast('Permission not granted', 'fa-triangle-exclamation');
+  if (perm === 'granted') {
+    toast('Notifications permitted! Registering FCM token...', 'fa-bell');
+    await registerDeviceToken();
+  } else {
+    toast('Permission denied', 'fa-triangle-exclamation');
+  }
+}
+
+async function registerDeviceToken() {
+  if (!fcmMessaging || !state.settings.myProfileId) return;
+  try {
+    const vapidKey = state.settings.vapidKey;
+    const token = await fcmMessaging.getToken(vapidKey ? { vapidKey } : undefined);
+    if (token) {
+      state.deviceTokens = state.deviceTokens || {};
+      state.deviceTokens[state.settings.myProfileId] = token;
+      saveState();
+      toast('Device token registered with Firebase', 'fa-shield-halved');
+    }
+  } catch (err) {
+    console.error('FCM Token registration error:', err);
+  }
 }
 
 /* =========================== POKES =========================== */
@@ -2215,6 +2260,19 @@ function checkForNewPokesTargetingMe() {
 }
 
 /* =========================== CLOUD SYNC =========================== */
+function parseConfigInput(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch(e) {
+    // If strict JSON parse fails, attempt to evaluate JS object syntax
+    try {
+      return (new Function("return " + raw))();
+    } catch(err) {
+      return null;
+    }
+  }
+}
+
 function loadSyncConfigFromStorage() {
   try { const raw = localStorage.getItem('chores_sync_config'); return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
 }
@@ -2223,20 +2281,31 @@ function applySyncConfig(cfg) {
     if (typeof firebase === 'undefined') return false;
     firebaseApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(cfg.fbConfig);
     firestoreDb = firebase.firestore();
+    if (firebase.messaging && firebase.messaging.isSupported()) {
+      fcmMessaging = firebase.messaging();
+      fcmMessaging.onMessage((payload) => {
+        const title = payload.notification?.title || 'Family Chores';
+        const body = payload.notification?.body || '';
+        toast(title + ': ' + body, 'fa-bell');
+      });
+    }
     return true;
   } catch(e) { console.error('Sync config failed', e); return false; }
 }
 async function enableCloudSync() {
   const raw = document.getElementById('syncConfigInput').value.trim();
   if (!raw) { toast('Paste a Firebase config first', 'fa-triangle-exclamation'); return; }
-  let fbConfig;
-  try { fbConfig = JSON.parse(raw); } catch(e) { toast("That JSON didn't parse", 'fa-triangle-exclamation'); return; }
+  
+  const fbConfig = parseConfigInput(raw);
+  if (!fbConfig) { toast("That JSON didn't parse — check formatting", 'fa-triangle-exclamation'); return; }
+  
   const cfg = { fbConfig, docId: 'family-chores-shared' };
   localStorage.setItem('chores_sync_config', JSON.stringify(cfg));
   if (applySyncConfig(cfg)) {
     document.getElementById('syncStatusLine').textContent = 'Connected. Pulling latest data...';
     await pullFromCloud();
     listenForCloudChanges();
+    registerDeviceToken();
     toast('Cloud sync enabled', 'fa-cloud');
   } else {
     document.getElementById('syncStatusLine').textContent = 'Could not connect — check the config.';
@@ -2280,8 +2349,11 @@ function manualSyncNow() { if (firestoreDb) { pullFromCloud(); toast('Synced', '
 function initSyncOnBoot() {
   const cfg = loadSyncConfigFromStorage();
   if (cfg && applySyncConfig(cfg)) {
-    document.getElementById('syncConfigInput').value = JSON.stringify(cfg.fbConfig);
-    pullFromCloud().then(listenForCloudChanges);
+    document.getElementById('syncConfigInput').value = JSON.stringify(cfg.fbConfig, null, 2);
+    pullFromCloud().then(() => {
+      listenForCloudChanges();
+      registerDeviceToken();
+    });
   }
 }
 
@@ -2359,6 +2431,10 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
       reg.update().catch(() => {});
     }).catch(err => console.error('SW registration failed', err));
+
+    navigator.serviceWorker.register('firebase-messaging-sw.js').catch(err => {
+      console.warn('FCM SW registration optional/failed:', err);
+    });
   });
 }
 </script>
