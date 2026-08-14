@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Chores</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7C3AED">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script>
+  try { if (localStorage.getItem('chores_dark_mode') === '1') document.documentElement.classList.add('dark'); } catch(e){}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#F4F5F7; color:#1F2937; -webkit-font-smoothing:antialiased; }
+  .font-mono { font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace; }
+
+  html.dark { color-scheme: dark; }
+  html.dark body { background-color:#0f172a; color:#e2e8f0; }
+  html.dark .bg-white { background-color:#1e293b; }
+  html.dark .bg-gray-50 { background-color:#172033; }
+  html.dark .bg-gray-100 { background-color:#1e293b; }
+  html.dark .bg-gray-200 { background-color:#334155; }
+  html.dark .border-gray-100 { border-color:#1e293b; }
+  html.dark .border-gray-200 { border-color:#334155; }
+  html.dark .border-gray-300 { border-color:#475569; }
+  html.dark .text-gray-900 { color:#f1f5f9; }
+  html.dark .text-gray-800 { color:#e2e8f0; }
+  html.dark .text-gray-700 { color:#cbd5e1; }
+  html.dark .text-gray-600 { color:#94a3b8; }
+  html.dark .text-gray-500 { color:#94a3b8; }
+  html.dark .text-gray-400 { color:#64748b; }
+  html.dark ::-webkit-scrollbar { background:#0f172a; }
+  html.dark ::-webkit-scrollbar-thumb { background:#334155; border-radius:4px; }
+
+  .shadow-sm { box-shadow:0 1px 2px rgba(15,23,42,0.04),0 3px 10px rgba(15,23,42,0.05) !important; }
+  .shadow-md { box-shadow:0 2px 6px rgba(15,23,42,0.06),0 6px 16px rgba(15,23,42,0.07) !important; }
+  .shadow-lg { box-shadow:0 4px 10px rgba(15,23,42,0.07),0 10px 28px rgba(15,23,42,0.10) !important; }
+  .rounded-xl { border-radius:14px !important; }
+  .rounded-2xl { border-radius:18px !important; }
+  .rounded-lg { border-radius:10px !important; }
+  button, .transition-all { transition:all .15s ease; }
+  button:active { transform:scale(0.97); }
+
+  .person-dot { width:9px; height:9px; border-radius:9999px; display:inline-block; flex-shrink:0; }
+  .person-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:11px; font-weight:700; }
+  .chore-card { border-left-width:4px; }
+  .subtask-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.05); }
+  html.dark .subtask-row { border-bottom-color:rgba(255,255,255,0.06); }
+  .subtask-row:last-child { border-bottom:none; }
+  .chk { width:18px; height:18px; flex-shrink:0; accent-color:#7C3AED; }
+  .day-cell { min-height:44px; }
+  .day-dot { width:5px; height:5px; border-radius:9999px; }
+  .modal-backdrop { backdrop-filter:blur(2px); }
+  .fade-in { animation: fadeIn .15s ease; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+</style>
+</head>
+<body class="min-h-screen pb-24 text-gray-800 bg-gray-100">
+
+<!-- Header -->
+<header class="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-white to-purple-50/40 sticky top-0 z-30 shadow-sm max-w-md mx-auto">
+  <div class="flex justify-between items-center mb-2">
+    <div>
+      <div class="text-[9px] text-gray-500 font-mono font-bold tracking-wider uppercase">Family Chores</div>
+      <div class="text-lg font-bold text-gray-900" id="headerMonthLabel">--</div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="openPokeModal()" title="Poke someone" class="w-9 h-9 rounded-full bg-white border border-purple-200 flex items-center justify-center text-purple-600 hover:bg-purple-500 hover:text-white shadow-sm">
+        <i class="fa-solid fa-bell"></i>
+      </button>
+      <button onclick="openModal('profilesModal')" title="Profiles & Settings" class="w-9 h-9 rounded-full bg-white border border-purple-200 flex items-center justify-center text-purple-600 hover:bg-purple-500 hover:text-white shadow-sm">
+        <i class="fa-solid fa-users"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Yearly Chore banner -->
+  <div id="yearlyChoreBanner" onclick="openYearlyChoreModal()" class="cursor-pointer rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3.5 py-2.5 flex items-center justify-between shadow-md">
+    <div class="min-w-0">
+      <div class="text-[9px] font-bold uppercase tracking-wider opacity-90">This Month's Family Chore</div>
+      <div id="yearlyChoreTitle" class="text-sm font-bold truncate">--</div>
+    </div>
+    <div class="text-right flex items-center gap-2 flex-shrink-0">
+      <div id="yearlyChoreProgress" class="text-xs font-mono font-bold">0/0</div>
+      <i class="fa-solid fa-chevron-right text-xs opacity-80"></i>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-md mx-auto px-4 pt-3">
+
+  <!-- TAB: Chore Calendar -->
+  <section id="tab-calendar" class="space-y-3">
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="flex items-center justify-between mb-2">
+        <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
+        <div id="calMonthLabel" class="font-bold text-sm"></div>
+        <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+      <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-1">
+        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+      </div>
+      <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-bold text-sm" id="selectedDayLabel">Today</div>
+        <button onclick="openChoreModal(null, selectedDate)" class="text-xs font-bold text-purple-600 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+      </div>
+      <div id="selectedDayList" class="space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- TAB: Chore Log -->
+  <section id="tab-log" class="hidden space-y-3">
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="flex items-center justify-between mb-2 gap-2">
+        <select id="logPersonFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1">
+          <option value="all">Everyone</option>
+        </select>
+        <button onclick="openChoreModal()" class="text-xs font-bold bg-purple-600 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add Chore</button>
+      </div>
+      <button onclick="openChoreModal(null, todayStr(), true)" class="w-full text-xs font-bold border-2 border-dashed border-purple-300 text-purple-600 rounded-lg py-2 mb-2">
+        <i class="fa-solid fa-bolt"></i> Log an extra chore I already did
+      </button>
+      <div id="logList" class="space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- TAB: Family Stats -->
+  <section id="tab-stats" class="hidden space-y-3">
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="flex items-center gap-2 mb-3">
+        <select id="statsPeriod" onchange="renderStats()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1">
+          <option value="month">This Month</option>
+          <option value="week">This Week</option>
+          <option value="30">Last 30 Days</option>
+          <option value="year">This Year</option>
+        </select>
+      </div>
+      <div style="height:180px;"><canvas id="statsChart"></canvas></div>
+    </div>
+    <div id="statsPersonCards" class="space-y-2"></div>
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="font-bold text-sm mb-2"><i class="fa-solid fa-piggy-bank text-purple-500"></i> Reward Bank</div>
+      <div id="bankList" class="space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- TAB: Honey-Do List -->
+  <section id="tab-honeydo" class="hidden space-y-3">
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-bold text-sm">Never-Ending Honey-Do List</div>
+        <button onclick="openHoneyDoModal()" class="text-xs font-bold bg-purple-600 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+      </div>
+      <div class="text-[11px] text-gray-500 mb-2">Projects & weekend tasks — no due date required.</div>
+      <div id="honeyDoList" class="space-y-2"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 max-w-md mx-auto flex justify-around items-center py-2 z-30 shadow-lg">
+  <button id="nav-calendar" onclick="switchTab('calendar')" class="flex flex-col items-center gap-1 text-purple-600 font-bold bg-purple-50 rounded-2xl px-3.5 py-1.5 -my-1">
+    <i class="fa-solid fa-calendar-days"></i><span class="text-[9px]">Calendar</span>
+  </button>
+  <button id="nav-log" onclick="switchTab('log')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-3.5 py-1.5 -my-1">
+    <i class="fa-solid fa-list-check"></i><span class="text-[9px]">Chore Log</span>
+  </button>
+  <button id="nav-stats" onclick="switchTab('stats')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-3.5 py-1.5 -my-1">
+    <i class="fa-solid fa-chart-simple"></i><span class="text-[9px]">Stats</span>
+  </button>
+  <button id="nav-honeydo" onclick="switchTab('honeydo')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-3.5 py-1.5 -my-1">
+    <i class="fa-solid fa-house-chimney"></i><span class="text-[9px]">Honey-Do</span>
+  </button>
+</nav>
+
+<!-- ============ MODALS ============ -->
+
+<!-- Day Chore Detail / Expand Modal -->
+<div id="choreDetailModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-start mb-2">
+      <div class="min-w-0">
+        <div id="cdTitle" class="text-lg font-bold text-gray-900"></div>
+        <div id="cdMeta" class="text-xs text-gray-500 mt-0.5"></div>
+      </div>
+      <button onclick="closeModal('choreDetailModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="cdRewardBox" class="rounded-xl p-2.5 mb-3 text-sm hidden"></div>
+    <div id="cdSubtasks" class="mb-3"></div>
+    <div id="cdNotes" class="text-xs text-gray-500 mb-3 hidden"></div>
+    <div class="flex gap-2">
+      <button id="cdCompleteBtn" onclick="toggleChoreComplete()" class="flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-emerald-600"><i class="fa-solid fa-check"></i> Mark Complete</button>
+      <button onclick="pokeFromChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-bell"></i></button>
+      <button onclick="editCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
+      <button onclick="deleteCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Chore Modal -->
+<div id="choreModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div id="choreModalTitle" class="text-lg font-bold">Add Chore</div>
+      <button onclick="closeModal('choreModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="choreId">
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Chore Name</label>
+        <input id="choreTitle" type="text" placeholder="Feed the dogs" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500">Assign To</label>
+        <select id="chorePerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" onclick="setChoreRepeatMode('single')" id="repeatModeSingleBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Single</button>
+        <button type="button" onclick="setChoreRepeatMode('recurring')" id="repeatModeRecurBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Recurring</button>
+      </div>
+      <div id="singleDateBox" class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs font-bold text-gray-500">Due Date</label>
+          <input id="choreDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">Due Time <span class="font-normal">(optional)</span></label>
+          <input id="choreTime" type="time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        </div>
+      </div>
+      <div id="recurBox" class="hidden space-y-2 bg-gray-50 rounded-lg p-2.5">
+        <label class="text-xs font-bold text-gray-500">Repeats</label>
+        <select id="recurFreq" onchange="updateRecurUI()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+        <div id="recurWeeklyBox" class="hidden">
+          <label class="text-xs font-bold text-gray-500">Days</label>
+          <div class="grid grid-cols-7 gap-1 mt-1" id="recurDaysGrid"></div>
+        </div>
+        <div id="recurMonthlyBox" class="hidden">
+          <label class="text-xs font-bold text-gray-500">Day of Month</label>
+          <input id="recurDayOfMonth" type="number" min="1" max="31" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-bold text-gray-500">Starts</label>
+            <input id="recurStart" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-500">Time</label>
+            <input id="recurTime" type="time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
+        </div>
+        <div id="subtaskBuilder" class="space-y-1.5 mt-1"></div>
+        <button type="button" onclick="addSubtaskRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
+      </div>
+
+      <div class="bg-purple-50 rounded-lg p-2.5">
+        <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
+          <input type="checkbox" id="rewardEnabled" onchange="updateRewardUI()" class="chk"> Assign a Reward
+        </label>
+        <div id="rewardBox" class="hidden mt-2 space-y-2">
+          <div class="flex gap-2">
+            <button type="button" onclick="setRewardType('money')" id="rewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
+            <button type="button" onclick="setRewardType('other')" id="rewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
+          </div>
+          <input id="rewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <input id="rewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
+          <label class="flex items-center gap-2 text-xs font-semibold text-gray-600">
+            <input type="checkbox" id="rewardBanked" class="chk"> Bank it (extra, above normal allowance) instead of paying right away
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-gray-500">Notes</label>
+        <textarea id="choreNotes" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveChore()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
+      <button id="choreDeleteBtn" onclick="deleteCurrentChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day List Modal (tap a calendar day) -->
+<div id="dayListModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-2">
+      <div id="dayListTitle" class="text-lg font-bold"></div>
+      <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="dayListItems" class="space-y-2 mb-3"></div>
+    <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Chore This Day</button>
+  </div>
+</div>
+
+<!-- Profiles / Settings Modal -->
+<div id="profilesModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold">Profiles & Settings</div>
+      <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="font-bold text-sm mb-2">Family Members</div>
+    <div id="peopleList" class="space-y-2 mb-2"></div>
+    <button onclick="addPersonRow()" class="text-xs font-bold text-purple-600 mb-4"><i class="fa-solid fa-plus"></i> Add person</button>
+
+    <div class="font-bold text-sm mb-2">This Device</div>
+    <div class="mb-4">
+      <label class="text-xs font-bold text-gray-500">Whose phone is this? (used for pokes)</label>
+      <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
+      <button onclick="requestNotifPermission()" class="w-full mt-2 rounded-lg py-2 text-xs font-bold bg-purple-50 text-purple-600 border border-purple-200">
+        <i class="fa-solid fa-bell"></i> Enable in-app poke notifications
+      </button>
+      <div id="notifPermStatus" class="text-[10px] text-gray-500 mt-1"></div>
+    </div>
+
+    <div class="font-bold text-sm mb-2">Dark Mode</div>
+    <button onclick="toggleDarkMode()" class="w-full mb-4 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Toggle Dark Mode</button>
+
+    <div class="font-bold text-sm mb-2">Cloud Sync</div>
+    <div class="text-[11px] text-gray-500 mb-2">Sync across all 4 phones using a shared Firebase project (same one your budgeting app used, or a new free one).</div>
+    <textarea id="syncConfigInput" rows="3" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
+    <div class="flex gap-2 mb-2">
+      <button onclick="enableCloudSync()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-purple-600 text-white">Enable Sync</button>
+      <button onclick="manualSyncNow()" class="rounded-lg py-2 px-3 text-xs font-bold bg-gray-100 text-gray-700"><i class="fa-solid fa-rotate"></i></button>
+    </div>
+    <div id="syncStatusLine" class="text-[11px] text-gray-500 mb-4"></div>
+
+    <div class="font-bold text-sm mb-2">Data</div>
+    <div class="flex gap-2">
+      <button onclick="exportDataJSON()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Export</button>
+      <label class="flex-1 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700 text-center cursor-pointer">
+        Import <input type="file" accept="application/json" onchange="importDataJSON(event)" class="hidden">
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- Yearly Chore Modal -->
+<div id="yearlyChoreModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold">12 Yearly Chores</div>
+      <button onclick="closeModal('yearlyChoreModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="yearlyChoreEditor" class="space-y-3"></div>
+  </div>
+</div>
+
+<!-- Honey-Do Add/Edit Modal -->
+<div id="honeyDoModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold">Honey-Do Item</div>
+      <button onclick="closeModal('honeyDoModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="honeyId">
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Task</label>
+        <input id="honeyTitle" type="text" placeholder="Reseal the deck" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500">Assign To <span class="font-normal">(optional)</span></label>
+        <select id="honeyPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"><option value="">Anyone / Whole family</option></select>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500">Priority</label>
+        <select id="honeyPriority" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          <option value="normal">Normal</option>
+          <option value="high">High</option>
+          <option value="low">Whenever</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500">Notes</label>
+        <textarea id="honeyNotes" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveHoneyDo()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
+      <button id="honeyDeleteBtn" onclick="deleteHoneyDo()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Poke Modal -->
+<div id="pokeModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold">Send a Poke</div>
+      <button onclick="closeModal('pokeModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <label class="text-xs font-bold text-gray-500">To</label>
+    <select id="pokeTarget" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3"></select>
+    <label class="text-xs font-bold text-gray-500">Message</label>
+    <input id="pokeMessage" type="text" value="Hey! Don't forget your chores 👀" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3">
+    <button onclick="sendPoke()" class="w-full bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm"><i class="fa-solid fa-bell"></i> Send Poke</button>
+    <div id="pokeHistory" class="mt-4 space-y-1.5"></div>
+  </div>
+</div>
+
+<div id="toastBox" class="fixed top-3 left-1/2 -translate-x-1/2 z-[60] space-y-2 w-full max-w-xs px-3"></div>
+
+<script>
+/* =========================== STATE =========================== */
+const DEFAULT_COLORS = [
+  {name:'Green', hex:'#10B981'},
+  {name:'Orange', hex:'#F97316'},
+  {name:'Blue', hex:'#3B82F6'},
+  {name:'Pink', hex:'#EC4899'},
+  {name:'Purple', hex:'#8B5CF6'}
+];
+const WEEKDAY_LABELS = ['S','M','T','W','T','F','S'];
+
+let state = {
+  people: [],
+  chores: [],           // single-instance chores: {id,title,personId,date,time,subtasks[],reward,completed,completedAt,notes,loggedByKid}
+  recurring: [],         // {id,title,personId,frequency,daysOfWeek[],dayOfMonth,startDate,endDate,time,subtasks[],reward,active}
+  recurringCompletions: {}, // key `${ruleId}_${dateStr}` -> {completed,completedAt,subtaskState:{id:bool}}
+  yearlyChores: [],      // 12: {id,month(1-12),title,subtasks:[{id,text,personId}]}
+  yearlyCompletions: {}, // key `${year}-${month}` -> {subtaskId: true}
+  honeyDo: [],           // {id,title,personId,priority,notes,done,createdAt,doneAt}
+  bankedRewards: [],     // {id,personId,choreTitle,reward,date,redeemed,redeemedAt}
+  pokes: [],             // {id,fromPersonId,toPersonId,message,ts,read}
+  settings: { myProfileId: null, syncConfig: null }
+};
+
+let calMonth = new Date().getMonth();
+let calYear = new Date().getFullYear();
+let selectedDate = todayStr();
+let dayListDate = null;
+let currentChoreDetail = null; // {kind:'single'|'recurring', id, dateStr}
+let subtaskBuilderCount = 0;
+let firestoreDb = null, firebaseApp = null, unsubscribeSync = null;
+
+function todayStr() { return formatLocalDate(new Date()); }
+function formatLocalDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseLocalDate(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); }
+function uid(prefix) { return prefix+'-'+Date.now()+'-'+Math.floor(Math.random()*10000); }
+
+/* =========================== PERSIST =========================== */
+function saveState() { persist(); if (firestoreDb) pushToCloud(); renderApp(); }
+function persist() { try { localStorage.setItem('chores_state', JSON.stringify(state)); } catch(e){ console.error(e); } }
+async function loadState() {
+  try {
+    const raw = localStorage.getItem('chores_state');
+    if (raw) {
+      const loaded = JSON.parse(raw);
+      state = Object.assign(state, loaded);
+    } else {
+      seedDefaultData();
+    }
+  } catch(e) { console.error(e); seedDefaultData(); }
+}
+
+function seedDefaultData() {
+  state.people = DEFAULT_COLORS.map((c,i) => ({ id: uid('p'), name: i===0?'You':i===1?'Spouse':'Kid '+(i-1), color: c.hex }));
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  state.yearlyChores = monthNames.map((m,i) => ({ id: uid('yc'), month: i+1, title: m+' Family Chore', subtasks: [] }));
+}
+
+/* =========================== TOAST =========================== */
+function toast(msg, icon) {
+  const box = document.getElementById('toastBox');
+  const el = document.createElement('div');
+  el.className = 'bg-gray-900 text-white text-xs font-semibold rounded-xl px-3.5 py-2.5 shadow-lg fade-in flex items-center gap-2';
+  el.innerHTML = `${icon?`<i class="fa-solid ${icon}"></i>`:''}<span>${escapeHtml(msg)}</span>`;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+function escapeHtml(s) { const d=document.createElement('div'); d.innerText = s==null?'':s; return d.innerHTML; }
+
+/* =========================== MODALS / TABS =========================== */
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+function switchTab(tab) {
+  ['calendar','log','stats','honeydo'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('hidden', t !== tab);
+    const nav = document.getElementById('nav-'+t);
+    if (t === tab) { nav.classList.add('text-purple-600','font-bold','bg-purple-50'); nav.classList.remove('text-gray-500'); }
+    else { nav.classList.remove('text-purple-600','font-bold','bg-purple-50'); nav.classList.add('text-gray-500'); }
+  });
+  if (tab === 'log') renderLog();
+  if (tab === 'stats') renderStats();
+  if (tab === 'honeydo') renderHoneyDo();
+  localStorage.setItem('chores_last_tab', tab);
+}
+
+/* =========================== PEOPLE HELPERS =========================== */
+function getPerson(id) { return state.people.find(p => p.id === id); }
+function personChip(id, size) {
+  const p = getPerson(id);
+  if (!p) return '<span class="person-chip bg-gray-100 text-gray-400">Unassigned</span>';
+  return `<span class="person-chip" style="background:${p.color}22;color:${p.color}"><span class="person-dot" style="background:${p.color}"></span>${escapeHtml(p.name)}</span>`;
+}
+function personOptions(selectedId, includeBlankLabel) {
+  let html = includeBlankLabel ? `<option value="">${escapeHtml(includeBlankLabel)}</option>` : '';
+  html += state.people.map(p => `<option value="${p.id}" ${p.id===selectedId?'selected':''}>${escapeHtml(p.name)}</option>`).join('');
+  return html;
+}
+
+/* =========================== RECURRING ENGINE =========================== */
+function ruleFiresOnDate(rule, dateStr) {
+  if (rule.active === false) return false;
+  if (dateStr < rule.startDate) return false;
+  if (rule.endDate && dateStr > rule.endDate) return false;
+  const d = parseLocalDate(dateStr);
+  if (rule.frequency === 'daily') return true;
+  if (rule.frequency === 'weekly') return (rule.daysOfWeek||[]).includes(d.getDay());
+  if (rule.frequency === 'monthly') return d.getDate() === Number(rule.dayOfMonth || 1);
+  return false;
+}
+function getRecurringForDate(dateStr) {
+  return state.recurring.filter(r => ruleFiresOnDate(r, dateStr)).map(r => {
+    const key = r.id+'_'+dateStr;
+    const comp = state.recurringCompletions[key] || {};
+    return {
+      kind: 'recurring', id: r.id, dateStr, title: r.title, personId: r.personId,
+      time: r.time, subtasks: r.subtasks || [], reward: r.reward,
+      completed: !!comp.completed, subtaskState: comp.subtaskState || {}
+    };
+  });
+}
+function getSingleForDate(dateStr) {
+  return state.chores.filter(c => c.date === dateStr).map(c => ({
+    kind: 'single', id: c.id, dateStr, title: c.title, personId: c.personId,
+    time: c.time, subtasks: c.subtasks || [], reward: c.reward,
+    completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid
+  }));
+}
+function getChoresForDate(dateStr) {
+  return [...getSingleForDate(dateStr), ...getRecurringForDate(dateStr)]
+    .sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
+}
+
+/* =========================== CALENDAR =========================== */
+function changeMonth(delta) {
+  calMonth += delta;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+  renderHeader();
+}
+
+function renderCalendar() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent = monthNames[calMonth]+' '+calYear;
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+  const first = new Date(calYear, calMonth, 1);
+  const startOffset = first.getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  for (let i=0;i<startOffset;i++) grid.appendChild(document.createElement('div'));
+
+  for (let day=1; day<=daysInMonth; day++) {
+    const dateStr = calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const chores = getChoresForDate(dateStr);
+    const cell = document.createElement('div');
+    const isToday = dateStr === todayStr();
+    const isSelected = dateStr === selectedDate;
+    cell.className = 'day-cell rounded-lg flex flex-col items-center justify-start pt-1 cursor-pointer text-xs '
+      + (isSelected ? 'bg-purple-100 font-bold text-purple-700' : isToday ? 'bg-purple-50 font-bold text-purple-600' : 'hover:bg-gray-50 text-gray-700');
+    cell.innerHTML = `<div>${day}</div><div class="flex gap-0.5 mt-1 flex-wrap justify-center max-w-full">${
+      chores.slice(0,4).map(c => { const p = getPerson(c.personId); return `<span class="day-dot" style="background:${p?p.color:'#cbd5e1'};opacity:${c.completed?0.3:1}"></span>`; }).join('')
+    }</div>`;
+    cell.onclick = () => { selectedDate = dateStr; openDayList(dateStr); renderCalendar(); renderSelectedDay(); };
+    grid.appendChild(cell);
+  }
+}
+
+function renderSelectedDay() {
+  const d = parseLocalDate(selectedDate);
+  const label = selectedDate === todayStr() ? 'Today · ' : '';
+  document.getElementById('selectedDayLabel').textContent = label + d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+  const list = document.getElementById('selectedDayList');
+  const chores = getChoresForDate(selectedDate);
+  if (!chores.length) { list.innerHTML = '<div class="text-xs text-gray-400 py-3 text-center">No chores this day 🎉</div>'; return; }
+  list.innerHTML = chores.map(choreRowHtml).join('');
+}
+
+function choreRowHtml(c) {
+  const p = getPerson(c.personId);
+  const subCount = (c.subtasks||[]).length;
+  const subDone = subCount ? (c.subtasks||[]).filter(s => c.subtaskState[s.id]).length : 0;
+  return `<div onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')" class="chore-card bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between cursor-pointer" style="border-left-color:${p?p.color:'#cbd5e1'}">
+    <div class="min-w-0 flex-1">
+      <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">${escapeHtml(c.title)}</div>
+      <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+        ${personChip(c.personId)}
+        ${c.time ? `<span class="text-[10px] text-gray-400 font-mono">${formatTime(c.time)}</span>` : ''}
+        ${subCount ? `<span class="text-[10px] text-gray-400">${subDone}/${subCount} steps</span>` : ''}
+        ${c.reward && c.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(c.reward)}</span>` : ''}
+      </div>
+    </div>
+    <i class="fa-solid ${c.completed?'fa-circle-check text-emerald-500':'fa-chevron-right text-gray-300'} text-sm flex-shrink-0 ml-2"></i>
+  </div>`;
+}
+function formatTime(t) { if (!t) return ''; const [h,m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12 = h%12===0?12:h%12; return h12+':'+String(m).padStart(2,'0')+ap; }
+function rewardLabel(r) { if (!r || !r.enabled) return ''; if (r.type==='money') return '$'+Number(r.amount||0).toFixed(2)+(r.banked?' (banked)':''); return (r.description||'Reward')+(r.banked?' (banked)':''); }
+
+function openDayList(dateStr) {
+  dayListDate = dateStr;
+  const d = parseLocalDate(dateStr);
+  document.getElementById('dayListTitle').textContent = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+  const chores = getChoresForDate(dateStr);
+  document.getElementById('dayListItems').innerHTML = chores.length ? chores.map(choreRowHtml).join('') : '<div class="text-xs text-gray-400 py-3 text-center">No chores this day 🎉</div>';
+  openModal('dayListModal');
+}
+
+/* =========================== CHORE DETAIL / EXPAND =========================== */
+function openChoreDetail(kind, id, dateStr) {
+  closeModal('dayListModal');
+  currentChoreDetail = { kind, id, dateStr };
+  let c;
+  if (kind === 'single') { c = state.chores.find(x => x.id === id); }
+  else { c = state.recurring.find(x => x.id === id); }
+  if (!c) return;
+  const comp = kind === 'single' ? { completed: c.completed, subtaskState: c.subtaskState||{} } : (state.recurringCompletions[id+'_'+dateStr] || {completed:false, subtaskState:{}});
+
+  document.getElementById('cdTitle').textContent = c.title;
+  const p = getPerson(c.personId);
+  document.getElementById('cdMeta').innerHTML = `${personChip(c.personId)} ${c.time?('· '+formatTime(c.time)):''} ${kind==='recurring'?'· <span class=\"text-purple-500 font-semibold\">Recurring</span>':''}`;
+
+  const rBox = document.getElementById('cdRewardBox');
+  if (c.reward && c.reward.enabled) {
+    rBox.classList.remove('hidden');
+    rBox.className = 'rounded-xl p-2.5 mb-3 text-sm bg-purple-50 text-purple-700 font-semibold';
+    rBox.innerHTML = `<i class="fa-solid fa-gift"></i> ${rewardLabel(c.reward)}`;
+  } else { rBox.classList.add('hidden'); }
+
+  const subs = c.subtasks || [];
+  const subBox = document.getElementById('cdSubtasks');
+  if (subs.length) {
+    subBox.innerHTML = subs.map(s => `<div class="subtask-row">
+      <input type="checkbox" class="chk" ${comp.subtaskState[s.id]?'checked':''} onchange="toggleSubtask('${s.id}', this.checked)">
+      <span class="text-sm ${comp.subtaskState[s.id]?'line-through text-gray-400':'text-gray-700'}">${escapeHtml(s.text)}</span>
+    </div>`).join('');
+  } else { subBox.innerHTML = ''; }
+
+  const notesEl = document.getElementById('cdNotes');
+  if (c.notes) { notesEl.classList.remove('hidden'); notesEl.textContent = c.notes; } else { notesEl.classList.add('hidden'); }
+
+  const btn = document.getElementById('cdCompleteBtn');
+  btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white ' + (comp.completed ? 'bg-gray-400' : 'bg-emerald-600');
+  btn.innerHTML = comp.completed ? '<i class="fa-solid fa-rotate-left"></i> Undo Complete' : '<i class="fa-solid fa-check"></i> Mark Complete';
+
+  openModal('choreDetailModal');
+}
+
+function toggleSubtask(subId, checked) {
+  const { kind, id, dateStr } = currentChoreDetail;
+  if (kind === 'single') {
+    const c = state.chores.find(x => x.id === id);
+    c.subtaskState = c.subtaskState || {};
+    c.subtaskState[subId] = checked;
+  } else {
+    const key = id+'_'+dateStr;
+    state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
+    state.recurringCompletions[key].subtaskState[subId] = checked;
+  }
+  persist();
+  openChoreDetail(kind, id, dateStr);
+  renderSelectedDay(); renderCalendar();
+}
+
+function toggleChoreComplete() {
+  const { kind, id, dateStr } = currentChoreDetail;
+  if (kind === 'single') {
+    const c = state.chores.find(x => x.id === id);
+    c.completed = !c.completed;
+    if (c.completed) { c.completedAt = new Date().toISOString(); handleRewardOnComplete(c); }
+  } else {
+    const key = id+'_'+dateStr;
+    state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
+    state.recurringCompletions[key].completed = !state.recurringCompletions[key].completed;
+    if (state.recurringCompletions[key].completed) {
+      const rule = state.recurring.find(r => r.id === id);
+      if (rule) handleRewardOnComplete(rule);
+    }
+  }
+  saveState();
+  openChoreDetail(kind, id, dateStr);
+}
+
+function handleRewardOnComplete(c) {
+  if (c.reward && c.reward.enabled && c.reward.banked) {
+    state.bankedRewards.push({
+      id: uid('bank'), personId: c.personId, choreTitle: c.title,
+      reward: { ...c.reward }, date: todayStr(), redeemed: false
+    });
+    toast((getPerson(c.personId)||{}).name+"'s reward was banked!", 'fa-piggy-bank');
+  }
+}
+
+function editCurrentChore() {
+  if (currentChoreDetail.kind === 'single') openChoreModal(currentChoreDetail.id);
+  else openChoreModal(null, null, false, currentChoreDetail.id);
+  closeModal('choreDetailModal');
+}
+function deleteCurrentChore() {
+  const detail = currentChoreDetail;
+  const idToDelete = detail ? detail.id : document.getElementById('choreId').value;
+  const kind = detail ? detail.kind : 'single';
+  if (!confirm('Delete this chore?')) return;
+  if (kind === 'single') state.chores = state.chores.filter(c => c.id !== idToDelete);
+  else { state.recurring = state.recurring.filter(r => r.id !== idToDelete); }
+  closeModal('choreDetailModal'); closeModal('choreModal');
+  saveState();
+}
+function pokeFromChore() {
+  const p = currentChoreDetail && (state.chores.find(c=>c.id===currentChoreDetail.id) || state.recurring.find(r=>r.id===currentChoreDetail.id));
+  closeModal('choreDetailModal');
+  openPokeModal(p ? p.personId : null);
+}
+
+/* =========================== ADD/EDIT CHORE MODAL =========================== */
+let choreRepeatMode = 'single';
+let rewardType = 'money';
+
+function setChoreRepeatMode(mode) {
+  choreRepeatMode = mode;
+  document.getElementById('singleDateBox').classList.toggle('hidden', mode !== 'single');
+  document.getElementById('recurBox').classList.toggle('hidden', mode !== 'recurring');
+  ['repeatModeSingleBtn','repeatModeRecurBtn'].forEach(bid => {
+    const active = (bid==='repeatModeSingleBtn' && mode==='single') || (bid==='repeatModeRecurBtn' && mode==='recurring');
+    document.getElementById(bid).className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  });
+}
+function setRewardType(t) {
+  rewardType = t;
+  document.getElementById('rewardAmount').classList.toggle('hidden', t !== 'money');
+  document.getElementById('rewardDesc').classList.toggle('hidden', t !== 'other');
+  ['rewardTypeMoneyBtn','rewardTypeOtherBtn'].forEach(bid => {
+    const active = (bid==='rewardTypeMoneyBtn' && t==='money') || (bid==='rewardTypeOtherBtn' && t==='other');
+    document.getElementById(bid).className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  });
+}
+function updateRewardUI() { document.getElementById('rewardBox').classList.toggle('hidden', !document.getElementById('rewardEnabled').checked); }
+function updateRecurUI() {
+  const f = document.getElementById('recurFreq').value;
+  document.getElementById('recurWeeklyBox').classList.toggle('hidden', f !== 'weekly');
+  document.getElementById('recurMonthlyBox').classList.toggle('hidden', f !== 'monthly');
+}
+function buildRecurDaysGrid(selected) {
+  const grid = document.getElementById('recurDaysGrid');
+  grid.innerHTML = WEEKDAY_LABELS.map((l,i) => `<button type="button" data-day="${i}" onclick="toggleRecurDay(${i})" class="recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ${((selected||[]).includes(i))?'bg-purple-600 text-white border-purple-600':'bg-white text-gray-500 border-gray-200'}">${l}</button>`).join('');
+}
+function toggleRecurDay(i) {
+  const btn = document.querySelector(`.recur-day-btn[data-day="${i}"]`);
+  const active = btn.classList.contains('bg-purple-600');
+  btn.className = 'recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ' + (!active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+}
+function getSelectedRecurDays() { return Array.from(document.querySelectorAll('.recur-day-btn.bg-purple-600')).map(b => Number(b.dataset.day)); }
+
+function addSubtaskRow(text, id) {
+  subtaskBuilderCount++;
+  const rowId = id || uid('st');
+  const div = document.createElement('div');
+  div.className = 'flex items-center gap-1.5';
+  div.dataset.subid = rowId;
+  div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
+    <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${subtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm subtask-text-input">
+    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+  document.getElementById('subtaskBuilder').appendChild(div);
+}
+function readSubtasksFromBuilder() {
+  return Array.from(document.getElementById('subtaskBuilder').children).map(row => ({
+    id: row.dataset.subid, text: row.querySelector('.subtask-text-input').value.trim()
+  })).filter(s => s.text);
+}
+
+function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
+  document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Chore' : 'Add Chore';
+  document.getElementById('choreId').value = choreId || '';
+  document.getElementById('subtaskBuilder').innerHTML = ''; subtaskBuilderCount = 0;
+  document.getElementById('chorePerson').innerHTML = personOptions(null);
+  document.getElementById('recurStart').value = presetDate || todayStr();
+  buildRecurDaysGrid([]);
+  document.getElementById('choreDeleteBtn').classList.add('hidden');
+  document.getElementById('rewardEnabled').checked = false;
+  setRewardType('money'); updateRewardUI();
+
+  if (recurringId) {
+    const r = state.recurring.find(x => x.id === recurringId);
+    document.getElementById('choreId').value = 'REC:'+recurringId;
+    document.getElementById('choreTitle').value = r.title;
+    document.getElementById('chorePerson').value = r.personId;
+    setChoreRepeatMode('recurring');
+    document.getElementById('recurFreq').value = r.frequency; updateRecurUI();
+    buildRecurDaysGrid(r.daysOfWeek || []);
+    document.getElementById('recurDayOfMonth').value = r.dayOfMonth || 1;
+    document.getElementById('recurStart').value = r.startDate;
+    document.getElementById('recurTime').value = r.time || '';
+    (r.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
+    if (r.reward && r.reward.enabled) {
+      document.getElementById('rewardEnabled').checked = true; updateRewardUI();
+      setRewardType(r.reward.type);
+      document.getElementById('rewardAmount').value = r.reward.amount || '';
+      document.getElementById('rewardDesc').value = r.reward.description || '';
+      document.getElementById('rewardBanked').checked = !!r.reward.banked;
+    }
+    document.getElementById('choreNotes').value = r.notes || '';
+    document.getElementById('choreDeleteBtn').classList.remove('hidden');
+  } else if (choreId) {
+    const c = state.chores.find(x => x.id === choreId);
+    document.getElementById('choreTitle').value = c.title;
+    document.getElementById('chorePerson').value = c.personId;
+    setChoreRepeatMode('single');
+    document.getElementById('choreDate').value = c.date;
+    document.getElementById('choreTime').value = c.time || '';
+    (c.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
+    if (c.reward && c.reward.enabled) {
+      document.getElementById('rewardEnabled').checked = true; updateRewardUI();
+      setRewardType(c.reward.type);
+      document.getElementById('rewardAmount').value = c.reward.amount || '';
+      document.getElementById('rewardDesc').value = c.reward.description || '';
+      document.getElementById('rewardBanked').checked = !!c.reward.banked;
+    }
+    document.getElementById('choreNotes').value = c.notes || '';
+    document.getElementById('choreDeleteBtn').classList.remove('hidden');
+  } else {
+    document.getElementById('choreTitle').value = '';
+    document.getElementById('choreDate').value = presetDate || selectedDate || todayStr();
+    document.getElementById('choreTime').value = '';
+    document.getElementById('choreNotes').value = '';
+    document.getElementById('rewardAmount').value = '';
+    document.getElementById('rewardDesc').value = '';
+    document.getElementById('rewardBanked').checked = false;
+    setChoreRepeatMode('single');
+    if (isKidLog && state.settings.myProfileId) document.getElementById('chorePerson').value = state.settings.myProfileId;
+  }
+  openModal('choreModal');
+}
+
+function saveChore() {
+  const idRaw = document.getElementById('choreId').value;
+  const title = document.getElementById('choreTitle').value.trim();
+  if (!title) { toast('Give the chore a name', 'fa-triangle-exclamation'); return; }
+  const personId = document.getElementById('chorePerson').value;
+  const subtasks = readSubtasksFromBuilder();
+  const rewardEnabled = document.getElementById('rewardEnabled').checked;
+  const reward = rewardEnabled ? {
+    enabled: true, type: rewardType,
+    amount: rewardType === 'money' ? Number(document.getElementById('rewardAmount').value || 0) : null,
+    description: rewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null,
+    banked: document.getElementById('rewardBanked').checked
+  } : { enabled: false };
+  const notes = document.getElementById('choreNotes').value.trim();
+
+  if (choreRepeatMode === 'recurring') {
+    const isEditingRec = idRaw.startsWith('REC:');
+    const freq = document.getElementById('recurFreq').value;
+    const ruleData = {
+      title, personId, frequency: freq,
+      daysOfWeek: freq === 'weekly' ? getSelectedRecurDays() : [],
+      dayOfMonth: freq === 'monthly' ? Number(document.getElementById('recurDayOfMonth').value || 1) : null,
+      startDate: document.getElementById('recurStart').value || todayStr(),
+      time: document.getElementById('recurTime').value || null,
+      subtasks, reward, notes, active: true
+    };
+    if (isEditingRec) {
+      const rid = idRaw.split(':')[1];
+      const r = state.recurring.find(x => x.id === rid);
+      Object.assign(r, ruleData);
+    } else {
+      state.recurring.push({ id: uid('rec'), ...ruleData });
+    }
+  } else {
+    const date = document.getElementById('choreDate').value || todayStr();
+    const time = document.getElementById('choreTime').value || null;
+    if (idRaw && !idRaw.startsWith('REC:')) {
+      const c = state.chores.find(x => x.id === idRaw);
+      Object.assign(c, { title, personId, date, time, subtasks, reward, notes });
+    } else {
+      state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false });
+    }
+  }
+  closeModal('choreModal');
+  saveState();
+  toast('Chore saved', 'fa-check');
+}
+
+/* =========================== CHORE LOG TAB =========================== */
+function renderLog() {
+  const filterSel = document.getElementById('logPersonFilter');
+  if (filterSel.options.length <= 1) filterSel.innerHTML = '<option value="all">Everyone</option>' + personOptions(null);
+  const filter = filterSel.value;
+
+  // Build combined list: all single chores + recurring occurrences for the last 60 / next 60 days
+  const items = [];
+  state.chores.forEach(c => items.push({ kind:'single', id:c.id, dateStr:c.date, title:c.title, personId:c.personId, time:c.time, completed:c.completed, subtasks:c.subtasks||[], reward:c.reward }));
+  const start = new Date(); start.setDate(start.getDate()-45);
+  const end = new Date(); end.setDate(end.getDate()+45);
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
+    const ds = formatLocalDate(d);
+    getRecurringForDate(ds).forEach(o => items.push(o));
+  }
+  let filtered = filter === 'all' ? items : items.filter(i => i.personId === filter);
+  filtered.sort((a,b) => b.dateStr.localeCompare(a.dateStr));
+
+  const list = document.getElementById('logList');
+  list.innerHTML = filtered.length ? filtered.slice(0,150).map(c => choreRowHtml(c)).join('') : '<div class="text-xs text-gray-400 py-4 text-center">No chores yet.</div>';
+}
+
+/* =========================== STATS TAB =========================== */
+function periodRange(period) {
+  const now = new Date();
+  let start, end = new Date(now);
+  if (period === 'week') { start = new Date(now); start.setDate(now.getDate()-now.getDay()); }
+  else if (period === 'month') { start = new Date(now.getFullYear(), now.getMonth(), 1); }
+  else if (period === 'year') { start = new Date(now.getFullYear(), 0, 1); }
+  else { start = new Date(now); start.setDate(now.getDate()-30); }
+  return { start: formatLocalDate(start), end: formatLocalDate(end) };
+}
+
+function completedChoresInRange(start, end) {
+  const results = [];
+  state.chores.forEach(c => { if (c.completed && c.date >= start && c.date <= end) results.push(c); });
+  for (let d = parseLocalDate(start); d <= parseLocalDate(end); d.setDate(d.getDate()+1)) {
+    const ds = formatLocalDate(d);
+    getRecurringForDate(ds).forEach(o => { if (o.completed) results.push(o); });
+  }
+  return results;
+}
+
+function renderStats() {
+  const period = document.getElementById('statsPeriod').value;
+  const { start, end } = periodRange(period);
+  const completed = completedChoresInRange(start, end);
+
+  const counts = {};
+  state.people.forEach(p => counts[p.id] = 0);
+  completed.forEach(c => { if (counts[c.personId] !== undefined) counts[c.personId]++; });
+
+  const ctx = document.getElementById('statsChart').getContext('2d');
+  if (window._statsChart) window._statsChart.destroy();
+  window._statsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: state.people.map(p => p.name),
+      datasets: [{ data: state.people.map(p => counts[p.id]), backgroundColor: state.people.map(p => p.color), borderRadius: 6 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{stepSize:1} } } }
+  });
+
+  document.getElementById('statsPersonCards').innerHTML = state.people.map(p => {
+    const banked = state.bankedRewards.filter(b => b.personId === p.id && !b.redeemed);
+    const bankedMoney = banked.filter(b=>b.reward.type==='money').reduce((s,b)=>s+Number(b.reward.amount||0),0);
+    return `<div class="bg-white rounded-2xl shadow-sm p-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <span class="person-dot" style="background:${p.color};width:12px;height:12px"></span>
+        <div>
+          <div class="font-bold text-sm">${escapeHtml(p.name)}</div>
+          <div class="text-[11px] text-gray-500">${counts[p.id]||0} chores completed</div>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-sm font-mono font-bold text-purple-600">${bankedMoney>0?'$'+bankedMoney.toFixed(2):(banked.length?banked.length+' banked':'')}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderBankList();
+}
+
+function renderBankList() {
+  const list = document.getElementById('bankList');
+  const unredeemed = state.bankedRewards.filter(b => !b.redeemed);
+  if (!unredeemed.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-2">Nothing banked yet.</div>'; return; }
+  list.innerHTML = unredeemed.map(b => `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+    <div class="min-w-0 flex-1">
+      <div class="text-xs font-semibold truncate">${escapeHtml(b.choreTitle)}</div>
+      <div class="flex items-center gap-1.5 mt-0.5">${personChip(b.personId)}<span class="text-[10px] text-gray-400">${b.date}</span></div>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <span class="text-xs font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
+      <button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-1">Redeem</button>
+    </div>
+  </div>`).join('');
+}
+function redeemBank(id) {
+  const b = state.bankedRewards.find(x => x.id === id);
+  if (!b) return;
+  if (!confirm('Mark this reward as redeemed?')) return;
+  b.redeemed = true; b.redeemedAt = new Date().toISOString();
+  saveState(); renderStats();
+}
+
+/* =========================== HONEY-DO TAB =========================== */
+function renderHoneyDo() {
+  const list = document.getElementById('honeyDoList');
+  const items = [...state.honeyDo].sort((a,b) => (a.done - b.done) || ({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority]));
+  if (!items.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-4">Nothing on the list. Add a project!</div>'; return; }
+  list.innerHTML = items.map(h => `<div class="flex items-start gap-2.5 bg-gray-50 rounded-xl px-3 py-2.5">
+    <input type="checkbox" class="chk mt-0.5" ${h.done?'checked':''} onchange="toggleHoneyDone('${h.id}', this.checked)">
+    <div class="min-w-0 flex-1 cursor-pointer" onclick="openHoneyDoModal('${h.id}')">
+      <div class="text-sm font-semibold ${h.done?'line-through text-gray-400':'text-gray-800'}">${escapeHtml(h.title)}</div>
+      <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+        ${h.personId ? personChip(h.personId) : '<span class="text-[10px] text-gray-400">Whole family</span>'}
+        ${h.priority==='high'?'<span class="text-[10px] font-bold text-red-500">High priority</span>':''}
+      </div>
+    </div>
+  </div>`).join('');
+}
+function toggleHoneyDone(id, checked) {
+  const h = state.honeyDo.find(x => x.id === id);
+  h.done = checked; h.doneAt = checked ? new Date().toISOString() : null;
+  saveState(); renderHoneyDo();
+}
+function openHoneyDoModal(id) {
+  document.getElementById('honeyId').value = id || '';
+  document.getElementById('honeyPerson').innerHTML = '<option value="">Anyone / Whole family</option>' + personOptions(null);
+  document.getElementById('honeyDeleteBtn').classList.toggle('hidden', !id);
+  if (id) {
+    const h = state.honeyDo.find(x => x.id === id);
+    document.getElementById('honeyTitle').value = h.title;
+    document.getElementById('honeyPerson').value = h.personId || '';
+    document.getElementById('honeyPriority').value = h.priority || 'normal';
+    document.getElementById('honeyNotes').value = h.notes || '';
+  } else {
+    document.getElementById('honeyTitle').value = '';
+    document.getElementById('honeyPerson').value = '';
+    document.getElementById('honeyPriority').value = 'normal';
+    document.getElementById('honeyNotes').value = '';
+  }
+  openModal('honeyDoModal');
+}
+function saveHoneyDo() {
+  const id = document.getElementById('honeyId').value;
+  const title = document.getElementById('honeyTitle').value.trim();
+  if (!title) { toast('Give it a title', 'fa-triangle-exclamation'); return; }
+  const data = {
+    title, personId: document.getElementById('honeyPerson').value || null,
+    priority: document.getElementById('honeyPriority').value,
+    notes: document.getElementById('honeyNotes').value.trim()
+  };
+  if (id) Object.assign(state.honeyDo.find(x => x.id === id), data);
+  else state.honeyDo.push({ id: uid('hd'), done:false, createdAt: new Date().toISOString(), ...data });
+  closeModal('honeyDoModal');
+  saveState(); renderHoneyDo();
+}
+function deleteHoneyDo() {
+  const id = document.getElementById('honeyId').value;
+  if (!confirm('Delete this item?')) return;
+  state.honeyDo = state.honeyDo.filter(x => x.id !== id);
+  closeModal('honeyDoModal');
+  saveState(); renderHoneyDo();
+}
+
+/* =========================== YEARLY CHORE (HEADER) =========================== */
+function renderHeader() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('headerMonthLabel').textContent = monthNames[calMonth]+' '+calYear;
+  const yc = state.yearlyChores.find(y => y.month === calMonth+1);
+  document.getElementById('yearlyChoreTitle').textContent = yc ? yc.title : '--';
+  const key = calYear+'-'+(calMonth+1);
+  const comp = state.yearlyCompletions[key] || {};
+  const total = yc ? (yc.subtasks||[]).length : 0;
+  const done = yc ? (yc.subtasks||[]).filter(s => comp[s.id]).length : 0;
+  document.getElementById('yearlyChoreProgress').textContent = total ? `${done}/${total}` : '';
+}
+
+function openYearlyChoreModal() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const editor = document.getElementById('yearlyChoreEditor');
+  editor.innerHTML = monthNames.map((m,i) => {
+    const yc = state.yearlyChores.find(y => y.month === i+1) || { id: uid('yc'), month: i+1, title: m+' Family Chore', subtasks: [] };
+    if (!state.yearlyChores.find(y => y.month === i+1)) state.yearlyChores.push(yc);
+    const isCurrent = i === calMonth;
+    const key = calYear+'-'+(i+1);
+    const comp = state.yearlyCompletions[key] || {};
+    return `<div class="rounded-xl border ${isCurrent?'border-purple-300 bg-purple-50':'border-gray-100'} p-2.5">
+      <div class="flex items-center justify-between gap-2 mb-1.5">
+        <div class="text-[10px] font-bold uppercase tracking-wide ${isCurrent?'text-purple-600':'text-gray-400'}">${m}${isCurrent?' · Current':''}</div>
+      </div>
+      <input type="text" value="${escapeHtml(yc.title)}" onchange="updateYearlyTitle(${i+1}, this.value)" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-semibold mb-2">
+      <div id="ycSubs-${i+1}" class="space-y-1">
+        ${(yc.subtasks||[]).map(s => `<div class="subtask-row">
+          ${isCurrent?`<input type="checkbox" class="chk" ${comp[s.id]?'checked':''} onchange="toggleYearlySubtask(${i+1}, '${s.id}', this.checked)">`:'<span class="w-[18px] h-[18px] flex-shrink-0"></span>'}
+          <span class="text-sm flex-1 ${isCurrent&&comp[s.id]?'line-through text-gray-400':''}">${escapeHtml(s.text)}</span>
+          ${s.personId?personChip(s.personId):''}
+          <button onclick="removeYearlySubtask(${i+1}, '${s.id}')" class="text-gray-300"><i class="fa-solid fa-xmark text-xs"></i></button>
+        </div>`).join('')}
+      </div>
+      <div class="flex gap-1.5 mt-1.5">
+        <input type="text" id="ycNewSub-${i+1}" placeholder="Add step..." class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
+        <select id="ycNewSubPerson-${i+1}" class="border border-gray-200 rounded-lg px-1.5 py-1.5 text-xs">${personOptions(null,'Anyone')}</select>
+        <button onclick="addYearlySubtask(${i+1})" class="w-8 h-8 flex-shrink-0 rounded-lg bg-purple-100 text-purple-600"><i class="fa-solid fa-plus text-xs"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+  openModal('yearlyChoreModal');
+}
+function updateYearlyTitle(month, val) { const yc = state.yearlyChores.find(y=>y.month===month); yc.title = val; saveState(); renderHeader(); }
+function addYearlySubtask(month) {
+  const input = document.getElementById('ycNewSub-'+month);
+  const text = input.value.trim();
+  if (!text) return;
+  const personId = document.getElementById('ycNewSubPerson-'+month).value || null;
+  const yc = state.yearlyChores.find(y => y.month === month);
+  yc.subtasks = yc.subtasks || [];
+  yc.subtasks.push({ id: uid('ycs'), text, personId });
+  saveState(); openYearlyChoreModal();
+}
+function removeYearlySubtask(month, subId) {
+  const yc = state.yearlyChores.find(y => y.month === month);
+  yc.subtasks = (yc.subtasks||[]).filter(s => s.id !== subId);
+  saveState(); openYearlyChoreModal();
+}
+function toggleYearlySubtask(month, subId, checked) {
+  const key = calYear+'-'+month;
+  state.yearlyCompletions[key] = state.yearlyCompletions[key] || {};
+  state.yearlyCompletions[key][subId] = checked;
+  saveState(); renderHeader();
+}
+
+/* =========================== PROFILES / SETTINGS =========================== */
+function renderProfiles() {
+  document.getElementById('peopleList').innerHTML = state.people.map(p => `<div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2.5 py-2">
+    <input type="color" value="${p.color}" onchange="updatePersonColor('${p.id}', this.value)" class="w-8 h-8 rounded-lg border-0 flex-shrink-0" style="background:${p.color}">
+    <input type="text" value="${escapeHtml(p.name)}" onchange="updatePersonName('${p.id}', this.value)" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm">
+    <button onclick="removePerson('${p.id}')" class="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+  </div>`).join('');
+
+  const mySel = document.getElementById('myProfileSelect');
+  mySel.innerHTML = '<option value="">-- select --</option>' + personOptions(state.settings.myProfileId);
+
+  const notifStatus = document.getElementById('notifPermStatus');
+  if ('Notification' in window) {
+    notifStatus.textContent = 'Browser permission: ' + Notification.permission;
+  } else {
+    notifStatus.textContent = 'Notifications not supported in this browser.';
+  }
+}
+function addPersonRow() {
+  const usedColors = state.people.map(p => p.color);
+  const nextColor = DEFAULT_COLORS.find(c => !usedColors.includes(c.hex)) || DEFAULT_COLORS[state.people.length % 5];
+  state.people.push({ id: uid('p'), name: 'New Person', color: nextColor.hex });
+  saveState(); renderProfiles();
+}
+function updatePersonName(id, val) { getPerson(id).name = val; saveState(); renderProfiles(); }
+function updatePersonColor(id, val) { getPerson(id).color = val; saveState(); renderProfiles(); }
+function removePerson(id) {
+  if (!confirm('Remove this person? Their assigned chores will stay but show as unassigned until reassigned.')) return;
+  state.people = state.people.filter(p => p.id !== id);
+  saveState(); renderProfiles();
+}
+function setMyProfile(id) { state.settings.myProfileId = id; persist(); toast('Saved — this phone is set up.', 'fa-check'); }
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) { toast('Notifications not supported here', 'fa-triangle-exclamation'); return; }
+  const perm = await Notification.requestPermission();
+  renderProfiles();
+  if (perm === 'granted') toast('Notifications enabled on this phone', 'fa-bell');
+  else toast('Permission not granted', 'fa-triangle-exclamation');
+}
+
+/* =========================== POKES =========================== */
+function openPokeModal(presetTarget) {
+  document.getElementById('pokeTarget').innerHTML = personOptions(presetTarget);
+  renderPokeHistory();
+  openModal('pokeModal');
+}
+function sendPoke() {
+  const toId = document.getElementById('pokeTarget').value;
+  const message = document.getElementById('pokeMessage').value.trim() || 'Poke!';
+  const poke = { id: uid('poke'), fromPersonId: state.settings.myProfileId, toPersonId: toId, message, ts: Date.now(), read: false };
+  state.pokes.unshift(poke);
+  if (state.pokes.length > 100) state.pokes.length = 100;
+  saveState();
+  closeModal('pokeModal');
+  toast('Poke sent to '+((getPerson(toId)||{}).name||'them'), 'fa-bell');
+  maybeShowLocalNotification(poke);
+}
+function renderPokeHistory() {
+  const box = document.getElementById('pokeHistory');
+  const recent = state.pokes.slice(0,8);
+  box.innerHTML = recent.length ? '<div class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Recent Pokes</div>' + recent.map(p => `<div class="text-xs text-gray-600 flex items-center gap-1.5">
+    <i class="fa-solid fa-bell text-purple-400 text-[10px]"></i>
+    <span>${personChip(p.fromPersonId)} → ${personChip(p.toPersonId)}</span>
+    <span class="text-gray-400 ml-auto">${new Date(p.ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</span>
+  </div>`).join('') : '';
+}
+function maybeShowLocalNotification(poke) {
+  if (poke.toPersonId !== state.settings.myProfileId && state.settings.myProfileId) {
+    // Not for this device's profile — on a real device this only fires for whichever
+    // profile is targeted, checked again on sync pull below.
+  }
+  if ('Notification' in window && Notification.permission === 'granted' && poke.toPersonId === state.settings.myProfileId) {
+    new Notification('Poke from '+((getPerson(poke.fromPersonId)||{}).name||'Family'), { body: poke.message, icon: 'icon-192.png' });
+  }
+}
+// Called after a cloud sync pulls new data, to catch pokes meant for this device.
+let lastSeenPokeCount = 0;
+function checkForNewPokesTargetingMe() {
+  if (!state.settings.myProfileId) return;
+  const mine = state.pokes.filter(p => p.toPersonId === state.settings.myProfileId);
+  if (mine.length > lastSeenPokeCount) {
+    const newest = mine[0];
+    if (newest && Date.now() - newest.ts < 60000) maybeShowLocalNotification(newest);
+  }
+  lastSeenPokeCount = mine.length;
+}
+
+/* =========================== CLOUD SYNC (Firebase) =========================== */
+function loadSyncConfigFromStorage() {
+  try { const raw = localStorage.getItem('chores_sync_config'); return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
+}
+function applySyncConfig(cfg) {
+  try {
+    if (typeof firebase === 'undefined') return false;
+    firebaseApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(cfg.fbConfig);
+    firestoreDb = firebase.firestore();
+    return true;
+  } catch(e) { console.error('Sync config failed', e); return false; }
+}
+async function enableCloudSync() {
+  const raw = document.getElementById('syncConfigInput').value.trim();
+  if (!raw) { toast('Paste a Firebase config first', 'fa-triangle-exclamation'); return; }
+  let fbConfig;
+  try { fbConfig = JSON.parse(raw); } catch(e) { toast("That JSON didn't parse", 'fa-triangle-exclamation'); return; }
+  const cfg = { fbConfig, docId: 'family-chores-shared' };
+  localStorage.setItem('chores_sync_config', JSON.stringify(cfg));
+  if (applySyncConfig(cfg)) {
+    document.getElementById('syncStatusLine').textContent = 'Connected. Pulling latest data...';
+    await pullFromCloud();
+    listenForCloudChanges();
+    toast('Cloud sync enabled', 'fa-cloud');
+  } else {
+    document.getElementById('syncStatusLine').textContent = 'Could not connect — check the config.';
+  }
+}
+async function pushToCloud() {
+  if (!firestoreDb) return;
+  try {
+    await firestoreDb.collection('chores_sync').doc('family-chores-shared').set({
+      data: JSON.stringify(state), updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) { console.error('push failed', e); }
+}
+async function pullFromCloud() {
+  if (!firestoreDb) return;
+  try {
+    const doc = await firestoreDb.collection('chores_sync').doc('family-chores-shared').get();
+    if (doc.exists && doc.data().data) {
+      const remote = JSON.parse(doc.data().data);
+      state = Object.assign(state, remote);
+      persist();
+      renderApp();
+      checkForNewPokesTargetingMe();
+    }
+  } catch(e) { console.error('pull failed', e); }
+}
+function listenForCloudChanges() {
+  if (!firestoreDb || unsubscribeSync) return;
+  unsubscribeSync = firestoreDb.collection('chores_sync').doc('family-chores-shared')
+    .onSnapshot(doc => {
+      if (doc.exists && doc.data().data) {
+        const remote = JSON.parse(doc.data().data);
+        state = Object.assign(state, remote);
+        persist();
+        renderApp();
+        checkForNewPokesTargetingMe();
+      }
+    });
+}
+function manualSyncNow() { if (firestoreDb) { pullFromCloud(); toast('Synced', 'fa-rotate'); } else { toast('Enable cloud sync first', 'fa-triangle-exclamation'); } }
+function initSyncOnBoot() {
+  const cfg = loadSyncConfigFromStorage();
+  if (cfg && applySyncConfig(cfg)) {
+    document.getElementById('syncConfigInput').value = JSON.stringify(cfg.fbConfig);
+    pullFromCloud().then(listenForCloudChanges);
+  }
+}
+
+/* =========================== EXPORT / IMPORT =========================== */
+function exportDataJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'family-chores-export-' + todayStr() + '.json';
+  a.click(); URL.revokeObjectURL(url);
+}
+function importDataJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const imported = JSON.parse(evt.target.result);
+      if (!confirm('This will replace all current data with the imported file. Continue?')) return;
+      state = Object.assign(state, imported);
+      saveState(); renderProfiles();
+      toast('Data imported', 'fa-check');
+    } catch(err) { toast('Could not read that file', 'fa-triangle-exclamation'); }
+  };
+  reader.readAsText(file);
+}
+
+/* =========================== DARK MODE =========================== */
+function toggleDarkMode() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('chores_dark_mode', isDark ? '1' : '0');
+}
+
+/* =========================== MASTER RENDER =========================== */
+function renderApp() {
+  renderHeader();
+  renderCalendar();
+  renderSelectedDay();
+  renderProfiles();
+  const activeTab = document.querySelector('nav button.text-purple-600')?.id?.replace('nav-','') || 'calendar';
+  if (activeTab === 'log') renderLog();
+  if (activeTab === 'stats') renderStats();
+  if (activeTab === 'honeydo') renderHoneyDo();
+}
+
+/* =========================== BOOT =========================== */
+window.onload = async function() {
+  await loadState();
+  renderApp();
+  initSyncOnBoot();
+  const lastTab = localStorage.getItem('chores_last_tab');
+  if (lastTab) switchTab(lastTab);
+  setInterval(checkForNewPokesTargetingMe, 15000);
+};
+
+if ('serviceWorker' in navigator) {
+  let refreshingOnce = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshingOnce) return;
+    refreshingOnce = true;
+    window.location.reload();
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      reg.update().catch(() => {});
+    }).catch(err => console.error('SW registration failed', err));
+  });
+}
+</script>
+</body>
+</html>
