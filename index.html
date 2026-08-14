@@ -84,7 +84,7 @@
   </div>
 
   <!-- Yearly Chore banner -->
-  <div id="yearlyChoreBanner" onclick="openYearlyChoreModal()" class="cursor-pointer rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3.5 py-2.5 flex items-center justify-between shadow-md">
+  <div id="yearlyChoreBanner" onclick="openYearlyChoreModal()" class="cursor-pointer rounded-xl text-white px-3.5 py-2.5 flex items-center justify-between shadow-md">
     <div class="min-w-0">
       <div class="text-[9px] font-bold uppercase tracking-wider opacity-90">This Month's Family Chore</div>
       <div id="yearlyChoreTitle" class="text-sm font-bold truncate">--</div>
@@ -94,25 +94,37 @@
       <i class="fa-solid fa-chevron-right text-xs opacity-80"></i>
     </div>
   </div>
+
+  <!-- Marketplace quick banner -->
+  <div id="marketBanner" onclick="switchTab('market')" class="cursor-pointer mt-2 rounded-xl bg-gradient-to-r from-amber-400 to-pink-500 text-white px-3.5 py-2 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-2 min-w-0">
+      <i class="fa-solid fa-store text-sm"></i>
+      <div class="text-xs font-bold truncate">Chore Marketplace</div>
+    </div>
+    <div class="text-right flex items-center gap-2 flex-shrink-0">
+      <div id="marketBannerCount" class="text-xs font-mono font-bold">0 open</div>
+      <i class="fa-solid fa-chevron-right text-xs opacity-80"></i>
+    </div>
+  </div>
 </header>
 
 <main class="max-w-md mx-auto px-4 pt-3">
 
   <!-- TAB: Chore Calendar -->
   <section id="tab-calendar" class="space-y-3">
-    <div class="bg-white rounded-2xl shadow-sm p-3">
+    <div class="bg-white rounded-2xl shadow-sm p-2.5 flex items-center gap-1.5 overflow-x-auto" id="calendarFilterBar"></div>
+
+    <div class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
         <div id="calMonthLabel" class="font-bold text-sm"></div>
         <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
       </div>
-      <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-1">
-        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
-      </div>
+      <div id="calWeekdayHeader" class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-1"></div>
       <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm p-3">
+    <div class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm" id="selectedDayLabel">Today</div>
         <button onclick="openChoreModal(null, selectedDate)" class="text-xs font-bold text-purple-600 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
@@ -123,14 +135,14 @@
 
   <!-- TAB: Chore Log -->
   <section id="tab-log" class="hidden space-y-3">
-    <div class="bg-white rounded-2xl shadow-sm p-3">
+    <div class="bg-gradient-to-br from-white to-blue-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2 gap-2">
         <select id="logPersonFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1">
           <option value="all">Everyone</option>
         </select>
-        <button onclick="openChoreModal()" class="text-xs font-bold bg-purple-600 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add Chore</button>
+        <button onclick="openChoreModal()" class="text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add Chore</button>
       </div>
-      <button onclick="openChoreModal(null, todayStr(), true)" class="w-full text-xs font-bold border-2 border-dashed border-purple-300 text-purple-600 rounded-lg py-2 mb-2">
+      <button onclick="openChoreModal(null, todayStr(), true)" class="w-full text-xs font-bold border-2 border-dashed border-blue-300 text-blue-600 rounded-lg py-2 mb-2">
         <i class="fa-solid fa-bolt"></i> Log an extra chore I already did
       </button>
       <div id="logList" class="space-y-2"></div>
@@ -139,7 +151,7 @@
 
   <!-- TAB: Family Stats -->
   <section id="tab-stats" class="hidden space-y-3">
-    <div class="bg-white rounded-2xl shadow-sm p-3">
+    <div class="bg-gradient-to-br from-white to-emerald-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center gap-2 mb-3">
         <select id="statsPeriod" onchange="renderStats()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1">
           <option value="month">This Month</option>
@@ -151,7 +163,7 @@
       <div style="height:180px;"><canvas id="statsChart"></canvas></div>
     </div>
     <div id="statsPersonCards" class="space-y-2"></div>
-    <div class="bg-white rounded-2xl shadow-sm p-3">
+    <div class="bg-gradient-to-br from-white to-amber-50/40 rounded-2xl shadow-sm p-3">
       <div class="font-bold text-sm mb-2"><i class="fa-solid fa-piggy-bank text-purple-500"></i> Reward Bank</div>
       <div id="bankList" class="space-y-2"></div>
     </div>
@@ -159,13 +171,33 @@
 
   <!-- TAB: Honey-Do List -->
   <section id="tab-honeydo" class="hidden space-y-3">
-    <div class="bg-white rounded-2xl shadow-sm p-3">
+    <div class="bg-gradient-to-br from-white to-orange-50/50 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm">Never-Ending Honey-Do List</div>
-        <button onclick="openHoneyDoModal()" class="text-xs font-bold bg-purple-600 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+        <button onclick="openHoneyDoModal()" class="text-xs font-bold bg-orange-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
       <div class="text-[11px] text-gray-500 mb-2">Projects & weekend tasks — no due date required.</div>
       <div id="honeyDoList" class="space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- TAB: Marketplace -->
+  <section id="tab-market" class="hidden space-y-3">
+    <div class="bg-gradient-to-br from-amber-50 to-pink-50 rounded-2xl shadow-sm p-3">
+      <div class="flex items-center justify-between mb-1">
+        <div class="font-bold text-sm"><i class="fa-solid fa-store text-pink-500"></i> Open Chores</div>
+        <button onclick="openMarketModal()" class="text-xs font-bold bg-pink-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Post</button>
+      </div>
+      <div class="text-[11px] text-gray-500">First come, first served. Claim one and pick when you'll get it done.</div>
+    </div>
+    <div id="marketQuotaCards" class="grid grid-cols-2 gap-2"></div>
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Up for grabs</div>
+      <div id="marketOpenList" class="space-y-2"></div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Claimed this week</div>
+      <div id="marketClaimedList" class="space-y-2"></div>
     </div>
   </section>
 
@@ -173,16 +205,19 @@
 
 <!-- Bottom Nav -->
 <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 max-w-md mx-auto flex justify-around items-center py-2 z-30 shadow-lg">
-  <button id="nav-calendar" onclick="switchTab('calendar')" class="flex flex-col items-center gap-1 text-purple-600 font-bold bg-purple-50 rounded-2xl px-3.5 py-1.5 -my-1">
+  <button id="nav-calendar" onclick="switchTab('calendar')" class="flex flex-col items-center gap-1 text-purple-600 font-bold bg-purple-50 rounded-2xl px-2.5 py-1.5 -my-1">
     <i class="fa-solid fa-calendar-days"></i><span class="text-[9px]">Calendar</span>
   </button>
-  <button id="nav-log" onclick="switchTab('log')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-3.5 py-1.5 -my-1">
+  <button id="nav-market" onclick="switchTab('market')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1">
+    <i class="fa-solid fa-store"></i><span class="text-[9px]">Market</span>
+  </button>
+  <button id="nav-log" onclick="switchTab('log')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1">
     <i class="fa-solid fa-list-check"></i><span class="text-[9px]">Chore Log</span>
   </button>
-  <button id="nav-stats" onclick="switchTab('stats')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-3.5 py-1.5 -my-1">
+  <button id="nav-stats" onclick="switchTab('stats')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1">
     <i class="fa-solid fa-chart-simple"></i><span class="text-[9px]">Stats</span>
   </button>
-  <button id="nav-honeydo" onclick="switchTab('honeydo')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-3.5 py-1.5 -my-1">
+  <button id="nav-honeydo" onclick="switchTab('honeydo')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1">
     <i class="fa-solid fa-house-chimney"></i><span class="text-[9px]">Honey-Do</span>
   </button>
 </nav>
@@ -205,8 +240,8 @@
     <div class="flex gap-2">
       <button id="cdCompleteBtn" onclick="toggleChoreComplete()" class="flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-emerald-600"><i class="fa-solid fa-check"></i> Mark Complete</button>
       <button onclick="pokeFromChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-bell"></i></button>
-      <button onclick="editCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
-      <button onclick="deleteCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
+      <button id="cdEditBtn" onclick="editCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
+      <button id="cdDeleteBtn" onclick="deleteCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
     </div>
   </div>
 </div>
@@ -248,7 +283,16 @@
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
+          <option value="rotation">Rotating (alternating chores)</option>
         </select>
+
+        <div id="recurIntervalBox" class="hidden">
+          <label class="text-xs font-bold text-gray-500">Every <span id="recurIntervalUnitLabel">week(s)</span></label>
+          <input id="recurInterval" type="number" min="1" max="52" value="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          <div class="text-[10px] text-gray-400 mt-1">e.g. "2" = every other week — perfect for biweekly rotations.</div>
+        </div>
+
         <div id="recurWeeklyBox" class="hidden">
           <label class="text-xs font-bold text-gray-500">Days</label>
           <div class="grid grid-cols-7 gap-1 mt-1" id="recurDaysGrid"></div>
@@ -257,6 +301,18 @@
           <label class="text-xs font-bold text-gray-500">Day of Month</label>
           <input id="recurDayOfMonth" type="number" min="1" max="31" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
         </div>
+
+        <div id="recurRotationBox" class="hidden">
+          <label class="text-xs font-bold text-gray-500">Rotating shifts <span class="font-normal">(cycles through in order)</span></label>
+          <div class="text-[10px] text-gray-400 mb-1">e.g. "Feed the dogs" for a week, then "Clean up after dinner" for a week, then back to feeding — set weeks-per-shift below.</div>
+          <div id="rotationStageBuilder" class="space-y-1.5"></div>
+          <button type="button" onclick="addRotationStageRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add shift</button>
+          <div class="mt-2">
+            <label class="text-xs font-bold text-gray-500">Weeks per shift</label>
+            <input id="rotationStageWeeks" type="number" min="1" max="12" value="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          </div>
+        </div>
+
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="text-xs font-bold text-gray-500">Starts</label>
@@ -266,6 +322,10 @@
             <label class="text-xs font-bold text-gray-500">Time</label>
             <input id="recurTime" type="time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
           </div>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">Ends <span class="font-normal">(optional)</span></label>
+          <input id="recurEnd" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
         </div>
       </div>
 
@@ -340,6 +400,17 @@
       <div id="notifPermStatus" class="text-[10px] text-gray-500 mt-1"></div>
     </div>
 
+    <div class="font-bold text-sm mb-2">Calendar</div>
+    <div class="mb-4">
+      <label class="text-xs font-bold text-gray-500">Week starts on</label>
+      <select id="weekStartSelect" onchange="setWeekStart(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-2">
+        <option value="sunday">Sunday</option>
+        <option value="monday">Monday</option>
+      </select>
+      <label class="text-xs font-bold text-gray-500">Weekly marketplace quota <span class="font-normal">(chores everyone should claim each week)</span></label>
+      <input id="weeklyQuotaInput" type="number" min="0" max="14" onchange="setWeeklyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+    </div>
+
     <div class="font-bold text-sm mb-2">Dark Mode</div>
     <button onclick="toggleDarkMode()" class="w-full mb-4 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Toggle Dark Mode</button>
 
@@ -410,6 +481,113 @@
   </div>
 </div>
 
+<!-- Market Listing Add/Edit Modal -->
+<div id="marketModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div id="marketModalTitle" class="text-lg font-bold">Post to Marketplace</div>
+      <button onclick="closeModal('marketModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="marketId">
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Chore Name</label>
+        <input id="marketTitle" type="text" placeholder="Clean downstairs bathroom" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" onclick="setMarketRepeats('once')" id="marketRepeatsOnceBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">One-time</button>
+        <button type="button" onclick="setMarketRepeats('weekly')" id="marketRepeatsWeeklyBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Weekly Pool</button>
+      </div>
+      <div class="text-[10px] text-gray-400" id="marketRepeatsHelp">One-time: posted once, gone once claimed & done.</div>
+
+      <div class="flex gap-2">
+        <button type="button" onclick="setMarketSchedule('fixed')" id="marketSchedFixedBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Specific Due Date</button>
+        <button type="button" onclick="setMarketSchedule('flexible')" id="marketSchedFlexBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Flexible Window</button>
+      </div>
+
+      <div id="marketFixedOnceBox" class="hidden">
+        <label class="text-xs font-bold text-gray-500">Due Date</label>
+        <input id="marketDueDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        <div class="text-[10px] text-gray-400 mt-1">Shows as "Unassigned" on the calendar on this date until someone claims it.</div>
+      </div>
+      <div id="marketFixedWeeklyBox" class="hidden">
+        <label class="text-xs font-bold text-gray-500">Due Day (every week)</label>
+        <select id="marketDueDayOfWeek" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
+      </div>
+      <div id="marketFlexOnceBox" class="hidden grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs font-bold text-gray-500">Window Start</label>
+          <input id="marketWindowStart" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">Window End</label>
+          <input id="marketWindowEnd" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        </div>
+      </div>
+      <div id="marketFlexWeeklyBox" class="hidden">
+        <label class="text-xs font-bold text-gray-500">Open Window (within each week)</label>
+        <div class="grid grid-cols-2 gap-2 mt-1">
+          <select id="marketWindowStartOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
+          <select id="marketWindowEndOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
+        </div>
+        <div class="text-[10px] text-gray-400 mt-1">e.g. Monday → Sunday means open all week, at their leisure. Resets automatically each week.</div>
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
+        </div>
+        <div id="marketSubtaskBuilder" class="space-y-1.5 mt-1"></div>
+        <button type="button" onclick="addMarketSubtaskRow()" class="text-xs font-bold text-pink-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
+      </div>
+
+      <div class="bg-purple-50 rounded-lg p-2.5">
+        <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
+          <input type="checkbox" id="marketRewardEnabled" onchange="document.getElementById('marketRewardBox').classList.toggle('hidden', !this.checked)" class="chk"> Assign a Reward
+        </label>
+        <div id="marketRewardBox" class="hidden mt-2 space-y-2">
+          <div class="flex gap-2">
+            <button type="button" onclick="setMarketRewardType('money')" id="marketRewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
+            <button type="button" onclick="setMarketRewardType('other')" id="marketRewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
+          </div>
+          <input id="marketRewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <input id="marketRewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-gray-500">Notes</label>
+        <textarea id="marketNotes" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveMarketChore()" class="flex-1 bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm">Save Listing</button>
+      <button id="marketDeleteBtn" onclick="deleteMarketChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Market Claim Modal -->
+<div id="marketClaimModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold">Claim This Chore</div>
+      <button onclick="closeModal('marketClaimModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="claimMarketId"><input type="hidden" id="claimScopeKey">
+    <div id="claimChoreTitle" class="text-sm font-bold text-gray-800 mb-3"></div>
+    <label class="text-xs font-bold text-gray-500">Who's claiming it?</label>
+    <select id="claimPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3"></select>
+    <div id="claimDateBox" class="hidden mb-3">
+      <label class="text-xs font-bold text-gray-500">Pick a due date</label>
+      <input id="claimDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      <div id="claimDateHint" class="text-[10px] text-gray-400 mt-1"></div>
+    </div>
+    <button onclick="confirmClaimMarket()" class="w-full bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm"><i class="fa-solid fa-hand"></i> Claim It</button>
+  </div>
+</div>
+
 <!-- Poke Modal -->
 <div id="pokeModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
@@ -435,9 +613,32 @@ const DEFAULT_COLORS = [
   {name:'Orange', hex:'#F97316'},
   {name:'Blue', hex:'#3B82F6'},
   {name:'Pink', hex:'#EC4899'},
-  {name:'Purple', hex:'#8B5CF6'}
+  {name:'Purple', hex:'#8B5CF6'},
+  {name:'Teal', hex:'#14B8A6'},
+  {name:'Amber', hex:'#F59E0B'},
+  {name:'Rose', hex:'#F43F5E'},
+  {name:'Indigo', hex:'#6366F1'},
+  {name:'Lime', hex:'#84CC16'}
 ];
-const WEEKDAY_LABELS = ['S','M','T','W','T','F','S'];
+const WEEKDAY_LABELS_SUN = ['S','M','T','W','T','F','S'];
+const WEEKDAY_LABELS_MON = ['M','T','W','T','F','S','S'];
+const WEEKDAY_LABELS = WEEKDAY_LABELS_SUN; // kept for back-compat references
+// A colorful gradient per calendar month, used to give the header banner (and yearly editor) more color variety
+const MONTH_GRADIENTS = [
+  ['#8B5CF6','#EC4899'], // Jan - purple/pink
+  ['#EC4899','#F97316'], // Feb
+  ['#F97316','#F59E0B'], // Mar
+  ['#22C55E','#14B8A6'], // Apr
+  ['#14B8A6','#3B82F6'], // May
+  ['#F59E0B','#EF4444'], // Jun
+  ['#3B82F6','#6366F1'], // Jul
+  ['#F43F5E','#F59E0B'], // Aug
+  ['#84CC16','#14B8A6'], // Sep
+  ['#F97316','#F43F5E'], // Oct
+  ['#6366F1','#8B5CF6'], // Nov
+  ['#EF4444','#8B5CF6']  // Dec
+];
+const NAV_COLORS = { calendar:'purple', market:'pink', log:'blue', stats:'emerald', honeydo:'orange' };
 
 let state = {
   people: [],
@@ -449,15 +650,20 @@ let state = {
   honeyDo: [],           // {id,title,personId,priority,notes,done,createdAt,doneAt}
   bankedRewards: [],     // {id,personId,choreTitle,reward,date,redeemed,redeemedAt}
   pokes: [],             // {id,fromPersonId,toPersonId,message,ts,read}
-  settings: { myProfileId: null, syncConfig: null }
+  marketChores: [],      // marketplace listing templates, see market engine below
+  marketClaims: {},      // key `${marketId}_${scopeKey}` -> {personId,dueDate,claimedAt,completed,completedAt,subtaskState}
+  settings: { myProfileId: null, syncConfig: null, weekStart: 'sunday', weeklyQuota: 2 }
 };
 
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
 let selectedDate = todayStr();
 let dayListDate = null;
-let currentChoreDetail = null; // {kind:'single'|'recurring', id, dateStr}
+let currentChoreDetail = null; // {kind:'single'|'recurring'|'market', id, dateStr}
 let subtaskBuilderCount = 0;
+let marketSubtaskBuilderCount = 0;
+let rotationStageCount = 0;
+let calendarFilter = new Set(); // empty = show everyone; may contain personIds or '__unassigned__'
 let firestoreDb = null, firebaseApp = null, unsubscribeSync = null;
 
 function todayStr() { return formatLocalDate(new Date()); }
@@ -502,12 +708,14 @@ function openModal(id) { document.getElementById(id).classList.remove('hidden');
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
 function switchTab(tab) {
-  ['calendar','log','stats','honeydo'].forEach(t => {
+  ['calendar','market','log','stats','honeydo'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('hidden', t !== tab);
     const nav = document.getElementById('nav-'+t);
-    if (t === tab) { nav.classList.add('text-purple-600','font-bold','bg-purple-50'); nav.classList.remove('text-gray-500'); }
-    else { nav.classList.remove('text-purple-600','font-bold','bg-purple-50'); nav.classList.add('text-gray-500'); }
+    const color = NAV_COLORS[t] || 'purple';
+    if (t === tab) { nav.className = `flex flex-col items-center gap-1 text-${color}-600 font-bold bg-${color}-50 rounded-2xl px-2.5 py-1.5 -my-1`; }
+    else { nav.className = 'flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1'; }
   });
+  if (tab === 'market') renderMarketplace();
   if (tab === 'log') renderLog();
   if (tab === 'stats') renderStats();
   if (tab === 'honeydo') renderHoneyDo();
@@ -528,22 +736,74 @@ function personOptions(selectedId, includeBlankLabel) {
 }
 
 /* =========================== RECURRING ENGINE =========================== */
+function getWeekStartSetting() { return (state.settings && state.settings.weekStart) || 'sunday'; }
+function startOfWeek(dateStr, weekStart) {
+  const d = parseLocalDate(dateStr);
+  const dow = d.getDay(); // 0=Sun..6=Sat
+  const diff = (weekStart||getWeekStartSetting()) === 'monday' ? ((dow + 6) % 7) : dow;
+  d.setDate(d.getDate() - diff);
+  return d;
+}
+function weekDiff(startDateStr, dateStr, weekStart) {
+  const a = startOfWeek(startDateStr, weekStart);
+  const b = startOfWeek(dateStr, weekStart);
+  return Math.round((b - a) / (7*86400000));
+}
+function currentWeekStartStr(refDateStr) { return formatLocalDate(startOfWeek(refDateStr || todayStr())); }
+
 function ruleFiresOnDate(rule, dateStr) {
   if (rule.active === false) return false;
   if (dateStr < rule.startDate) return false;
   if (rule.endDate && dateStr > rule.endDate) return false;
   const d = parseLocalDate(dateStr);
-  if (rule.frequency === 'daily') return true;
-  if (rule.frequency === 'weekly') return (rule.daysOfWeek||[]).includes(d.getDay());
-  if (rule.frequency === 'monthly') return d.getDate() === Number(rule.dayOfMonth || 1);
+  const interval = Math.max(1, Number(rule.interval || 1));
+  if (rule.frequency === 'daily') {
+    const days = Math.round((d - parseLocalDate(rule.startDate)) / 86400000);
+    return days >= 0 && days % interval === 0;
+  }
+  if (rule.frequency === 'weekly') {
+    if (!(rule.daysOfWeek||[]).includes(d.getDay())) return false;
+    const w = weekDiff(rule.startDate, dateStr);
+    return w >= 0 && w % interval === 0;
+  }
+  if (rule.frequency === 'monthly') {
+    if (d.getDate() !== Number(rule.dayOfMonth || 1)) return false;
+    const sd = parseLocalDate(rule.startDate);
+    const months = (d.getFullYear()-sd.getFullYear())*12 + (d.getMonth()-sd.getMonth());
+    return months >= 0 && months % interval === 0;
+  }
+  if (rule.frequency === 'yearly') {
+    const sd = parseLocalDate(rule.startDate);
+    return d.getMonth() === sd.getMonth() && d.getDate() === sd.getDate();
+  }
+  if (rule.frequency === 'rotation') {
+    const w = weekDiff(rule.startDate, dateStr);
+    if (w < 0) return false;
+    const stages = (rule.rotation && rule.rotation.stages) || [];
+    if (!stages.length) return false;
+    const stageWeeks = Math.max(1, Number((rule.rotation && rule.rotation.stageWeeks) || 1));
+    const stageIdx = Math.floor(w / stageWeeks) % stages.length;
+    const stage = stages[stageIdx];
+    const days = (stage.daysOfWeek && stage.daysOfWeek.length) ? stage.daysOfWeek : [0,1,2,3,4,5,6];
+    return days.includes(d.getDay());
+  }
   return false;
+}
+function ruleTitleForDate(rule, dateStr) {
+  if (rule.frequency !== 'rotation') return rule.title;
+  const stages = (rule.rotation && rule.rotation.stages) || [];
+  if (!stages.length) return rule.title;
+  const w = weekDiff(rule.startDate, dateStr);
+  const stageWeeks = Math.max(1, Number((rule.rotation && rule.rotation.stageWeeks) || 1));
+  const stageIdx = Math.floor(Math.max(0,w) / stageWeeks) % stages.length;
+  return stages[stageIdx].title || rule.title;
 }
 function getRecurringForDate(dateStr) {
   return state.recurring.filter(r => ruleFiresOnDate(r, dateStr)).map(r => {
     const key = r.id+'_'+dateStr;
     const comp = state.recurringCompletions[key] || {};
     return {
-      kind: 'recurring', id: r.id, dateStr, title: r.title, personId: r.personId,
+      kind: 'recurring', id: r.id, dateStr, title: ruleTitleForDate(r, dateStr), personId: r.personId,
       time: r.time, subtasks: r.subtasks || [], reward: r.reward,
       completed: !!comp.completed, subtaskState: comp.subtaskState || {}
     };
@@ -556,9 +816,89 @@ function getSingleForDate(dateStr) {
     completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid
   }));
 }
+/* =========================== MARKETPLACE ENGINE =========================== */
+// A market chore is a "listing" that anyone can claim. It can be one-time or a weekly pool item,
+// and can either have a specific due date (shows "Unassigned" on the calendar until claimed) or a
+// flexible window (never shown on the calendar until someone claims it and picks a date).
+function marketClaimKey(marketId, scopeKey) { return marketId+'_'+scopeKey; }
+function getMarketClaim(marketId, scopeKey) { return state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
+
+// Returns one "instance" per market chore for the week containing refDateStr (or the single instance for one-time items)
+function activeMarketInstances(refDateStr) {
+  const ref = refDateStr || todayStr();
+  const weekStartStr = currentWeekStartStr(ref);
+  const out = [];
+  state.marketChores.forEach(m => {
+    if (m.repeats === 'weekly') {
+      const scopeKey = weekStartStr;
+      const claim = getMarketClaim(m.id, scopeKey);
+      const wsD = parseLocalDate(weekStartStr);
+      let windowStart = null, windowEnd = null, dueDate = null;
+      if (m.scheduleType === 'flexible') {
+        const s = new Date(wsD); s.setDate(s.getDate() + (m.windowStartOffset||0));
+        const e = new Date(wsD); e.setDate(e.getDate() + (m.windowEndOffset!=null?m.windowEndOffset:6));
+        windowStart = formatLocalDate(s); windowEnd = formatLocalDate(e);
+        dueDate = claim ? claim.dueDate : null;
+      } else {
+        const dd = new Date(wsD); dd.setDate(dd.getDate() + (m.dueDayOffset||0));
+        dueDate = formatLocalDate(dd);
+      }
+      out.push({ market:m, scopeKey, claim, windowStart, windowEnd, dueDate });
+    } else {
+      const scopeKey = 'once';
+      const claim = getMarketClaim(m.id, scopeKey);
+      out.push({
+        market:m, scopeKey, claim,
+        windowStart: m.scheduleType==='flexible' ? m.windowStart : null,
+        windowEnd: m.scheduleType==='flexible' ? m.windowEnd : null,
+        dueDate: m.scheduleType==='fixed' ? m.dueDate : (claim ? claim.dueDate : null)
+      });
+    }
+  });
+  return out;
+}
+function getMarketForCalendarDate(dateStr) {
+  const items = [];
+  activeMarketInstances(dateStr).forEach(x => {
+    if (x.market.scheduleType === 'fixed') {
+      if (x.dueDate === dateStr) {
+        items.push({
+          kind:'market', id: x.market.id+'::'+x.scopeKey, marketId:x.market.id, scopeKey:x.scopeKey, dateStr,
+          title: x.market.title, personId: x.claim ? x.claim.personId : null, time: null,
+          subtasks: x.market.subtasks||[], reward: x.market.reward,
+          completed: !!(x.claim && x.claim.completed), subtaskState: (x.claim && x.claim.subtaskState) || {},
+          unclaimed: !x.claim
+        });
+      }
+    } else if (x.claim && x.claim.dueDate === dateStr) {
+      items.push({
+        kind:'market', id: x.market.id+'::'+x.scopeKey, marketId:x.market.id, scopeKey:x.scopeKey, dateStr,
+        title: x.market.title, personId: x.claim.personId, time: null,
+        subtasks: x.market.subtasks||[], reward: x.market.reward,
+        completed: !!x.claim.completed, subtaskState: x.claim.subtaskState || {}, unclaimed:false
+      });
+    }
+    // unclaimed flexible listings never show on the calendar — they only live in the Marketplace tab
+  });
+  return items;
+}
+function weeklyClaimCountForPerson(personId) {
+  const weekStartStr = currentWeekStartStr();
+  let n = 0;
+  state.marketChores.forEach(m => {
+    if (m.repeats !== 'weekly') return;
+    const claim = getMarketClaim(m.id, weekStartStr);
+    if (claim && claim.personId === personId) n++;
+  });
+  return n;
+}
+
 function getChoresForDate(dateStr) {
-  return [...getSingleForDate(dateStr), ...getRecurringForDate(dateStr)]
-    .sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
+  let items = [...getSingleForDate(dateStr), ...getRecurringForDate(dateStr), ...getMarketForCalendarDate(dateStr)];
+  if (calendarFilter.size) {
+    items = items.filter(c => calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__')));
+  }
+  return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
 
 /* =========================== CALENDAR =========================== */
@@ -570,13 +910,41 @@ function changeMonth(delta) {
   renderHeader();
 }
 
+function renderCalendarFilterBar() {
+  const bar = document.getElementById('calendarFilterBar');
+  if (!bar) return;
+  const allActive = calendarFilter.size === 0;
+  let html = `<button onclick="setCalendarFilter(null)" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border ${allActive?'bg-purple-600 text-white border-purple-600':'bg-white text-gray-500 border-gray-200'}">Everyone</button>`;
+  html += state.people.map(p => {
+    const active = calendarFilter.has(p.id);
+    return `<button onclick="toggleCalendarFilterPerson('${p.id}')" class="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold border" style="${active?`background:${p.color};color:#fff;border-color:${p.color}`:`background:#fff;color:${p.color};border-color:${p.color}55`}">
+      <span class="person-dot" style="background:${active?'#fff':p.color}"></span>${escapeHtml(p.name)}
+    </button>`;
+  }).join('');
+  html += `<button onclick="toggleCalendarFilterPerson('__unassigned__')" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border ${calendarFilter.has('__unassigned__')?'bg-gray-600 text-white border-gray-600':'bg-white text-gray-400 border-gray-200'}">Unassigned</button>`;
+  bar.innerHTML = html;
+}
+function setCalendarFilter(x) { calendarFilter = new Set(); renderCalendar(); renderSelectedDay(); renderCalendarFilterBar(); }
+function toggleCalendarFilterPerson(id) {
+  if (calendarFilter.has(id)) calendarFilter.delete(id); else calendarFilter.add(id);
+  renderCalendar(); renderSelectedDay(); renderCalendarFilterBar();
+}
+
 function renderCalendar() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('calMonthLabel').textContent = monthNames[calMonth]+' '+calYear;
+  renderCalendarFilterBar();
+
+  const weekStart = getWeekStartSetting();
+  const labels = weekStart === 'monday' ? WEEKDAY_LABELS_MON : WEEKDAY_LABELS_SUN;
+  const headerEl = document.getElementById('calWeekdayHeader');
+  if (headerEl) headerEl.innerHTML = labels.map(l => `<div>${l}</div>`).join('');
+
   const grid = document.getElementById('calendarGrid');
   grid.innerHTML = '';
   const first = new Date(calYear, calMonth, 1);
-  const startOffset = first.getDay();
+  const rawOffset = first.getDay(); // 0=Sun
+  const startOffset = weekStart === 'monday' ? ((rawOffset + 6) % 7) : rawOffset;
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
 
   for (let i=0;i<startOffset;i++) grid.appendChild(document.createElement('div'));
@@ -590,7 +958,7 @@ function renderCalendar() {
     cell.className = 'day-cell rounded-lg flex flex-col items-center justify-start pt-1 cursor-pointer text-xs '
       + (isSelected ? 'bg-purple-100 font-bold text-purple-700' : isToday ? 'bg-purple-50 font-bold text-purple-600' : 'hover:bg-gray-50 text-gray-700');
     cell.innerHTML = `<div>${day}</div><div class="flex gap-0.5 mt-1 flex-wrap justify-center max-w-full">${
-      chores.slice(0,4).map(c => { const p = getPerson(c.personId); return `<span class="day-dot" style="background:${p?p.color:'#cbd5e1'};opacity:${c.completed?0.3:1}"></span>`; }).join('')
+      chores.slice(0,4).map(c => { const p = getPerson(c.personId); const dot = c.unclaimed ? '#9CA3AF' : (p?p.color:'#cbd5e1'); return `<span class="day-dot" style="background:${dot};opacity:${c.completed?0.3:1};${c.unclaimed?'border:1px dashed #6B7280':''}"></span>`; }).join('')
     }</div>`;
     cell.onclick = () => { selectedDate = dateStr; openDayList(dateStr); renderCalendar(); renderSelectedDay(); };
     grid.appendChild(cell);
@@ -611,17 +979,19 @@ function choreRowHtml(c) {
   const p = getPerson(c.personId);
   const subCount = (c.subtasks||[]).length;
   const subDone = subCount ? (c.subtasks||[]).filter(s => c.subtaskState[s.id]).length : 0;
-  return `<div onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')" class="chore-card bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between cursor-pointer" style="border-left-color:${p?p.color:'#cbd5e1'}">
+  const isUnclaimed = c.kind === 'market' && c.unclaimed;
+  const borderColor = isUnclaimed ? '#9CA3AF' : (p?p.color:'#cbd5e1');
+  return `<div onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')" class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2.5 flex items-center justify-between cursor-pointer" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
     <div class="min-w-0 flex-1">
-      <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">${escapeHtml(c.title)}</div>
+      <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}${escapeHtml(c.title)}</div>
       <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-        ${personChip(c.personId)}
+        ${isUnclaimed ? '<span class="person-chip bg-gray-200 text-gray-500">Unassigned · Up for grabs</span>' : personChip(c.personId)}
         ${c.time ? `<span class="text-[10px] text-gray-400 font-mono">${formatTime(c.time)}</span>` : ''}
         ${subCount ? `<span class="text-[10px] text-gray-400">${subDone}/${subCount} steps</span>` : ''}
         ${c.reward && c.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(c.reward)}</span>` : ''}
       </div>
     </div>
-    <i class="fa-solid ${c.completed?'fa-circle-check text-emerald-500':'fa-chevron-right text-gray-300'} text-sm flex-shrink-0 ml-2"></i>
+    <i class="fa-solid ${isUnclaimed?'fa-hand text-pink-400':(c.completed?'fa-circle-check text-emerald-500':'fa-chevron-right text-gray-300')} text-sm flex-shrink-0 ml-2"></i>
   </div>`;
 }
 function formatTime(t) { if (!t) return ''; const [h,m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12 = h%12===0?12:h%12; return h12+':'+String(m).padStart(2,'0')+ap; }
@@ -640,15 +1010,28 @@ function openDayList(dateStr) {
 function openChoreDetail(kind, id, dateStr) {
   closeModal('dayListModal');
   currentChoreDetail = { kind, id, dateStr };
-  let c;
-  if (kind === 'single') { c = state.chores.find(x => x.id === id); }
-  else { c = state.recurring.find(x => x.id === id); }
+  let c, comp, isUnclaimed = false;
+  if (kind === 'single') {
+    c = state.chores.find(x => x.id === id);
+    comp = { completed: c.completed, subtaskState: c.subtaskState||{} };
+  } else if (kind === 'recurring') {
+    c = state.recurring.find(x => x.id === id);
+    c = { ...c, title: ruleTitleForDate(c, dateStr) };
+    comp = state.recurringCompletions[id+'_'+dateStr] || {completed:false, subtaskState:{}};
+  } else if (kind === 'market') {
+    const [marketId, scopeKey] = id.split('::');
+    const m = state.marketChores.find(x => x.id === marketId);
+    const claim = getMarketClaim(marketId, scopeKey);
+    isUnclaimed = !claim;
+    c = { title: m.title, personId: claim?claim.personId:null, time: null, reward: m.reward, notes: m.notes, subtasks: m.subtasks||[] };
+    comp = claim ? { completed: claim.completed, subtaskState: claim.subtaskState||{} } : { completed:false, subtaskState:{} };
+  }
   if (!c) return;
-  const comp = kind === 'single' ? { completed: c.completed, subtaskState: c.subtaskState||{} } : (state.recurringCompletions[id+'_'+dateStr] || {completed:false, subtaskState:{}});
 
   document.getElementById('cdTitle').textContent = c.title;
-  const p = getPerson(c.personId);
-  document.getElementById('cdMeta').innerHTML = `${personChip(c.personId)} ${c.time?('· '+formatTime(c.time)):''} ${kind==='recurring'?'· <span class=\"text-purple-500 font-semibold\">Recurring</span>':''}`;
+  document.getElementById('cdMeta').innerHTML = isUnclaimed
+    ? `<span class="person-chip bg-gray-200 text-gray-500">Unassigned</span> · <span class="text-pink-500 font-semibold">In the Marketplace</span>`
+    : `${personChip(c.personId)} ${c.time?('· '+formatTime(c.time)):''} ${kind==='recurring'?'· <span class=\"text-purple-500 font-semibold\">Recurring</span>':''} ${kind==='market'?'· <span class=\"text-pink-500 font-semibold\">From Marketplace</span>':''}`;
 
   const rBox = document.getElementById('cdRewardBox');
   if (c.reward && c.reward.enabled) {
@@ -661,7 +1044,7 @@ function openChoreDetail(kind, id, dateStr) {
   const subBox = document.getElementById('cdSubtasks');
   if (subs.length) {
     subBox.innerHTML = subs.map(s => `<div class="subtask-row">
-      <input type="checkbox" class="chk" ${comp.subtaskState[s.id]?'checked':''} onchange="toggleSubtask('${s.id}', this.checked)">
+      <input type="checkbox" class="chk" ${comp.subtaskState[s.id]?'checked':''} ${isUnclaimed?'disabled':''} onchange="toggleSubtask('${s.id}', this.checked)">
       <span class="text-sm ${comp.subtaskState[s.id]?'line-through text-gray-400':'text-gray-700'}">${escapeHtml(s.text)}</span>
     </div>`).join('');
   } else { subBox.innerHTML = ''; }
@@ -670,8 +1053,18 @@ function openChoreDetail(kind, id, dateStr) {
   if (c.notes) { notesEl.classList.remove('hidden'); notesEl.textContent = c.notes; } else { notesEl.classList.add('hidden'); }
 
   const btn = document.getElementById('cdCompleteBtn');
-  btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white ' + (comp.completed ? 'bg-gray-400' : 'bg-emerald-600');
-  btn.innerHTML = comp.completed ? '<i class="fa-solid fa-rotate-left"></i> Undo Complete' : '<i class="fa-solid fa-check"></i> Mark Complete';
+  if (isUnclaimed) {
+    btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-pink-500';
+    btn.innerHTML = '<i class="fa-solid fa-hand"></i> Claim It';
+  } else {
+    btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white ' + (comp.completed ? 'bg-gray-400' : 'bg-emerald-600');
+    btn.innerHTML = comp.completed ? '<i class="fa-solid fa-rotate-left"></i> Undo Complete' : '<i class="fa-solid fa-check"></i> Mark Complete';
+  }
+
+  const editBtn = document.getElementById('cdEditBtn');
+  if (editBtn) editBtn.classList.toggle('hidden', kind === 'market');
+  const delBtn = document.getElementById('cdDeleteBtn');
+  if (delBtn) delBtn.innerHTML = (kind === 'market' && !isUnclaimed) ? '<i class="fa-solid fa-rotate-left"></i>' : '<i class="fa-solid fa-trash"></i>';
 
   openModal('choreDetailModal');
 }
@@ -682,10 +1075,16 @@ function toggleSubtask(subId, checked) {
     const c = state.chores.find(x => x.id === id);
     c.subtaskState = c.subtaskState || {};
     c.subtaskState[subId] = checked;
-  } else {
+  } else if (kind === 'recurring') {
     const key = id+'_'+dateStr;
     state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
     state.recurringCompletions[key].subtaskState[subId] = checked;
+  } else if (kind === 'market') {
+    const [marketId, scopeKey] = id.split('::');
+    const claim = getMarketClaim(marketId, scopeKey);
+    if (!claim) return;
+    claim.subtaskState = claim.subtaskState || {};
+    claim.subtaskState[subId] = checked;
   }
   persist();
   openChoreDetail(kind, id, dateStr);
@@ -698,13 +1097,23 @@ function toggleChoreComplete() {
     const c = state.chores.find(x => x.id === id);
     c.completed = !c.completed;
     if (c.completed) { c.completedAt = new Date().toISOString(); handleRewardOnComplete(c); }
-  } else {
+  } else if (kind === 'recurring') {
     const key = id+'_'+dateStr;
     state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
     state.recurringCompletions[key].completed = !state.recurringCompletions[key].completed;
     if (state.recurringCompletions[key].completed) {
       const rule = state.recurring.find(r => r.id === id);
       if (rule) handleRewardOnComplete(rule);
+    }
+  } else if (kind === 'market') {
+    const [marketId, scopeKey] = id.split('::');
+    const claim = getMarketClaim(marketId, scopeKey);
+    if (!claim) { closeModal('choreDetailModal'); openMarketClaimModal(marketId, scopeKey); return; }
+    claim.completed = !claim.completed;
+    if (claim.completed) {
+      claim.completedAt = new Date().toISOString();
+      const m = state.marketChores.find(x => x.id === marketId);
+      if (m) handleRewardOnComplete({ ...m, personId: claim.personId });
     }
   }
   saveState();
@@ -723,13 +1132,23 @@ function handleRewardOnComplete(c) {
 
 function editCurrentChore() {
   if (currentChoreDetail.kind === 'single') openChoreModal(currentChoreDetail.id);
-  else openChoreModal(null, null, false, currentChoreDetail.id);
+  else if (currentChoreDetail.kind === 'recurring') openChoreModal(null, null, false, currentChoreDetail.id);
   closeModal('choreDetailModal');
 }
 function deleteCurrentChore() {
   const detail = currentChoreDetail;
-  const idToDelete = detail ? detail.id : document.getElementById('choreId').value;
   const kind = detail ? detail.kind : 'single';
+  if (kind === 'market') {
+    const [marketId, scopeKey] = detail.id.split('::');
+    const claim = getMarketClaim(marketId, scopeKey);
+    if (!claim) { closeModal('choreDetailModal'); return; }
+    if (!confirm('Release this chore back to the marketplace?')) return;
+    delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
+    closeModal('choreDetailModal');
+    saveState();
+    return;
+  }
+  const idToDelete = detail ? detail.id : document.getElementById('choreId').value;
   if (!confirm('Delete this chore?')) return;
   if (kind === 'single') state.chores = state.chores.filter(c => c.id !== idToDelete);
   else { state.recurring = state.recurring.filter(r => r.id !== idToDelete); }
@@ -737,9 +1156,19 @@ function deleteCurrentChore() {
   saveState();
 }
 function pokeFromChore() {
-  const p = currentChoreDetail && (state.chores.find(c=>c.id===currentChoreDetail.id) || state.recurring.find(r=>r.id===currentChoreDetail.id));
+  let personId = null;
+  if (currentChoreDetail) {
+    if (currentChoreDetail.kind === 'market') {
+      const [marketId, scopeKey] = currentChoreDetail.id.split('::');
+      const claim = getMarketClaim(marketId, scopeKey);
+      personId = claim ? claim.personId : null;
+    } else {
+      const p = state.chores.find(c=>c.id===currentChoreDetail.id) || state.recurring.find(r=>r.id===currentChoreDetail.id);
+      personId = p ? p.personId : null;
+    }
+  }
   closeModal('choreDetailModal');
-  openPokeModal(p ? p.personId : null);
+  openPokeModal(personId);
 }
 
 /* =========================== ADD/EDIT CHORE MODAL =========================== */
@@ -769,6 +1198,31 @@ function updateRecurUI() {
   const f = document.getElementById('recurFreq').value;
   document.getElementById('recurWeeklyBox').classList.toggle('hidden', f !== 'weekly');
   document.getElementById('recurMonthlyBox').classList.toggle('hidden', f !== 'monthly');
+  document.getElementById('recurRotationBox').classList.toggle('hidden', f !== 'rotation');
+  const intervalBox = document.getElementById('recurIntervalBox');
+  intervalBox.classList.toggle('hidden', f === 'yearly' || f === 'rotation');
+  const unitLabel = document.getElementById('recurIntervalUnitLabel');
+  unitLabel.textContent = f === 'daily' ? 'day(s)' : f === 'monthly' ? 'month(s)' : 'week(s)';
+  if (f === 'rotation' && !document.getElementById('rotationStageBuilder').children.length) {
+    addRotationStageRow('Feed the dogs');
+    addRotationStageRow('Clean up after dinner');
+  }
+}
+function addRotationStageRow(title) {
+  rotationStageCount++;
+  const rowId = uid('rs');
+  const div = document.createElement('div');
+  div.className = 'flex items-center gap-1.5';
+  div.dataset.stageid = rowId;
+  div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
+    <input type="text" value="${escapeHtml(title||'')}" placeholder="Shift ${rotationStageCount} name" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm rotation-stage-title">
+    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+  document.getElementById('rotationStageBuilder').appendChild(div);
+}
+function readRotationStagesFromBuilder() {
+  return Array.from(document.getElementById('rotationStageBuilder').children).map(row => ({
+    title: row.querySelector('.rotation-stage-title').value.trim(), daysOfWeek: [0,1,2,3,4,5,6]
+  })).filter(s => s.title);
 }
 function buildRecurDaysGrid(selected) {
   const grid = document.getElementById('recurDaysGrid');
@@ -802,8 +1256,12 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Chore' : 'Add Chore';
   document.getElementById('choreId').value = choreId || '';
   document.getElementById('subtaskBuilder').innerHTML = ''; subtaskBuilderCount = 0;
+  document.getElementById('rotationStageBuilder').innerHTML = ''; rotationStageCount = 0;
   document.getElementById('chorePerson').innerHTML = personOptions(null);
   document.getElementById('recurStart').value = presetDate || todayStr();
+  document.getElementById('recurEnd').value = '';
+  document.getElementById('recurInterval').value = 1;
+  document.getElementById('rotationStageWeeks').value = 1;
   buildRecurDaysGrid([]);
   document.getElementById('choreDeleteBtn').classList.add('hidden');
   document.getElementById('rewardEnabled').checked = false;
@@ -815,10 +1273,17 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     document.getElementById('choreTitle').value = r.title;
     document.getElementById('chorePerson').value = r.personId;
     setChoreRepeatMode('recurring');
-    document.getElementById('recurFreq').value = r.frequency; updateRecurUI();
+    document.getElementById('recurFreq').value = r.frequency;
+    if (r.frequency === 'rotation') {
+      (r.rotation && r.rotation.stages || []).forEach(s => addRotationStageRow(s.title));
+      document.getElementById('rotationStageWeeks').value = (r.rotation && r.rotation.stageWeeks) || 1;
+    }
+    updateRecurUI();
     buildRecurDaysGrid(r.daysOfWeek || []);
     document.getElementById('recurDayOfMonth').value = r.dayOfMonth || 1;
+    document.getElementById('recurInterval').value = r.interval || 1;
     document.getElementById('recurStart').value = r.startDate;
+    document.getElementById('recurEnd').value = r.endDate || '';
     document.getElementById('recurTime').value = r.time || '';
     (r.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
     if (r.reward && r.reward.enabled) {
@@ -883,10 +1348,16 @@ function saveChore() {
       title, personId, frequency: freq,
       daysOfWeek: freq === 'weekly' ? getSelectedRecurDays() : [],
       dayOfMonth: freq === 'monthly' ? Number(document.getElementById('recurDayOfMonth').value || 1) : null,
+      interval: (freq === 'daily' || freq === 'weekly' || freq === 'monthly') ? Math.max(1, Number(document.getElementById('recurInterval').value || 1)) : 1,
+      rotation: freq === 'rotation' ? { stages: readRotationStagesFromBuilder(), stageWeeks: Math.max(1, Number(document.getElementById('rotationStageWeeks').value || 1)) } : null,
       startDate: document.getElementById('recurStart').value || todayStr(),
+      endDate: document.getElementById('recurEnd').value || null,
       time: document.getElementById('recurTime').value || null,
       subtasks, reward, notes, active: true
     };
+    if (freq === 'rotation' && (!ruleData.rotation.stages || ruleData.rotation.stages.length < 2)) {
+      toast('Add at least 2 shifts for a rotating chore', 'fa-triangle-exclamation'); return;
+    }
     if (isEditingRec) {
       const rid = idRaw.split(':')[1];
       const r = state.recurring.find(x => x.id === rid);
@@ -907,6 +1378,256 @@ function saveChore() {
   closeModal('choreModal');
   saveState();
   toast('Chore saved', 'fa-check');
+}
+
+/* =========================== MARKETPLACE MODAL =========================== */
+let marketRepeats = 'once';
+let marketSchedule = 'fixed';
+let marketRewardType = 'money';
+const OFFSET_LABELS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function setMarketRepeats(mode) {
+  marketRepeats = mode;
+  ['marketRepeatsOnceBtn','marketRepeatsWeeklyBtn'].forEach(bid => {
+    const active = (bid==='marketRepeatsOnceBtn' && mode==='once') || (bid==='marketRepeatsWeeklyBtn' && mode==='weekly');
+    document.getElementById(bid).className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
+  });
+  document.getElementById('marketRepeatsHelp').textContent = mode === 'once'
+    ? 'One-time: posted once, gone once claimed & done.'
+    : 'Weekly Pool: reopens every week for someone new to claim (great for the shared weekly chore list).';
+  updateMarketScheduleUI();
+}
+function setMarketSchedule(mode) {
+  marketSchedule = mode;
+  ['marketSchedFixedBtn','marketSchedFlexBtn'].forEach(bid => {
+    const active = (bid==='marketSchedFixedBtn' && mode==='fixed') || (bid==='marketSchedFlexBtn' && mode==='flexible');
+    document.getElementById(bid).className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
+  });
+  updateMarketScheduleUI();
+}
+function updateMarketScheduleUI() {
+  document.getElementById('marketFixedOnceBox').classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='once'));
+  document.getElementById('marketFixedWeeklyBox').classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='weekly'));
+  document.getElementById('marketFlexOnceBox').classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='once'));
+  document.getElementById('marketFlexWeeklyBox').classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='weekly'));
+}
+function setMarketRewardType(t) {
+  marketRewardType = t;
+  document.getElementById('marketRewardAmount').classList.toggle('hidden', t !== 'money');
+  document.getElementById('marketRewardDesc').classList.toggle('hidden', t !== 'other');
+  ['marketRewardTypeMoneyBtn','marketRewardTypeOtherBtn'].forEach(bid => {
+    const active = (bid==='marketRewardTypeMoneyBtn' && t==='money') || (bid==='marketRewardTypeOtherBtn' && t==='other');
+    document.getElementById(bid).className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  });
+}
+function addMarketSubtaskRow(text, id) {
+  marketSubtaskBuilderCount++;
+  const rowId = id || uid('mst');
+  const div = document.createElement('div');
+  div.className = 'flex items-center gap-1.5';
+  div.dataset.subid = rowId;
+  div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
+    <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${marketSubtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm market-subtask-text-input">
+    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+  document.getElementById('marketSubtaskBuilder').appendChild(div);
+}
+function readMarketSubtasksFromBuilder() {
+  return Array.from(document.getElementById('marketSubtaskBuilder').children).map(row => ({
+    id: row.dataset.subid, text: row.querySelector('.market-subtask-text-input').value.trim()
+  })).filter(s => s.text);
+}
+function fillOffsetSelect(id, selected) {
+  document.getElementById(id).innerHTML = OFFSET_LABELS.map((l,i) => `<option value="${i}" ${i===selected?'selected':''}>${l}</option>`).join('');
+}
+
+function openMarketModal(marketId) {
+  document.getElementById('marketModalTitle').textContent = marketId ? 'Edit Listing' : 'Post to Marketplace';
+  document.getElementById('marketId').value = marketId || '';
+  document.getElementById('marketSubtaskBuilder').innerHTML = ''; marketSubtaskBuilderCount = 0;
+  document.getElementById('marketDueDayOfWeek').innerHTML = OFFSET_LABELS.map((l,i)=>`<option value="${i}">${l}</option>`).join('');
+  fillOffsetSelect('marketWindowStartOffset', 0);
+  fillOffsetSelect('marketWindowEndOffset', 6);
+  document.getElementById('marketRewardEnabled').checked = false;
+  document.getElementById('marketRewardBox').classList.add('hidden');
+  setMarketRewardType('money');
+  document.getElementById('marketDeleteBtn').classList.toggle('hidden', !marketId);
+
+  if (marketId) {
+    const m = state.marketChores.find(x => x.id === marketId);
+    document.getElementById('marketTitle').value = m.title;
+    setMarketRepeats(m.repeats); setMarketSchedule(m.scheduleType);
+    document.getElementById('marketDueDate').value = m.dueDate || '';
+    document.getElementById('marketDueDayOfWeek').value = m.dueDayOffset || 0;
+    document.getElementById('marketWindowStart').value = m.windowStart || '';
+    document.getElementById('marketWindowEnd').value = m.windowEnd || '';
+    fillOffsetSelect('marketWindowStartOffset', m.windowStartOffset||0);
+    fillOffsetSelect('marketWindowEndOffset', m.windowEndOffset!=null?m.windowEndOffset:6);
+    (m.subtasks||[]).forEach(s => addMarketSubtaskRow(s.text, s.id));
+    if (m.reward && m.reward.enabled) {
+      document.getElementById('marketRewardEnabled').checked = true;
+      document.getElementById('marketRewardBox').classList.remove('hidden');
+      setMarketRewardType(m.reward.type);
+      document.getElementById('marketRewardAmount').value = m.reward.amount || '';
+      document.getElementById('marketRewardDesc').value = m.reward.description || '';
+    }
+    document.getElementById('marketNotes').value = m.notes || '';
+  } else {
+    document.getElementById('marketTitle').value = '';
+    document.getElementById('marketDueDate').value = todayStr();
+    document.getElementById('marketWindowStart').value = todayStr();
+    document.getElementById('marketWindowEnd').value = todayStr();
+    document.getElementById('marketRewardAmount').value = '';
+    document.getElementById('marketRewardDesc').value = '';
+    document.getElementById('marketNotes').value = '';
+    setMarketRepeats('once'); setMarketSchedule('fixed');
+  }
+  openModal('marketModal');
+}
+function saveMarketChore() {
+  const id = document.getElementById('marketId').value;
+  const title = document.getElementById('marketTitle').value.trim();
+  if (!title) { toast('Give the chore a name', 'fa-triangle-exclamation'); return; }
+  const subtasks = readMarketSubtasksFromBuilder();
+  const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
+  const reward = rewardEnabled ? {
+    enabled: true, type: marketRewardType,
+    amount: marketRewardType === 'money' ? Number(document.getElementById('marketRewardAmount').value || 0) : null,
+    description: marketRewardType === 'other' ? document.getElementById('marketRewardDesc').value.trim() : null
+  } : { enabled:false };
+  const notes = document.getElementById('marketNotes').value.trim();
+
+  const data = { title, subtasks, reward, notes, repeats: marketRepeats, scheduleType: marketSchedule };
+  if (marketSchedule === 'fixed' && marketRepeats === 'once') data.dueDate = document.getElementById('marketDueDate').value || todayStr();
+  if (marketSchedule === 'fixed' && marketRepeats === 'weekly') data.dueDayOffset = Number(document.getElementById('marketDueDayOfWeek').value || 0);
+  if (marketSchedule === 'flexible' && marketRepeats === 'once') {
+    data.windowStart = document.getElementById('marketWindowStart').value || todayStr();
+    data.windowEnd = document.getElementById('marketWindowEnd').value || data.windowStart;
+  }
+  if (marketSchedule === 'flexible' && marketRepeats === 'weekly') {
+    data.windowStartOffset = Number(document.getElementById('marketWindowStartOffset').value || 0);
+    data.windowEndOffset = Number(document.getElementById('marketWindowEndOffset').value || 6);
+  }
+
+  if (id) {
+    const m = state.marketChores.find(x => x.id === id);
+    Object.assign(m, data);
+  } else {
+    state.marketChores.push({ id: uid('mkt'), ...data });
+  }
+  closeModal('marketModal');
+  saveState(); renderMarketplace();
+  toast('Posted to the marketplace', 'fa-store');
+}
+function deleteMarketChore() {
+  const id = document.getElementById('marketId').value;
+  if (!id) return;
+  if (!confirm('Delete this listing? Any current claim will be removed too.')) return;
+  state.marketChores = state.marketChores.filter(x => x.id !== id);
+  Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) delete state.marketClaims[k]; });
+  closeModal('marketModal');
+  saveState(); renderMarketplace();
+}
+
+/* =========================== MARKETPLACE CLAIM FLOW =========================== */
+function openMarketClaimModal(marketId, scopeKey) {
+  const m = state.marketChores.find(x => x.id === marketId);
+  if (!m) return;
+  document.getElementById('claimMarketId').value = marketId;
+  document.getElementById('claimScopeKey').value = scopeKey;
+  document.getElementById('claimChoreTitle').textContent = m.title;
+  document.getElementById('claimPerson').innerHTML = personOptions(state.settings.myProfileId);
+  const dateBox = document.getElementById('claimDateBox');
+  if (m.scheduleType === 'flexible') {
+    dateBox.classList.remove('hidden');
+    const inst = activeMarketInstances(scopeKey==='once' ? todayStr() : scopeKey).find(x => x.market.id === marketId);
+    const min = inst ? inst.windowStart : todayStr();
+    const max = inst ? inst.windowEnd : todayStr();
+    document.getElementById('claimDate').min = min;
+    document.getElementById('claimDate').max = max;
+    document.getElementById('claimDate').value = min;
+    document.getElementById('claimDateHint').textContent = `Open ${min} to ${max}`;
+  } else {
+    dateBox.classList.add('hidden');
+  }
+  openModal('marketClaimModal');
+}
+function confirmClaimMarket() {
+  const marketId = document.getElementById('claimMarketId').value;
+  const scopeKey = document.getElementById('claimScopeKey').value;
+  const personId = document.getElementById('claimPerson').value;
+  if (!personId) { toast('Pick who is claiming this', 'fa-triangle-exclamation'); return; }
+  const m = state.marketChores.find(x => x.id === marketId);
+  let dueDate = null;
+  if (m.scheduleType === 'flexible') {
+    dueDate = document.getElementById('claimDate').value;
+    if (!dueDate) { toast('Pick a due date', 'fa-triangle-exclamation'); return; }
+  }
+  state.marketClaims[marketClaimKey(marketId, scopeKey)] = { personId, dueDate, claimedAt: new Date().toISOString(), completed:false, subtaskState:{} };
+  closeModal('marketClaimModal');
+  saveState(); renderMarketplace();
+  toast((getPerson(personId)||{}).name+' claimed it!', 'fa-hand');
+}
+function unclaimMarket(marketId, scopeKey) {
+  if (!confirm('Release this chore back to the marketplace?')) return;
+  delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
+  saveState(); renderMarketplace();
+}
+
+/* =========================== MARKETPLACE TAB RENDER =========================== */
+function marketScheduleLabel(x) {
+  if (x.market.scheduleType === 'fixed') {
+    return x.market.repeats === 'weekly' ? `Due every ${OFFSET_LABELS[x.market.dueDayOffset||0]}` : `Due ${x.dueDate}`;
+  }
+  return x.market.repeats === 'weekly'
+    ? `Open ${OFFSET_LABELS[x.market.windowStartOffset||0]}–${OFFSET_LABELS[x.market.windowEndOffset!=null?x.market.windowEndOffset:6]}, at their leisure`
+    : `Open ${x.windowStart} to ${x.windowEnd}, at their leisure`;
+}
+function marketListingCardHtml(x, claimedView) {
+  const claim = x.claim;
+  const p = claim ? getPerson(claim.personId) : null;
+  return `<div class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 ${claimedView?'bg-gray-50':'bg-gradient-to-r from-amber-50 to-pink-50 border border-pink-100'}">
+    <div class="min-w-0 flex-1">
+      <div class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(x.market.title)}</div>
+      <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+        ${x.market.repeats==='weekly' ? '<span class="text-[10px] font-bold text-pink-500 bg-pink-100 rounded-full px-1.5 py-0.5">Weekly Pool</span>' : ''}
+        <span class="text-[10px] text-gray-500">${marketScheduleLabel(x)}</span>
+        ${x.market.reward && x.market.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(x.market.reward)}</span>` : ''}
+        ${claimedView && p ? personChip(p.id) : ''}
+        ${claimedView && claim && claim.completed ? '<span class="text-[10px] font-bold text-emerald-500"><i class="fa-solid fa-circle-check"></i> Done</span>' : ''}
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5 flex-shrink-0">
+      ${claimedView
+        ? `<button onclick="unclaimMarket('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-gray-200 text-gray-600 rounded-lg px-2 py-1.5">Release</button>`
+        : `<button onclick="openMarketClaimModal('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-pink-500 text-white rounded-lg px-2.5 py-1.5"><i class="fa-solid fa-hand"></i> Claim</button>`}
+      ${x.market.repeats==='once' && !claimedView ? `<button onclick="openMarketModal('${x.market.id}')" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
+    </div>
+  </div>`;
+}
+function renderMarketplace() {
+  const instances = activeMarketInstances();
+  const open = instances.filter(x => !x.claim);
+  const claimed = instances.filter(x => x.claim);
+
+  document.getElementById('marketOpenList').innerHTML = open.length
+    ? open.map(x => marketListingCardHtml(x, false)).join('')
+    : '<div class="text-xs text-gray-400 text-center py-3">Nothing up for grabs right now 🎉</div>';
+  document.getElementById('marketClaimedList').innerHTML = claimed.length
+    ? claimed.map(x => marketListingCardHtml(x, true)).join('')
+    : '<div class="text-xs text-gray-400 text-center py-3">No claims yet this week.</div>';
+
+  const quota = Number(state.settings.weeklyQuota || 0);
+  document.getElementById('marketQuotaCards').innerHTML = state.people.map(p => {
+    const n = weeklyClaimCountForPerson(p.id);
+    const met = quota > 0 && n >= quota;
+    return `<div class="rounded-xl px-3 py-2 flex items-center justify-between" style="background:${p.color}15">
+      <div class="flex items-center gap-1.5 min-w-0"><span class="person-dot" style="background:${p.color}"></span><span class="text-xs font-bold truncate" style="color:${p.color}">${escapeHtml(p.name)}</span></div>
+      <span class="text-xs font-mono font-bold ${met?'text-emerald-500':'text-gray-500'}">${n}${quota?'/'+quota:''}${met?' ✓':''}</span>
+    </div>`;
+  }).join('');
+
+  const banner = document.getElementById('marketBannerCount');
+  if (banner) banner.textContent = open.length + (open.length===1?' open':' open');
 }
 
 /* =========================== CHORE LOG TAB =========================== */
@@ -1080,6 +1801,9 @@ function deleteHoneyDo() {
 function renderHeader() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('headerMonthLabel').textContent = monthNames[calMonth]+' '+calYear;
+  const [g1,g2] = MONTH_GRADIENTS[calMonth];
+  const banner = document.getElementById('yearlyChoreBanner');
+  if (banner) banner.style.background = `linear-gradient(135deg, ${g1}, ${g2})`;
   const yc = state.yearlyChores.find(y => y.month === calMonth+1);
   document.getElementById('yearlyChoreTitle').textContent = yc ? yc.title : '--';
   const key = calYear+'-'+(calMonth+1);
@@ -1098,9 +1822,10 @@ function openYearlyChoreModal() {
     const isCurrent = i === calMonth;
     const key = calYear+'-'+(i+1);
     const comp = state.yearlyCompletions[key] || {};
-    return `<div class="rounded-xl border ${isCurrent?'border-purple-300 bg-purple-50':'border-gray-100'} p-2.5">
+    const [mg1,mg2] = MONTH_GRADIENTS[i];
+    return `<div class="rounded-xl border p-2.5" style="border-color:${mg1}55;${isCurrent?`background:linear-gradient(135deg,${mg1}14,${mg2}14)`:''}">
       <div class="flex items-center justify-between gap-2 mb-1.5">
-        <div class="text-[10px] font-bold uppercase tracking-wide ${isCurrent?'text-purple-600':'text-gray-400'}">${m}${isCurrent?' · Current':''}</div>
+        <div class="text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5" style="color:${mg1}"><span class="inline-block w-2.5 h-2.5 rounded-full" style="background:linear-gradient(135deg,${mg1},${mg2})"></span>${m}${isCurrent?' · Current':''}</div>
       </div>
       <input type="text" value="${escapeHtml(yc.title)}" onchange="updateYearlyTitle(${i+1}, this.value)" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-semibold mb-2">
       <div id="ycSubs-${i+1}" class="space-y-1">
@@ -1154,6 +1879,11 @@ function renderProfiles() {
   const mySel = document.getElementById('myProfileSelect');
   mySel.innerHTML = '<option value="">-- select --</option>' + personOptions(state.settings.myProfileId);
 
+  const weekStartSel = document.getElementById('weekStartSelect');
+  if (weekStartSel) weekStartSel.value = state.settings.weekStart || 'sunday';
+  const quotaInput = document.getElementById('weeklyQuotaInput');
+  if (quotaInput) quotaInput.value = state.settings.weeklyQuota != null ? state.settings.weeklyQuota : 2;
+
   const notifStatus = document.getElementById('notifPermStatus');
   if ('Notification' in window) {
     notifStatus.textContent = 'Browser permission: ' + Notification.permission;
@@ -1175,6 +1905,8 @@ function removePerson(id) {
   saveState(); renderProfiles();
 }
 function setMyProfile(id) { state.settings.myProfileId = id; persist(); toast('Saved — this phone is set up.', 'fa-check'); }
+function setWeekStart(val) { state.settings.weekStart = val; saveState(); toast('Calendar updated', 'fa-calendar-days'); }
+function setWeeklyQuota(val) { state.settings.weeklyQuota = Math.max(0, Number(val||0)); saveState(); }
 
 async function requestNotifPermission() {
   if (!('Notification' in window)) { toast('Notifications not supported here', 'fa-triangle-exclamation'); return; }
@@ -1338,10 +2070,21 @@ function renderApp() {
   renderCalendar();
   renderSelectedDay();
   renderProfiles();
-  const activeTab = document.querySelector('nav button.text-purple-600')?.id?.replace('nav-','') || 'calendar';
+  renderMarketplaceBannerOnly();
+  const activeTab = ['calendar','market','log','stats','honeydo'].find(t => {
+    const nav = document.getElementById('nav-'+t);
+    return nav && nav.className.includes('font-bold');
+  }) || 'calendar';
+  if (activeTab === 'market') renderMarketplace();
   if (activeTab === 'log') renderLog();
   if (activeTab === 'stats') renderStats();
   if (activeTab === 'honeydo') renderHoneyDo();
+}
+function renderMarketplaceBannerOnly() {
+  const banner = document.getElementById('marketBannerCount');
+  if (!banner) return;
+  const open = activeMarketInstances().filter(x => !x.claim);
+  banner.textContent = open.length + (open.length===1?' open':' open');
 }
 
 /* =========================== BOOT =========================== */
