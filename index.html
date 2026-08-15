@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script>
   try { if (localStorage.getItem('chores_dark_mode') === '1') document.documentElement.classList.add('dark'); } catch(e){}
@@ -50,27 +51,38 @@
   button, .transition-all { transition:all .15s ease; }
   button:active { transform:scale(0.97); }
 
-  .person-dot { width:9px; height:9px; border-radius:9999px; display:inline-block; flex-shrink:0; }
+  .person-dot { width:8px; height:8px; border-radius:9999px; display:inline-block; flex-shrink:0; }
   .person-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:11px; font-weight:700; }
   .chore-card { border-left-width:4px; }
   .subtask-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.05); }
   html.dark .subtask-row { border-bottom-color:rgba(255,255,255,0.06); }
   .subtask-row:last-child { border-bottom:none; }
   .chk { width:18px; height:18px; flex-shrink:0; accent-color:#7C3AED; }
-  .day-cell { min-height:44px; }
-  .day-dot { width:5px; height:5px; border-radius:9999px; }
+  
+  .day-cell { min-height:80px; height:auto; width:100%; }
+  .week-cell { min-height:104px; height:auto; width:100%; }
+  .day-bar { height:4px; border-radius:2px; width:100%; transition:all .2s ease; }
+  
   .modal-backdrop { backdrop-filter:blur(2px); }
   .fade-in { animation: fadeIn .15s ease; }
   @keyframes fadeIn { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .draggable-item { touch-action: none; user-select: none; }
+  .draggable-item.dragging { opacity: 0.45; background-color: rgba(139, 92, 246, 0.1); border-radius: 8px; }
+  .drag-handle { cursor: grab; padding: 4px 6px; }
+  .drag-handle:active { cursor: grabbing; }
 </style>
 </head>
 <body class="min-h-screen pb-24 text-gray-800 bg-gray-100">
 
 <!-- Header -->
-<header class="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-white to-purple-50/40 sticky top-0 z-30 shadow-sm max-w-md mx-auto">
+<header class="px-3 py-3 border-b border-gray-200 bg-gradient-to-r from-white to-purple-50/40 sticky top-0 z-30 shadow-sm w-full max-w-xl mx-auto">
   <div class="flex justify-between items-center mb-2">
     <div>
-      <div class="text-[9px] text-gray-500 font-mono font-bold tracking-wider uppercase">Family Chores</div>
+      <div class="flex items-center gap-1.5">
+        <span class="text-[9px] text-gray-500 font-mono font-bold tracking-wider uppercase">Family Chores</span>
+        <span id="roleBadge" class="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-700">Admin</span>
+      </div>
       <div class="text-lg font-bold text-gray-900" id="headerMonthLabel">--</div>
     </div>
     <div class="flex items-center gap-2">
@@ -108,26 +120,44 @@
   </div>
 </header>
 
-<main class="max-w-md mx-auto px-4 pt-3">
+<main class="w-full max-w-xl mx-auto px-1 sm:px-2 pt-2">
 
   <!-- TAB: Chore Calendar -->
-  <section id="tab-calendar" class="space-y-3">
-    <div class="bg-white rounded-2xl shadow-sm p-2.5 flex items-center gap-1.5 overflow-x-auto" id="calendarFilterBar"></div>
+  <section id="tab-calendar" class="space-y-2">
+    <div class="bg-white rounded-2xl shadow-sm p-1.5 flex items-center gap-1.5 overflow-x-auto" id="calendarFilterBar"></div>
 
-    <div class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-3">
-      <div class="flex items-center justify-between mb-2">
-        <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
-        <div id="calMonthLabel" class="font-bold text-sm"></div>
-        <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
+    <div id="calendarCardWrapper" class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-2 touch-pan-y select-none">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <div class="flex items-center gap-1">
+          <button onclick="navigateCalendar(-1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
+          <div id="calMainLabel" class="font-bold text-sm sm:text-base text-gray-900"></div>
+          <button onclick="navigateCalendar(1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+        
+        <div class="flex bg-gray-100 p-0.5 rounded-xl border border-gray-200">
+          <button onclick="setCalView('month')" id="calViewMonthBtn" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-purple-700 shadow-sm">Month</button>
+          <button onclick="setCalView('week')" id="calViewWeekBtn" class="px-2.5 py-1 text-xs font-bold rounded-lg text-gray-500">Week</button>
+        </div>
       </div>
-      <div id="calWeekdayHeader" class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-1"></div>
-      <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
+
+      <!-- Month Grid Container -->
+      <div id="monthViewContainer">
+        <div id="calWeekdayHeader" class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-bold text-gray-400 mb-1"></div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-0.5"></div>
+      </div>
+
+      <!-- Week View Container -->
+      <div id="weekViewContainer" class="hidden">
+        <div id="weekWeekdayHeader" class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-bold text-gray-400 mb-1"></div>
+        <div id="weekGrid" class="grid grid-cols-7 gap-0.5"></div>
+      </div>
     </div>
 
-    <div class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3">
+    <!-- Selected Day Detail View -->
+    <div id="selectedDayCard" class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm" id="selectedDayLabel">Today</div>
-        <button onclick="openChoreModal(null, selectedDate)" class="text-xs font-bold text-purple-600 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+        <button onclick="openChoreModal(null, selectedDate)" class="admin-only text-xs font-bold text-purple-600 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
       <div id="selectedDayList" class="space-y-2"></div>
     </div>
@@ -137,11 +167,26 @@
   <section id="tab-log" class="hidden space-y-3">
     <div class="bg-gradient-to-br from-white to-blue-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2 gap-2">
-        <select id="logPersonFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1">
+        <select id="logPersonFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1 bg-white">
           <option value="all">Everyone</option>
         </select>
-        <button onclick="openChoreModal()" class="text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add Chore</button>
+        <button onclick="openChoreModal()" class="admin-only text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
+      
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <select id="logStatusFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+          <option value="all">All Statuses</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
+        </select>
+        <select id="logRangeFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+          <option value="all">All Time</option>
+          <option value="past7">Past 7 Days</option>
+          <option value="next7" selected>Next 7 Days</option>
+          <option value="thisMonth">This Month</option>
+        </select>
+      </div>
+
       <button onclick="openChoreModal(null, todayStr(), true)" class="w-full text-xs font-bold border-2 border-dashed border-blue-300 text-blue-600 rounded-lg py-2 mb-2">
         <i class="fa-solid fa-bolt"></i> Log an extra chore I already did
       </button>
@@ -149,11 +194,45 @@
     </div>
   </section>
 
-  <!-- TAB: Family Stats -->
+  <!-- TAB: Carnival Prizes, Wallets & Family Stats -->
   <section id="tab-stats" class="hidden space-y-3">
+    <!-- 1. Ticket Wallets -->
+    <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200/70 shadow-sm p-3">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-bold text-sm text-amber-900 flex items-center gap-1.5">
+          <i class="fa-solid fa-ticket text-amber-500"></i> Ticket Wallets
+        </div>
+        <span class="text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">Carnival Counter</span>
+      </div>
+      <div id="statsTicketCards" class="grid grid-cols-2 gap-2"></div>
+    </div>
+
+    <!-- 2. Carnival Prize Booth (Always in stock & Editable) -->
+    <div class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3 space-y-2.5">
+      <div class="flex items-center justify-between">
+        <div class="font-bold text-sm text-purple-900 flex items-center gap-1.5">
+          <i class="fa-solid fa-store text-purple-600"></i> Carnival Prize Booth
+        </div>
+        <button onclick="openPrizeModal()" class="admin-only text-xs font-bold bg-purple-600 text-white rounded-lg px-2.5 py-1 flex items-center gap-1">
+          <i class="fa-solid fa-plus"></i> Add Prize
+        </button>
+      </div>
+      <div id="prizeBoothList" class="space-y-2"></div>
+    </div>
+
+    <!-- 3. Banked Cash & Claims -->
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <i class="fa-solid fa-piggy-bank text-amber-500"></i> Banked Cash & Redemptions
+      </div>
+      <div id="bankList" class="space-y-2"></div>
+    </div>
+
+    <!-- 4. Stats Performance Chart -->
     <div class="bg-gradient-to-br from-white to-emerald-50/40 rounded-2xl shadow-sm p-3">
-      <div class="flex items-center gap-2 mb-3">
-        <select id="statsPeriod" onchange="renderStats()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1">
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <div class="font-bold text-sm text-emerald-900">Chores Completed</div>
+        <select id="statsPeriod" onchange="renderStats()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
           <option value="month">This Month</option>
           <option value="week">This Week</option>
           <option value="30">Last 30 Days</option>
@@ -162,11 +241,8 @@
       </div>
       <div style="height:180px;"><canvas id="statsChart"></canvas></div>
     </div>
+    
     <div id="statsPersonCards" class="space-y-2"></div>
-    <div class="bg-gradient-to-br from-white to-amber-50/40 rounded-2xl shadow-sm p-3">
-      <div class="font-bold text-sm mb-2"><i class="fa-solid fa-piggy-bank text-purple-500"></i> Reward Bank</div>
-      <div id="bankList" class="space-y-2"></div>
-    </div>
   </section>
 
   <!-- TAB: Honey-Do List -->
@@ -174,7 +250,7 @@
     <div class="bg-gradient-to-br from-white to-orange-50/50 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm">Never-Ending Honey-Do List</div>
-        <button onclick="openHoneyDoModal()" class="text-xs font-bold bg-orange-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+        <button onclick="openHoneyDoModal()" class="admin-only text-xs font-bold bg-orange-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
       <div class="text-[11px] text-gray-500 mb-2">Projects & weekend tasks — no due date required.</div>
       <div id="honeyDoList" class="space-y-2"></div>
@@ -186,17 +262,19 @@
     <div class="bg-gradient-to-br from-amber-50 to-pink-50 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-1">
         <div class="font-bold text-sm"><i class="fa-solid fa-store text-pink-500"></i> Open Chores</div>
-        <button onclick="openMarketModal()" class="text-xs font-bold bg-pink-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Post</button>
+        <button onclick="openMarketModal()" class="admin-only text-xs font-bold bg-pink-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Post</button>
       </div>
       <div class="text-[11px] text-gray-500">First come, first served. Claim one and pick when you'll get it done.</div>
     </div>
+    
     <div id="marketQuotaCards" class="grid grid-cols-2 gap-2"></div>
+    
     <div class="bg-white rounded-2xl shadow-sm p-3">
       <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Up for grabs</div>
       <div id="marketOpenList" class="space-y-2"></div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm p-3">
-      <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Claimed this week</div>
+      <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Claimed in active periods</div>
       <div id="marketClaimedList" class="space-y-2"></div>
     </div>
   </section>
@@ -204,7 +282,7 @@
 </main>
 
 <!-- Bottom Nav -->
-<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 max-w-md mx-auto flex justify-around items-center py-2 z-30 shadow-lg">
+<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 max-w-xl mx-auto flex justify-around items-center py-2 z-30 shadow-lg">
   <button id="nav-calendar" onclick="switchTab('calendar')" class="flex flex-col items-center gap-1 text-purple-600 font-bold bg-purple-50 rounded-2xl px-2.5 py-1.5 -my-1">
     <i class="fa-solid fa-calendar-days"></i><span class="text-[9px]">Calendar</span>
   </button>
@@ -215,7 +293,7 @@
     <i class="fa-solid fa-list-check"></i><span class="text-[9px]">Chore Log</span>
   </button>
   <button id="nav-stats" onclick="switchTab('stats')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1">
-    <i class="fa-solid fa-chart-simple"></i><span class="text-[9px]">Stats</span>
+    <i class="fa-solid fa-chart-simple"></i><span class="text-[9px]">Prizes & Stats</span>
   </button>
   <button id="nav-honeydo" onclick="switchTab('honeydo')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1">
     <i class="fa-solid fa-house-chimney"></i><span class="text-[9px]">Honey-Do</span>
@@ -239,34 +317,42 @@
     <div id="cdNotes" class="text-xs text-gray-500 mb-3 hidden"></div>
     <div class="flex gap-2">
       <button id="cdCompleteBtn" onclick="toggleChoreComplete()" class="flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-emerald-600"><i class="fa-solid fa-check"></i> Mark Complete</button>
-      <button onclick="pokeFromChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-bell"></i></button>
-      <button id="cdEditBtn" onclick="editCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
-      <button id="cdDeleteBtn" onclick="deleteCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
+      <button id="cdPokeBtn" onclick="pokeFromChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-bell"></i></button>
+      <button id="cdEditBtn" onclick="editCurrentChore()" class="admin-only rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
+      <button id="cdDeleteBtn" onclick="deleteCurrentChore()" class="admin-only rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
     </div>
   </div>
 </div>
 
-<!-- Add/Edit Chore Modal -->
+<!-- Add/Edit Chore / Task Modal -->
 <div id="choreModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-3">
-      <div id="choreModalTitle" class="text-lg font-bold">Add Chore</div>
+      <div id="choreModalTitle" class="text-lg font-bold">Add Item</div>
       <button onclick="closeModal('choreModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
+
+    <div class="flex gap-2 bg-gray-100 p-1 rounded-xl mb-3">
+      <button type="button" id="itemTypeChoreBtn" onclick="setItemType('chore')" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700">Family Chore</button>
+      <button type="button" id="itemTypeTaskBtn" onclick="setItemType('task')" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500">Personal Task</button>
+    </div>
+
     <input type="hidden" id="choreId">
     <div class="space-y-3">
       <div>
-        <label class="text-xs font-bold text-gray-500">Chore Name</label>
+        <label class="text-xs font-bold text-gray-500" id="itemTitleLabel">Chore Name</label>
         <input id="choreTitle" type="text" placeholder="Feed the dogs" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
       <div>
-        <label class="text-xs font-bold text-gray-500">Assign To</label>
+        <label class="text-xs font-bold text-gray-500" id="itemPersonLabel">Assign To</label>
         <select id="chorePerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
       </div>
+
       <div class="flex gap-2">
         <button type="button" onclick="setChoreRepeatMode('single')" id="repeatModeSingleBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Single</button>
         <button type="button" onclick="setChoreRepeatMode('recurring')" id="repeatModeRecurBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Recurring</button>
       </div>
+
       <div id="singleDateBox" class="grid grid-cols-2 gap-2">
         <div>
           <label class="text-xs font-bold text-gray-500">Due Date</label>
@@ -277,6 +363,7 @@
           <input id="choreTime" type="time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
         </div>
       </div>
+
       <div id="recurBox" class="hidden space-y-2 bg-gray-50 rounded-lg p-2.5">
         <label class="text-xs font-bold text-gray-500">Repeats</label>
         <select id="recurFreq" onchange="updateRecurUI()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
@@ -284,13 +371,12 @@
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>
-          <option value="rotation">Rotating (alternating chores)</option>
+          <option value="rotation" id="recurRotationOption">Rotating (alternating chores)</option>
         </select>
 
         <div id="recurIntervalBox" class="hidden">
           <label class="text-xs font-bold text-gray-500">Every <span id="recurIntervalUnitLabel">week(s)</span></label>
           <input id="recurInterval" type="number" min="1" max="52" value="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-          <div class="text-[10px] text-gray-400 mt-1">e.g. "2" = every other week — perfect for biweekly rotations.</div>
         </div>
 
         <div id="recurWeeklyBox" class="hidden">
@@ -303,9 +389,8 @@
         </div>
 
         <div id="recurRotationBox" class="hidden">
-          <label class="text-xs font-bold text-gray-500">Rotating shifts <span class="font-normal">(cycles through in order)</span></label>
-          <div class="text-[10px] text-gray-400 mb-1">e.g. "Feed the dogs" for a week, then "Clean up after dinner" for a week, then back to feeding — set weeks-per-shift below.</div>
-          <div id="rotationStageBuilder" class="space-y-1.5"></div>
+          <label class="text-xs font-bold text-gray-500">Rotating shifts</label>
+          <div id="rotationStageBuilder" class="space-y-1.5 mt-1"></div>
           <button type="button" onclick="addRotationStageRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add shift</button>
           <div class="mt-2">
             <label class="text-xs font-bold text-gray-500">Weeks per shift</label>
@@ -331,26 +416,25 @@
 
       <div id="subtaskSection">
         <div class="flex justify-between items-center">
-          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
+          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(drag handle to reorder)</span></label>
         </div>
         <div id="subtaskBuilder" class="space-y-1.5 mt-1"></div>
         <button type="button" onclick="addSubtaskRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
       </div>
 
-      <div class="bg-purple-50 rounded-lg p-2.5">
+      <div id="rewardSectionWrapper" class="bg-purple-50 rounded-lg p-2.5">
         <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
           <input type="checkbox" id="rewardEnabled" onchange="updateRewardUI()" class="chk"> Assign a Reward
         </label>
         <div id="rewardBox" class="hidden mt-2 space-y-2">
-          <div class="flex gap-2">
-            <button type="button" onclick="setRewardType('money')" id="rewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
-            <button type="button" onclick="setRewardType('other')" id="rewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
+          <div class="flex gap-1.5">
+            <button type="button" onclick="setRewardType('tickets')" id="rewardTypeTicketsBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">🎟️ Tickets</button>
+            <button type="button" onclick="setRewardType('money')" id="rewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">💵 Money</button>
+            <button type="button" onclick="setRewardType('other')" id="rewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">🎁 Other</button>
           </div>
-          <input id="rewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-          <input id="rewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
-          <label class="flex items-center gap-2 text-xs font-semibold text-gray-600">
-            <input type="checkbox" id="rewardBanked" class="chk"> Bank it (extra, above normal allowance) instead of paying right away
-          </label>
+          <input id="rewardTickets" type="number" min="1" placeholder="Number of Tickets (e.g. 5)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <input id="rewardAmount" type="text" placeholder="Amount ($ e.g. 0.50)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
+          <input id="rewardDesc" type="text" placeholder="e.g. 30 min screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
         </div>
       </div>
 
@@ -361,12 +445,12 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveChore()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
-      <button id="choreDeleteBtn" onclick="deleteCurrentChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="choreDeleteBtn" onclick="deleteCurrentChore()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
 
-<!-- Day List Modal (tap a calendar day) -->
+<!-- Day List Modal -->
 <div id="dayListModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-2">
@@ -374,7 +458,7 @@
       <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="dayListItems" class="space-y-2 mb-3"></div>
-    <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Chore This Day</button>
+    <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="admin-only w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Item This Day</button>
   </div>
 </div>
 
@@ -382,41 +466,80 @@
 <div id="profilesModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-3">
-      <div class="text-lg font-bold">Profiles & Settings</div>
+      <div>
+        <div class="text-lg font-bold">Profiles & Settings</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.5.0</div>
+      </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
-    <div class="font-bold text-sm mb-2">Family Members</div>
-    <div id="peopleList" class="space-y-2 mb-2"></div>
-    <button onclick="addPersonRow()" class="text-xs font-bold text-purple-600 mb-4"><i class="fa-solid fa-plus"></i> Add person</button>
-
-    <div class="font-bold text-sm mb-2">This Device</div>
-    <div class="mb-4">
-      <label class="text-xs font-bold text-gray-500">Whose phone is this? (used for pokes)</label>
-      <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
-      <button onclick="requestNotifPermission()" class="w-full mt-2 rounded-lg py-2 text-xs font-bold bg-purple-50 text-purple-600 border border-purple-200">
-        <i class="fa-solid fa-bell"></i> Enable in-app poke notifications
-      </button>
-      <div id="notifPermStatus" class="text-[10px] text-gray-500 mt-1"></div>
+    <!-- Active Profile & Role -->
+    <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
+      <label class="text-xs font-bold text-gray-700">This Device's Active Profile</label>
+      <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"></select>
+      
+      <div class="flex items-center justify-between pt-1">
+        <span class="text-xs text-gray-600 font-medium">Device Role:</span>
+        <span id="roleLabelBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-600 text-white">Admin (Parent)</span>
+      </div>
+      <div class="text-[10px] text-gray-400">Kids profiles cannot add, edit, or delete listings/prizes.</div>
     </div>
 
-    <div class="font-bold text-sm mb-2">Calendar</div>
-    <div class="mb-4">
-      <label class="text-xs font-bold text-gray-500">Week starts on</label>
-      <select id="weekStartSelect" onchange="setWeekStart(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-2">
-        <option value="sunday">Sunday</option>
-        <option value="monday">Monday</option>
-      </select>
-      <label class="text-xs font-bold text-gray-500">Weekly marketplace quota <span class="font-normal">(chores everyone should claim each week)</span></label>
-      <input id="weeklyQuotaInput" type="number" min="0" max="14" onchange="setWeeklyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+    <div class="font-bold text-sm mb-2">Family Members & Roles</div>
+    <div id="peopleList" class="space-y-2 mb-2"></div>
+    <button onclick="addPersonRow()" class="admin-only text-xs font-bold text-purple-600 mb-4"><i class="fa-solid fa-plus"></i> Add person</button>
+
+    <div class="font-bold text-sm mb-2">Push Notifications</div>
+    <div class="mb-4 space-y-2">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Firebase VAPID Public Key</label>
+        <input id="fcmVapidKeyInput" type="text" placeholder="Paste FCM Web Push Certificate Key here" onchange="saveVapidKey(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mt-1">
+      </div>
+      
+      <button onclick="requestPushNotificationPermission()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 text-white shadow-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-bell"></i> Enable Phone Push Notifications
+      </button>
+      <div id="notifPermStatus" class="text-[10px] text-gray-500"></div>
+    </div>
+
+    <div class="font-bold text-sm mb-2">Calendar & Marketplace Goals</div>
+    <div class="mb-4 space-y-2">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Week starts on</label>
+        <select id="weekStartSelect" onchange="setWeekStart(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          <option value="sunday">Sunday</option>
+          <option value="monday">Monday</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs font-bold text-gray-500">Weekly quota</label>
+          <input id="weeklyQuotaInput" type="number" min="0" max="25" onchange="setWeeklyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" placeholder="e.g. 2">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">Monthly quota</label>
+          <input id="monthlyQuotaInput" type="number" min="0" max="50" onchange="setMonthlyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" placeholder="e.g. 8">
+        </div>
+      </div>
     </div>
 
     <div class="font-bold text-sm mb-2">Dark Mode</div>
     <button onclick="toggleDarkMode()" class="w-full mb-4 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Toggle Dark Mode</button>
 
+    <!-- App Update Center -->
+    <div class="font-bold text-sm mb-2">App Updates</div>
+    <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
+      <div class="flex justify-between items-center">
+        <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.5.0</span>
+      </div>
+      <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
+      </button>
+    </div>
+
     <div class="font-bold text-sm mb-2">Cloud Sync</div>
-    <div class="text-[11px] text-gray-500 mb-2">Sync across all 4 phones using a shared Firebase project (same one your budgeting app used, or a new free one).</div>
-    <textarea id="syncConfigInput" rows="3" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
+    <textarea id="syncConfigInput" rows="4" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
     <div class="flex gap-2 mb-2">
       <button onclick="enableCloudSync()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-purple-600 text-white">Enable Sync</button>
       <button onclick="manualSyncNow()" class="rounded-lg py-2 px-3 text-xs font-bold bg-gray-100 text-gray-700"><i class="fa-solid fa-rotate"></i></button>
@@ -458,7 +581,7 @@
         <input id="honeyTitle" type="text" placeholder="Reseal the deck" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
       <div>
-        <label class="text-xs font-bold text-gray-500">Assign To <span class="font-normal">(optional)</span></label>
+        <label class="text-xs font-bold text-gray-500">Assign To</label>
         <select id="honeyPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"><option value="">Anyone / Whole family</option></select>
       </div>
       <div>
@@ -476,7 +599,7 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveHoneyDo()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
-      <button id="honeyDeleteBtn" onclick="deleteHoneyDo()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="honeyDeleteBtn" onclick="deleteHoneyDo()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
@@ -495,9 +618,10 @@
         <input id="marketTitle" type="text" placeholder="Clean downstairs bathroom" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
 
-      <div class="flex gap-2">
-        <button type="button" onclick="setMarketRepeats('once')" id="marketRepeatsOnceBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">One-time</button>
-        <button type="button" onclick="setMarketRepeats('weekly')" id="marketRepeatsWeeklyBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Weekly Pool</button>
+      <div class="flex gap-1.5">
+        <button type="button" onclick="setMarketRepeats('once')" id="marketRepeatsOnceBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">One-time</button>
+        <button type="button" onclick="setMarketRepeats('weekly')" id="marketRepeatsWeeklyBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">Weekly Pool</button>
+        <button type="button" onclick="setMarketRepeats('monthly')" id="marketRepeatsMonthlyBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">Monthly Pool</button>
       </div>
       <div class="text-[10px] text-gray-400" id="marketRepeatsHelp">One-time: posted once, gone once claimed & done.</div>
 
@@ -509,11 +633,14 @@
       <div id="marketFixedOnceBox" class="hidden">
         <label class="text-xs font-bold text-gray-500">Due Date</label>
         <input id="marketDueDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-        <div class="text-[10px] text-gray-400 mt-1">Shows as "Unassigned" on the calendar on this date until someone claims it.</div>
       </div>
       <div id="marketFixedWeeklyBox" class="hidden">
         <label class="text-xs font-bold text-gray-500">Due Day (every week)</label>
         <select id="marketDueDayOfWeek" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
+      </div>
+      <div id="marketFixedMonthlyBox" class="hidden">
+        <label class="text-xs font-bold text-gray-500">Due Day of Month (1–31)</label>
+        <input id="marketDueDayOfMonth" type="number" min="1" max="31" value="15" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
       <div id="marketFlexOnceBox" class="hidden grid grid-cols-2 gap-2">
         <div>
@@ -531,12 +658,11 @@
           <select id="marketWindowStartOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
           <select id="marketWindowEndOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
         </div>
-        <div class="text-[10px] text-gray-400 mt-1">e.g. Monday → Sunday means open all week, at their leisure. Resets automatically each week.</div>
       </div>
 
       <div>
         <div class="flex justify-between items-center">
-          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
+          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(drag handle to reorder)</span></label>
         </div>
         <div id="marketSubtaskBuilder" class="space-y-1.5 mt-1"></div>
         <button type="button" onclick="addMarketSubtaskRow()" class="text-xs font-bold text-pink-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
@@ -547,12 +673,14 @@
           <input type="checkbox" id="marketRewardEnabled" onchange="document.getElementById('marketRewardBox').classList.toggle('hidden', !this.checked)" class="chk"> Assign a Reward
         </label>
         <div id="marketRewardBox" class="hidden mt-2 space-y-2">
-          <div class="flex gap-2">
-            <button type="button" onclick="setMarketRewardType('money')" id="marketRewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
-            <button type="button" onclick="setMarketRewardType('other')" id="marketRewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
+          <div class="flex gap-1.5">
+            <button type="button" onclick="setMarketRewardType('tickets')" id="marketRewardTypeTicketsBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">🎟️ Tickets</button>
+            <button type="button" onclick="setMarketRewardType('money')" id="marketRewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">💵 Money</button>
+            <button type="button" onclick="setMarketRewardType('other')" id="marketRewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">🎁 Other</button>
           </div>
-          <input id="marketRewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-          <input id="marketRewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
+          <input id="marketRewardTickets" type="number" min="1" placeholder="Number of Tickets (e.g. 5)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <input id="marketRewardAmount" type="text" placeholder="Amount ($ e.g. 0.50)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
+          <input id="marketRewardDesc" type="text" placeholder="e.g. 30 min screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
         </div>
       </div>
 
@@ -563,7 +691,7 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveMarketChore()" class="flex-1 bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm">Save Listing</button>
-      <button id="marketDeleteBtn" onclick="deleteMarketChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="marketDeleteBtn" onclick="deleteMarketChore()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
@@ -576,15 +704,73 @@
       <button onclick="closeModal('marketClaimModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <input type="hidden" id="claimMarketId"><input type="hidden" id="claimScopeKey">
-    <div id="claimChoreTitle" class="text-sm font-bold text-gray-800 mb-3"></div>
+    <div id="claimChoreTitle" class="text-sm font-bold text-gray-800 mb-1"></div>
+    <div id="claimRewardDisplay" class="text-xs font-bold text-purple-600 mb-3 hidden"></div>
+    
     <label class="text-xs font-bold text-gray-500">Who's claiming it?</label>
-    <select id="claimPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3"></select>
+    <select id="claimPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-2"></select>
+    
     <div id="claimDateBox" class="hidden mb-3">
       <label class="text-xs font-bold text-gray-500">Pick a due date</label>
       <input id="claimDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       <div id="claimDateHint" class="text-[10px] text-gray-400 mt-1"></div>
     </div>
+
+    <!-- Choice to bank reward at claim time -->
+    <div id="claimBankChoiceWrapper" class="bg-purple-50/70 p-2.5 rounded-xl border border-purple-100 mb-3 hidden">
+      <label class="flex items-center gap-2 text-xs font-bold text-purple-900 cursor-pointer">
+        <input type="checkbox" id="claimBankedCheckbox" class="chk"> Bank this reward (deposit to ticket wallet or piggy bank)
+      </label>
+    </div>
+
     <button onclick="confirmClaimMarket()" class="w-full bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm"><i class="fa-solid fa-hand"></i> Claim It</button>
+  </div>
+</div>
+
+<!-- Add/Edit Carnival Prize Modal -->
+<div id="prizeModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div id="prizeModalTitle" class="text-lg font-bold flex items-center gap-1.5"><i class="fa-solid fa-ticket text-amber-500"></i> Add Prize</div>
+      <button onclick="closeModal('prizeModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="prizeId">
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Prize Name</label>
+        <input id="prizeName" type="text" placeholder="Dollar Store Shopping Spree" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500">Ticket Cost</label>
+        <input id="prizeCost" type="number" min="1" placeholder="e.g. 20" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveCarnivalPrize()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save Prize</button>
+      <button id="prizeDeleteBtn" onclick="deleteCarnivalPrize()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Prize Redemption Confirmation Modal -->
+<div id="redeemModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold flex items-center gap-1.5"><i class="fa-solid fa-gift text-amber-500"></i> Redeem Prize</div>
+      <button onclick="closeModal('redeemModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="redeemPrizeId">
+    <div id="redeemPrizeTitle" class="text-sm font-bold text-purple-900 mb-1"></div>
+    <div id="redeemPrizeCost" class="text-xs font-bold text-amber-600 mb-3"></div>
+    
+    <label class="text-xs font-bold text-gray-500">Who is redeeming this prize?</label>
+    <select id="redeemPersonSelect" onchange="updateRedeemModalEligible()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3"></select>
+    
+    <div id="redeemStatusNotice" class="text-xs font-semibold mb-3"></div>
+
+    <button id="confirmRedeemBtn" onclick="confirmPrizeRedemption()" class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2.5 font-bold text-sm">
+      <i class="fa-solid fa-ticket"></i> Redeem for Tickets
+    </button>
   </div>
 </div>
 
@@ -618,7 +804,9 @@
 <div id="toastBox" class="fixed top-3 left-1/2 -translate-x-1/2 z-[60] space-y-2 w-full max-w-xs px-3"></div>
 
 <script>
-/* =========================== STATE =========================== */
+/* =========================== STATE & APP VERSION =========================== */
+const APP_VERSION = "v6.5.0";
+
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
   {name:'Orange', hex:'#F97316'},
@@ -633,65 +821,133 @@ const DEFAULT_COLORS = [
 ];
 const WEEKDAY_LABELS_SUN = ['S','M','T','W','T','F','S'];
 const WEEKDAY_LABELS_MON = ['M','T','W','T','F','S','S'];
-const WEEKDAY_LABELS = WEEKDAY_LABELS_SUN; // kept for back-compat references
-// A colorful gradient per calendar month, used to give the header banner (and yearly editor) more color variety
+const WEEKDAY_LABELS = WEEKDAY_LABELS_SUN;
 const MONTH_GRADIENTS = [
-  ['#8B5CF6','#EC4899'], // Jan - purple/pink
-  ['#EC4899','#F97316'], // Feb
-  ['#F97316','#F59E0B'], // Mar
-  ['#22C55E','#14B8A6'], // Apr
-  ['#14B8A6','#3B82F6'], // May
-  ['#F59E0B','#EF4444'], // Jun
-  ['#3B82F6','#6366F1'], // Jul
-  ['#F43F5E','#F59E0B'], // Aug
-  ['#84CC16','#14B8A6'], // Sep
-  ['#F97316','#F43F5E'], // Oct
-  ['#6366F1','#8B5CF6'], // Nov
-  ['#EF4444','#8B5CF6']  // Dec
+  ['#8B5CF6','#EC4899'],
+  ['#EC4899','#F97316'],
+  ['#F97316','#F59E0B'],
+  ['#22C55E','#14B8A6'],
+  ['#14B8A6','#3B82F6'],
+  ['#F59E0B','#EF4444'],
+  ['#3B82F6','#6366F1'],
+  ['#F43F5E','#F59E0B'],
+  ['#84CC16','#14B8A6'],
+  ['#F97316','#F43F5E'],
+  ['#6366F1','#8B5CF6'],
+  ['#EF4444','#8B5CF6']
 ];
 const NAV_COLORS = { calendar:'purple', market:'pink', log:'blue', stats:'emerald', honeydo:'orange' };
 
 let state = {
   people: [],
-  chores: [],           // single-instance chores: {id,title,personId,date,time,subtasks[],reward,completed,completedAt,notes,loggedByKid}
-  recurring: [],         // {id,title,personId,frequency,daysOfWeek[],dayOfMonth,startDate,endDate,time,subtasks[],reward,active}
-  recurringCompletions: {}, // key `${ruleId}_${dateStr}` -> {completed,completedAt,subtaskState:{id:bool}}
-  yearlyChores: [],      // 12: {id,month(1-12),title,subtasks:[{id,text,personId}]}
-  yearlyCompletions: {}, // key `${year}-${month}` -> {subtaskId: true}
-  honeyDo: [],           // {id,title,personId,priority,notes,done,createdAt,doneAt}
-  bankedRewards: [],     // {id,personId,choreTitle,reward,date,redeemed,redeemedAt}
-  pokes: [],             // {id,fromPersonId,toPersonId,message,ts,read}
-  marketChores: [],      // marketplace listing templates, see market engine below
-  marketClaims: {},      // key `${marketId}_${scopeKey}` -> {personId,dueDate,claimedAt,completed,completedAt,subtaskState}
-  marketCompletions: [], // archived record of completed marketplace claims that survives "Release" — {id,title,personId,dueDate,completedAt}
-  settings: { myProfileId: null, syncConfig: null, weekStart: 'sunday', weeklyQuota: 2 }
+  chores: [],
+  recurring: [],
+  recurringCompletions: {},
+  yearlyChores: [],
+  yearlyCompletions: {},
+  honeyDo: [],
+  bankedRewards: [],
+  carnivalPrizes: [],
+  pokes: [],
+  deviceTokens: {},
+  marketChores: [],
+  marketClaims: {},
+  marketCompletions: [],
+  settings: { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' }
 };
+
+let localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || null;
 
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
 let selectedDate = todayStr();
+let currentWeekAnchor = parseLocalDate(todayStr());
+let calViewMode = localStorage.getItem('chores_cal_view_mode') || 'month';
+
 let dayListDate = null;
-let currentChoreDetail = null; // {kind:'single'|'recurring'|'market', id, dateStr}
+let currentChoreDetail = null;
 let subtaskBuilderCount = 0;
 let marketSubtaskBuilderCount = 0;
 let rotationStageCount = 0;
-let calendarFilter = new Set(); // empty = show everyone; may contain personIds or '__unassigned__'
-let firestoreDb = null, firebaseApp = null, unsubscribeSync = null;
+let currentItemType = 'chore';
+let calendarFilter = new Set();
+let firestoreDb = null, firebaseApp = null, fcmMessaging = null, unsubscribeSync = null;
 
 function todayStr() { return formatLocalDate(new Date()); }
 function formatLocalDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function parseLocalDate(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); }
+function parseLocalDate(s) { const [y,m,d] = (s||todayStr()).split('-').map(Number); return new Date(y,m-1,d); }
 function uid(prefix) { return prefix+'-'+Date.now()+'-'+Math.floor(Math.random()*10000); }
 
+/* =========================== ROLE HELPERS =========================== */
+function isCurrentAdmin() {
+  if (!localDeviceProfileId) return true; // Default admin if not chosen
+  const p = getPerson(localDeviceProfileId);
+  return !p || p.role !== 'kid';
+}
+
+function updateRoleUI() {
+  const admin = isCurrentAdmin();
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.classList.toggle('hidden', !admin);
+  });
+  const rBadge = document.getElementById('roleBadge');
+  if (rBadge) {
+    rBadge.textContent = admin ? 'Admin' : 'Member';
+    rBadge.className = `text-[9px] font-bold px-1.5 py-0.2 rounded-md ${admin ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-700'}`;
+  }
+}
+
+/* =========================== FORCE UPDATE ENGINE =========================== */
+async function forceAppUpdate() {
+  toast("Updating app and refreshing cache...", "fa-rotate");
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (let reg of registrations) {
+        await reg.unregister();
+      }
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      for (let key of keys) {
+        await caches.delete(key);
+      }
+    }
+  } catch (e) {
+    console.error("Cache purge error:", e);
+  }
+  setTimeout(() => {
+    window.location.href = window.location.origin + window.location.pathname + '?update=' + Date.now();
+  }, 400);
+}
+
 /* =========================== PERSIST =========================== */
-function saveState() { persist(); if (firestoreDb) pushToCloud(); renderApp(); }
-function persist() { try { localStorage.setItem('chores_state', JSON.stringify(state)); } catch(e){ console.error(e); } }
+function saveState() { 
+  persist(); 
+  if (firestoreDb) pushToCloud(); 
+  renderApp(); 
+}
+
+function persist() { 
+  try { 
+    localStorage.setItem('chores_state', JSON.stringify(state)); 
+    localStorage.setItem('chores_local_profile_id', localDeviceProfileId || '');
+  } catch(e){ console.error(e); } 
+}
+
 async function loadState() {
   try {
     const raw = localStorage.getItem('chores_state');
+    localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || null;
     if (raw) {
       const loaded = JSON.parse(raw);
       state = Object.assign(state, loaded);
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
+      if (!Array.isArray(state.people)) state.people = [];
+      if (!Array.isArray(state.chores)) state.chores = [];
+      if (!Array.isArray(state.recurring)) state.recurring = [];
+      if (!Array.isArray(state.yearlyChores)) state.yearlyChores = [];
+      if (!Array.isArray(state.carnivalPrizes)) state.carnivalPrizes = [];
     } else {
       seedDefaultData();
     }
@@ -699,14 +955,26 @@ async function loadState() {
 }
 
 function seedDefaultData() {
-  state.people = DEFAULT_COLORS.map((c,i) => ({ id: uid('p'), name: i===0?'You':i===1?'Spouse':'Kid '+(i-1), color: c.hex }));
+  state.people = [
+    { id: uid('p'), name: 'Jarred', color: DEFAULT_COLORS[1].hex, role: 'parent' },
+    { id: uid('p'), name: 'Jaclyn', color: DEFAULT_COLORS[0].hex, role: 'parent' },
+    { id: uid('p'), name: 'Jiana', color: DEFAULT_COLORS[2].hex, role: 'kid' },
+    { id: uid('p'), name: 'Juliette', color: DEFAULT_COLORS[3].hex, role: 'kid' },
+    { id: uid('p'), name: 'Jayde', color: DEFAULT_COLORS[4].hex, role: 'kid' }
+  ];
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   state.yearlyChores = monthNames.map((m,i) => ({ id: uid('yc'), month: i+1, title: m+' Family Chore', subtasks: [] }));
+  state.carnivalPrizes = [
+    { id: uid('prz'), name: 'Extra 30 Min Screen Time', cost: 5 },
+    { id: uid('prz'), name: 'Pick Dinner Any Night', cost: 15 },
+    { id: uid('prz'), name: 'Dollar Store Shopping Spree', cost: 20 }
+  ];
 }
 
 /* =========================== TOAST =========================== */
 function toast(msg, icon) {
   const box = document.getElementById('toastBox');
+  if (!box) return;
   const el = document.createElement('div');
   el.className = 'bg-gray-900 text-white text-xs font-semibold rounded-xl px-3.5 py-2.5 shadow-lg fade-in flex items-center gap-2';
   el.innerHTML = `${icon?`<i class="fa-solid ${icon}"></i>`:''}<span>${escapeHtml(msg)}</span>`;
@@ -716,16 +984,25 @@ function toast(msg, icon) {
 function escapeHtml(s) { const d=document.createElement('div'); d.innerText = s==null?'':s; return d.innerHTML; }
 
 /* =========================== MODALS / TABS =========================== */
-function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function openModal(id) { 
+  const el = document.getElementById(id); 
+  if (el) el.classList.remove('hidden'); 
+}
+function closeModal(id) { 
+  const el = document.getElementById(id); 
+  if (el) el.classList.add('hidden'); 
+}
 
 function switchTab(tab) {
   ['calendar','market','log','stats','honeydo'].forEach(t => {
-    document.getElementById('tab-'+t).classList.toggle('hidden', t !== tab);
+    const tabEl = document.getElementById('tab-'+t);
+    if (tabEl) tabEl.classList.toggle('hidden', t !== tab);
     const nav = document.getElementById('nav-'+t);
     const color = NAV_COLORS[t] || 'purple';
-    if (t === tab) { nav.className = `flex flex-col items-center gap-1 text-${color}-600 font-bold bg-${color}-50 rounded-2xl px-2.5 py-1.5 -my-1`; }
-    else { nav.className = 'flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1'; }
+    if (nav) {
+      if (t === tab) { nav.className = `flex flex-col items-center gap-1 text-${color}-600 font-bold bg-${color}-50 rounded-2xl px-2.5 py-1.5 -my-1`; }
+      else { nav.className = 'flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1'; }
+    }
   });
   if (tab === 'market') renderMarketplace();
   if (tab === 'log') renderLog();
@@ -735,15 +1012,15 @@ function switchTab(tab) {
 }
 
 /* =========================== PEOPLE HELPERS =========================== */
-function getPerson(id) { return state.people.find(p => p.id === id); }
-function personChip(id, size) {
+function getPerson(id) { return (state.people||[]).find(p => p.id === id); }
+function personChip(id, isTask) {
   const p = getPerson(id);
   if (!p) return '<span class="person-chip bg-gray-100 text-gray-400">Unassigned</span>';
-  return `<span class="person-chip" style="background:${p.color}22;color:${p.color}"><span class="person-dot" style="background:${p.color}"></span>${escapeHtml(p.name)}</span>`;
+  return `<span class="person-chip" style="background:${p.color||'#8B5CF6'}22;color:${p.color||'#8B5CF6'}"><span class="person-dot" style="background:${p.color||'#8B5CF6'}"></span>${escapeHtml(p.name)}${isTask?' · Task':''}</span>`;
 }
 function personOptions(selectedId, includeBlankLabel) {
   let html = includeBlankLabel ? `<option value="">${escapeHtml(includeBlankLabel)}</option>` : '';
-  html += state.people.map(p => `<option value="${p.id}" ${p.id===selectedId?'selected':''}>${escapeHtml(p.name)}</option>`).join('');
+  html += (state.people||[]).map(p => `<option value="${p.id}" ${p.id===selectedId?'selected':''}>${escapeHtml(p.name)}</option>`).join('');
   return html;
 }
 
@@ -751,7 +1028,7 @@ function personOptions(selectedId, includeBlankLabel) {
 function getWeekStartSetting() { return (state.settings && state.settings.weekStart) || 'sunday'; }
 function startOfWeek(dateStr, weekStart) {
   const d = parseLocalDate(dateStr);
-  const dow = d.getDay(); // 0=Sun..6=Sat
+  const dow = d.getDay();
   const diff = (weekStart||getWeekStartSetting()) === 'monday' ? ((dow + 6) % 7) : dow;
   d.setDate(d.getDate() - diff);
   return d;
@@ -820,47 +1097,45 @@ function ruleSubtasksForDate(rule, dateStr) {
   return stages[stageIdx].subtasks || [];
 }
 function getRecurringForDate(dateStr) {
-  return state.recurring.filter(r => ruleFiresOnDate(r, dateStr)).map(r => {
+  return (state.recurring||[]).filter(r => ruleFiresOnDate(r, dateStr)).map(r => {
     const key = r.id+'_'+dateStr;
-    const comp = state.recurringCompletions[key] || {};
+    const comp = (state.recurringCompletions && state.recurringCompletions[key]) || {};
     return {
       kind: 'recurring', id: r.id, dateStr, title: ruleTitleForDate(r, dateStr), personId: r.personId,
-      time: r.time, subtasks: ruleSubtasksForDate(r, dateStr), reward: r.reward,
+      time: r.time, subtasks: ruleSubtasksForDate(r, dateStr), reward: r.reward, isTask: !!r.isTask,
       completed: !!comp.completed, subtaskState: comp.subtaskState || {}
     };
   });
 }
 function getSingleForDate(dateStr) {
-  return state.chores.filter(c => c.date === dateStr).map(c => ({
+  return (state.chores||[]).filter(c => c.date === dateStr).map(c => ({
     kind: 'single', id: c.id, dateStr, title: c.title, personId: c.personId,
-    time: c.time, subtasks: c.subtasks || [], reward: c.reward,
+    time: c.time, subtasks: c.subtasks || [], reward: c.reward, isTask: !!c.isTask,
     completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid
   }));
 }
+
 /* =========================== MARKETPLACE ENGINE =========================== */
-// A market chore is a "listing" that anyone can claim. It can be one-time or a weekly pool item,
-// and can either have a specific due date (shows "Unassigned" on the calendar until claimed) or a
-// flexible window (never shown on the calendar until someone claims it and picks a date).
 function marketClaimKey(marketId, scopeKey) { return marketId+'_'+scopeKey; }
-function getMarketClaim(marketId, scopeKey) { return state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
-// Called right before a claim is deleted (release/unclaim). If it was completed, archive it to
-// marketCompletions first so stats still count it — releasing shouldn't erase completion history.
+function getMarketClaim(marketId, scopeKey) { return state.marketClaims && state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
 function archiveMarketClaimIfCompleted(marketId, scopeKey) {
   const claim = getMarketClaim(marketId, scopeKey);
   if (!claim || !claim.completed) return;
-  const market = state.marketChores.find(m => m.id === marketId);
+  const market = (state.marketChores||[]).find(m => m.id === marketId);
   if (!market) return;
   const dueDate = resolvedMarketDueDate(market, scopeKey, claim);
   if (!dueDate) return;
+  state.marketCompletions = state.marketCompletions || [];
   state.marketCompletions.push({ id: uid('mkc'), title: market.title, personId: claim.personId, dueDate, completedAt: claim.completedAt || new Date().toISOString() });
 }
 
-// Returns one "instance" per market chore for the week containing refDateStr (or the single instance for one-time items)
 function activeMarketInstances(refDateStr) {
   const ref = refDateStr || todayStr();
   const weekStartStr = currentWeekStartStr(ref);
+  const monthKeyStr = ref.slice(0, 7);
   const out = [];
-  state.marketChores.forEach(m => {
+
+  (state.marketChores||[]).forEach(m => {
     if (m.repeats === 'weekly') {
       const scopeKey = weekStartStr;
       const claim = getMarketClaim(m.id, scopeKey);
@@ -876,6 +1151,19 @@ function activeMarketInstances(refDateStr) {
         dueDate = formatLocalDate(dd);
       }
       out.push({ market:m, scopeKey, claim, windowStart, windowEnd, dueDate });
+    } else if (m.repeats === 'monthly') {
+      const scopeKey = monthKeyStr;
+      const claim = getMarketClaim(m.id, scopeKey);
+      const [y, mo] = monthKeyStr.split('-').map(Number);
+      const lastDay = new Date(y, mo, 0).getDate();
+      let dueDate = null, windowStart = `${monthKeyStr}-01`, windowEnd = `${monthKeyStr}-${String(lastDay).padStart(2,'0')}`;
+      if (m.scheduleType === 'fixed') {
+        const dNum = Math.min(lastDay, Math.max(1, Number(m.dueDayOfMonth || 15)));
+        dueDate = `${monthKeyStr}-${String(dNum).padStart(2,'0')}`;
+      } else {
+        dueDate = claim ? claim.dueDate : null;
+      }
+      out.push({ market:m, scopeKey, claim, windowStart, windowEnd, dueDate });
     } else {
       const scopeKey = 'once';
       const claim = getMarketClaim(m.id, scopeKey);
@@ -889,6 +1177,7 @@ function activeMarketInstances(refDateStr) {
   });
   return out;
 }
+
 function getMarketForCalendarDate(dateStr) {
   const items = [];
   activeMarketInstances(dateStr).forEach(x => {
@@ -897,7 +1186,7 @@ function getMarketForCalendarDate(dateStr) {
         items.push({
           kind:'market', id: x.market.id+'::'+x.scopeKey, marketId:x.market.id, scopeKey:x.scopeKey, dateStr,
           title: x.market.title, personId: x.claim ? x.claim.personId : null, time: null,
-          subtasks: x.market.subtasks||[], reward: x.market.reward,
+          subtasks: x.market.subtasks||[], reward: x.market.reward, isTask: false,
           completed: !!(x.claim && x.claim.completed), subtaskState: (x.claim && x.claim.subtaskState) || {},
           unclaimed: !x.claim
         });
@@ -906,14 +1195,14 @@ function getMarketForCalendarDate(dateStr) {
       items.push({
         kind:'market', id: x.market.id+'::'+x.scopeKey, marketId:x.market.id, scopeKey:x.scopeKey, dateStr,
         title: x.market.title, personId: x.claim.personId, time: null,
-        subtasks: x.market.subtasks||[], reward: x.market.reward,
+        subtasks: x.market.subtasks||[], reward: x.market.reward, isTask: false,
         completed: !!x.claim.completed, subtaskState: x.claim.subtaskState || {}, unclaimed:false
       });
     }
-    // unclaimed flexible listings never show on the calendar — they only live in the Marketplace tab
   });
   return items;
 }
+
 function resolvedMarketDueDate(market, scopeKey, claim) {
   if (market.scheduleType === 'fixed') {
     if (market.repeats === 'weekly') {
@@ -921,27 +1210,34 @@ function resolvedMarketDueDate(market, scopeKey, claim) {
       dd.setDate(dd.getDate() + (market.dueDayOffset||0));
       return formatLocalDate(dd);
     }
+    if (market.repeats === 'monthly') {
+      const [y, mo] = scopeKey.split('-').map(Number);
+      const lastDay = new Date(y, mo, 0).getDate();
+      const dNum = Math.min(lastDay, Math.max(1, Number(market.dueDayOfMonth || 15)));
+      return `${scopeKey}-${String(dNum).padStart(2,'0')}`;
+    }
     return market.dueDate;
   }
   return claim ? claim.dueDate : null;
 }
-// Flattens every stored claim (current and past weeks) into entries with a resolved due date —
-// used for stats/history so completed marketplace chores are counted even after being released.
+
 function allMarketClaimEntries() {
+  if (!state.marketClaims) return [];
   return Object.keys(state.marketClaims).map(key => {
     const idx = key.indexOf('_');
     const marketId = key.slice(0, idx);
     const scopeKey = key.slice(idx+1);
-    const market = state.marketChores.find(m => m.id === marketId);
+    const market = (state.marketChores||[]).find(m => m.id === marketId);
     if (!market) return null;
     const claim = state.marketClaims[key];
     return { market, scopeKey, claim, dueDate: resolvedMarketDueDate(market, scopeKey, claim) };
   }).filter(Boolean);
 }
+
 function weeklyClaimCountForPerson(personId) {
   const weekStartStr = currentWeekStartStr();
   let n = 0;
-  state.marketChores.forEach(m => {
+  (state.marketChores||[]).forEach(m => {
     if (m.repeats !== 'weekly') return;
     const claim = getMarketClaim(m.id, weekStartStr);
     if (claim && claim.personId === personId) n++;
@@ -949,15 +1245,66 @@ function weeklyClaimCountForPerson(personId) {
   return n;
 }
 
+function monthlyClaimCountForPerson(personId) {
+  const monthKeyStr = todayStr().slice(0, 7);
+  let n = 0;
+  (state.marketChores||[]).forEach(m => {
+    if (m.repeats !== 'monthly') return;
+    const claim = getMarketClaim(m.id, monthKeyStr);
+    if (claim && claim.personId === personId) n++;
+  });
+  return n;
+}
+
 function getChoresForDate(dateStr) {
   let items = [...getSingleForDate(dateStr), ...getRecurringForDate(dateStr), ...getMarketForCalendarDate(dateStr)];
+  
   if (calendarFilter.size) {
-    items = items.filter(c => calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__')));
+    items = items.filter(c => {
+      if (c.isTask) return calendarFilter.has(c.personId);
+      return calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__'));
+    });
+  } else {
+    items = items.filter(c => !c.isTask);
   }
   return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
 
 /* =========================== CALENDAR =========================== */
+function setCalView(mode) {
+  calViewMode = mode;
+  localStorage.setItem('chores_cal_view_mode', mode);
+  
+  const mBtn = document.getElementById('calViewMonthBtn');
+  const wBtn = document.getElementById('calViewWeekBtn');
+  const mCont = document.getElementById('monthViewContainer');
+  const wCont = document.getElementById('weekViewContainer');
+
+  if (mode === 'month') {
+    mBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-purple-700 shadow-sm';
+    wBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg text-gray-500';
+    mCont.classList.remove('hidden');
+    wCont.classList.add('hidden');
+    renderCalendar();
+  } else {
+    wBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-purple-700 shadow-sm';
+    mBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg text-gray-500';
+    wCont.classList.remove('hidden');
+    mCont.classList.add('hidden');
+    renderWeekView();
+  }
+  renderSelectedDay();
+}
+
+function navigateCalendar(delta) {
+  if (calViewMode === 'month') {
+    changeMonth(delta);
+  } else {
+    currentWeekAnchor.setDate(currentWeekAnchor.getDate() + (delta * 7));
+    renderWeekView();
+  }
+}
+
 function changeMonth(delta) {
   calMonth += delta;
   if (calMonth < 0) { calMonth = 11; calYear--; }
@@ -971,24 +1318,68 @@ function renderCalendarFilterBar() {
   if (!bar) return;
   const allActive = calendarFilter.size === 0;
   let html = `<button onclick="setCalendarFilter(null)" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border ${allActive?'bg-purple-600 text-white border-purple-600':'bg-white text-gray-500 border-gray-200'}">Everyone</button>`;
-  html += state.people.map(p => {
+  html += (state.people||[]).map(p => {
     const active = calendarFilter.has(p.id);
-    return `<button onclick="toggleCalendarFilterPerson('${p.id}')" class="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold border" style="${active?`background:${p.color};color:#fff;border-color:${p.color}`:`background:#fff;color:${p.color};border-color:${p.color}55`}">
-      <span class="person-dot" style="background:${active?'#fff':p.color}"></span>${escapeHtml(p.name)}
+    return `<button onclick="toggleCalendarFilterPerson('${p.id}')" class="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold border" style="${active?`background:${p.color||'#8b5cf6'};color:#fff;border-color:${p.color||'#8b5cf6'}`:`background:#fff;color:${p.color||'#8b5cf6'};border-color:${p.color||'#8b5cf6'}55`}">
+      <span class="person-dot" style="background:${active?'#fff':(p.color||'#8b5cf6')}"></span>${escapeHtml(p.name)}
     </button>`;
   }).join('');
   html += `<button onclick="toggleCalendarFilterPerson('__unassigned__')" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border ${calendarFilter.has('__unassigned__')?'bg-gray-600 text-white border-gray-600':'bg-white text-gray-400 border-gray-200'}">Unassigned</button>`;
   bar.innerHTML = html;
 }
-function setCalendarFilter(x) { calendarFilter = new Set(); renderCalendar(); renderSelectedDay(); renderCalendarFilterBar(); }
+function setCalendarFilter(x) { 
+  calendarFilter = new Set(); 
+  if (calViewMode === 'month') { renderCalendar(); } 
+  else { renderWeekView(); }
+  renderSelectedDay();
+  renderCalendarFilterBar(); 
+}
 function toggleCalendarFilterPerson(id) {
   if (calendarFilter.has(id)) calendarFilter.delete(id); else calendarFilter.add(id);
-  renderCalendar(); renderSelectedDay(); renderCalendarFilterBar();
+  if (calViewMode === 'month') { renderCalendar(); } 
+  else { renderWeekView(); }
+  renderSelectedDay();
+  renderCalendarFilterBar();
 }
 
+function renderPersonBadgePills(chores, isMini) {
+  const group = {};
+  chores.forEach(c => {
+    const pid = c.personId || '__unassigned__';
+    if (!group[pid]) group[pid] = { total: 0, pending: 0, completed: 0 };
+    group[pid].total++;
+    if (c.completed) group[pid].completed++;
+    else group[pid].pending++;
+  });
+
+  const keys = Object.keys(group);
+  if (!keys.length) return '';
+
+  return keys.map(pid => {
+    const p = getPerson(pid);
+    const color = pid === '__unassigned__' ? '#9CA3AF' : (p ? (p.color || '#8B5CF6') : '#cbd5e1');
+    const { total, pending, completed } = group[pid];
+    const allDone = pending === 0 && total > 0;
+    const opacityStyle = allDone ? 'opacity: 0.35;' : 'opacity: 1;';
+    const displayVal = allDone ? '<i class="fa-solid fa-check text-[8px]"></i>' : pending;
+
+    if (isMini) {
+      return `<div class="flex items-center justify-center px-1 py-0.5 rounded-md text-[9px] font-bold text-white leading-none shadow-xs transition-all" style="background:${color};${opacityStyle}">
+        <span>${displayVal}</span>
+      </div>`;
+    }
+    return `<div class="w-full flex items-center justify-between px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white leading-tight shadow-xs transition-all" style="background:${color};${opacityStyle}">
+      <span class="truncate max-w-[28px]">${pid === '__unassigned__' ? '?' : (p ? p.name[0] : '?')}</span>
+      <span class="flex items-center">${displayVal}</span>
+    </div>`;
+  }).join('');
+}
+
+/* 1. MONTH VIEW */
 function renderCalendar() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('calMonthLabel').textContent = monthNames[calMonth]+' '+calYear;
+  const mainLabel = document.getElementById('calMainLabel');
+  if (mainLabel) mainLabel.textContent = monthNames[calMonth]+' '+calYear;
   renderCalendarFilterBar();
 
   const weekStart = getWeekStartSetting();
@@ -997,9 +1388,10 @@ function renderCalendar() {
   if (headerEl) headerEl.innerHTML = labels.map(l => `<div>${l}</div>`).join('');
 
   const grid = document.getElementById('calendarGrid');
+  if (!grid) return;
   grid.innerHTML = '';
   const first = new Date(calYear, calMonth, 1);
-  const rawOffset = first.getDay(); // 0=Sun
+  const rawOffset = first.getDay();
   const startOffset = weekStart === 'monday' ? ((rawOffset + 6) % 7) : rawOffset;
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
 
@@ -1011,56 +1403,155 @@ function renderCalendar() {
     const cell = document.createElement('div');
     const isToday = dateStr === todayStr();
     const isSelected = dateStr === selectedDate;
-    cell.className = 'day-cell rounded-lg flex flex-col items-center justify-start pt-1 cursor-pointer text-xs '
-      + (isSelected ? 'bg-purple-100 font-bold text-purple-700' : isToday ? 'bg-purple-50 font-bold text-purple-600' : 'hover:bg-gray-50 text-gray-700');
-    cell.innerHTML = `<div>${day}</div><div class="flex gap-0.5 mt-1 flex-wrap justify-center max-w-full">${
-      chores.slice(0,4).map(c => { const p = getPerson(c.personId); const dot = c.unclaimed ? '#9CA3AF' : (p?p.color:'#cbd5e1'); return `<span class="day-dot" style="background:${dot};opacity:${c.completed?0.3:1};${c.unclaimed?'border:1px dashed #6B7280':''}"></span>`; }).join('')
-    }</div>`;
-    cell.onclick = () => { selectedDate = dateStr; openDayList(dateStr); renderCalendar(); renderSelectedDay(); };
+    
+    cell.className = 'day-cell rounded-lg flex flex-col items-center justify-start p-1 cursor-pointer text-xs transition-all '
+      + (isSelected ? 'bg-purple-100 font-bold text-purple-700 shadow-inner' : isToday ? 'bg-purple-50 font-bold text-purple-600 border border-purple-200' : 'hover:bg-gray-50 text-gray-700 bg-white border border-gray-100');
+    
+    const badgePills = renderPersonBadgePills(chores, true);
+
+    cell.innerHTML = `
+      <div class="text-xs font-semibold mb-1">${day}</div>
+      <div class="w-full flex flex-wrap gap-0.5 justify-center items-center pb-0.5">
+        ${badgePills}
+      </div>`;
+    cell.onclick = () => { selectedDate = dateStr; currentWeekAnchor = parseLocalDate(dateStr); renderCalendar(); renderSelectedDay(); };
     grid.appendChild(cell);
+  }
+}
+
+/* 2. HORIZONTAL 7-DAY SNAPSHOT (WEEK VIEW) */
+function renderWeekView() {
+  const weekStartMode = getWeekStartSetting();
+  const startD = startOfWeek(formatLocalDate(currentWeekAnchor), weekStartMode);
+  
+  const endD = new Date(startD);
+  endD.setDate(endD.getDate() + 6);
+
+  const mainLabel = document.getElementById('calMainLabel');
+  if (mainLabel) {
+    mainLabel.textContent = `${startD.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${endD.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+  }
+
+  const labels = weekStartMode === 'monday' ? WEEKDAY_LABELS_MON : WEEKDAY_LABELS_SUN;
+  const headerEl = document.getElementById('weekWeekdayHeader');
+  if (headerEl) headerEl.innerHTML = labels.map(l => `<div>${l}</div>`).join('');
+
+  const grid = document.getElementById('weekGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  for (let i = 0; i < 7; i++) {
+    const curD = new Date(startD);
+    curD.setDate(curD.getDate() + i);
+    const dateStr = formatLocalDate(curD);
+    const chores = getChoresForDate(dateStr);
+    const isToday = dateStr === todayStr();
+    const isSelected = dateStr === selectedDate;
+
+    const cell = document.createElement('div');
+    cell.className = `week-cell rounded-xl flex flex-col items-center justify-start p-1.5 cursor-pointer text-xs transition-all `
+      + (isSelected ? 'bg-purple-100 font-bold text-purple-700 shadow-inner border-2 border-purple-400' : isToday ? 'bg-purple-50 font-bold text-purple-600 border border-purple-200' : 'hover:bg-gray-50 text-gray-700 bg-white border border-gray-100 shadow-sm');
+
+    const badgePills = renderPersonBadgePills(chores, false);
+
+    cell.innerHTML = `
+      <div class="text-[10px] text-gray-400 font-semibold uppercase leading-none mb-1">${curD.toLocaleDateString('en-US',{weekday:'narrow'})}</div>
+      <div class="text-sm font-bold mb-1.5 leading-none ${isSelected?'text-purple-700':(isToday?'text-purple-600':'text-gray-800')}">${curD.getDate()}</div>
+      <div class="w-full space-y-1 flex flex-col items-center">
+        ${badgePills}
+      </div>
+    `;
+    cell.onclick = () => { selectedDate = dateStr; currentWeekAnchor = parseLocalDate(dateStr); renderWeekView(); renderSelectedDay(); };
+    grid.appendChild(cell);
+  }
+}
+
+function initCalendarSwipe() {
+  const el = document.getElementById('calendarCardWrapper');
+  if (!el) return;
+  let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
+
+  el.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  el.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  }, { passive: true });
+
+  function handleSwipe() {
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      navigateCalendar(diffX < 0 ? 1 : -1);
+    }
   }
 }
 
 function renderSelectedDay() {
   const d = parseLocalDate(selectedDate);
   const label = selectedDate === todayStr() ? 'Today · ' : '';
-  document.getElementById('selectedDayLabel').textContent = label + d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+  const labelEl = document.getElementById('selectedDayLabel');
+  if (labelEl) labelEl.textContent = label + d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
   const list = document.getElementById('selectedDayList');
+  if (!list) return;
   const chores = getChoresForDate(selectedDate);
-  if (!chores.length) { list.innerHTML = '<div class="text-xs text-gray-400 py-3 text-center">No chores this day 🎉</div>'; return; }
+  if (!chores.length) { list.innerHTML = '<div class="text-xs text-gray-400 py-3 text-center">No items for this day 🎉</div>'; return; }
   list.innerHTML = chores.map(choreRowHtml).join('');
 }
 
 function choreRowHtml(c) {
   const p = getPerson(c.personId);
   const subCount = (c.subtasks||[]).length;
-  const subDone = subCount ? (c.subtasks||[]).filter(s => c.subtaskState[s.id]).length : 0;
+  const subDone = subCount ? (c.subtasks||[]).filter(s => c.subtaskState && c.subtaskState[s.id]).length : 0;
   const isUnclaimed = c.kind === 'market' && c.unclaimed;
-  const borderColor = isUnclaimed ? '#9CA3AF' : (p?p.color:'#cbd5e1');
+  const borderColor = isUnclaimed ? '#9CA3AF' : (p ? (p.color || '#8b5cf6') : '#cbd5e1');
   const clickable = c.id != null && c.dateStr != null;
-  return `<div ${clickable?`onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')"`:''} class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2.5 flex items-center justify-between ${clickable?'cursor-pointer':''}" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
+  return `<div ${clickable?`onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')"`:''} class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2 flex items-center justify-between ${clickable?'cursor-pointer':''}" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
     <div class="min-w-0 flex-1">
-      <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}${escapeHtml(c.title)}</div>
-      <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-        ${isUnclaimed ? '<span class="person-chip bg-gray-200 text-gray-500">Unassigned · Up for grabs</span>' : personChip(c.personId)}
+      <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">
+        ${c.isTask ? '<i class="fa-solid fa-user-check text-purple-400 text-[11px] mr-1.5" title="Personal Task"></i>' : ''}
+        ${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}
+        ${escapeHtml(c.title)}
+      </div>
+      <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+        ${isUnclaimed ? '<span class="person-chip bg-gray-200 text-gray-500">Unassigned · Up for grabs</span>' : personChip(c.personId, c.isTask)}
         ${c.time ? `<span class="text-[10px] text-gray-400 font-mono">${formatTime(c.time)}</span>` : ''}
         ${subCount ? `<span class="text-[10px] text-gray-400">${subDone}/${subCount} steps</span>` : ''}
         ${c.reward && c.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(c.reward)}</span>` : ''}
-        ${!clickable ? `<span class="text-[10px] text-gray-400">${c.dateStr}</span>` : ''}
+        ${c.dateStr ? `<span class="text-[10px] text-gray-400 font-mono">${c.dateStr}</span>` : ''}
       </div>
     </div>
     <i class="fa-solid ${isUnclaimed?'fa-hand text-pink-400':(c.completed?'fa-circle-check text-emerald-500':'fa-chevron-right text-gray-300')} text-sm flex-shrink-0 ml-2"></i>
   </div>`;
 }
+
 function formatTime(t) { if (!t) return ''; const [h,m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12 = h%12===0?12:h%12; return h12+':'+String(m).padStart(2,'0')+ap; }
-function rewardLabel(r) { if (!r || !r.enabled) return ''; if (r.type==='money') return '$'+Number(r.amount||0).toFixed(2)+(r.banked?' (banked)':''); return (r.description||'Reward')+(r.banked?' (banked)':''); }
+
+function rewardLabel(r) { 
+  if (!r || !r.enabled) return ''; 
+  if (r.type === 'tickets') {
+    const t = parseInt(r.tickets || r.amount || 0);
+    return `🎟️ ${t} Ticket${t===1?'':'s'}${r.banked ? ' (banked)' : ''}`;
+  }
+  if (r.type === 'money') {
+    const amt = parseFloat(r.amount);
+    return isNaN(amt) ? '' : '$' + amt.toFixed(2) + (r.banked ? ' (banked)' : '');
+  }
+  return (r.description || 'Reward') + (r.banked ? ' (banked)' : ''); 
+}
 
 function openDayList(dateStr) {
   dayListDate = dateStr;
   const d = parseLocalDate(dateStr);
-  document.getElementById('dayListTitle').textContent = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+  const titleEl = document.getElementById('dayListTitle');
+  if (titleEl) titleEl.textContent = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
   const chores = getChoresForDate(dateStr);
-  document.getElementById('dayListItems').innerHTML = chores.length ? chores.map(choreRowHtml).join('') : '<div class="text-xs text-gray-400 py-3 text-center">No chores this day 🎉</div>';
+  const itemsEl = document.getElementById('dayListItems');
+  if (itemsEl) itemsEl.innerHTML = chores.length ? chores.map(choreRowHtml).join('') : '<div class="text-xs text-gray-400 py-3 text-center">No items this day 🎉</div>';
   openModal('dayListModal');
 }
 
@@ -1070,18 +1561,18 @@ function openChoreDetail(kind, id, dateStr) {
   currentChoreDetail = { kind, id, dateStr };
   let c, comp, isUnclaimed = false;
   if (kind === 'single') {
-    c = state.chores.find(x => x.id === id);
-    comp = { completed: c.completed, subtaskState: c.subtaskState||{} };
+    c = (state.chores||[]).find(x => x.id === id);
+    comp = { completed: c ? c.completed : false, subtaskState: c ? (c.subtaskState||{}) : {} };
   } else if (kind === 'recurring') {
-    c = state.recurring.find(x => x.id === id);
-    c = { ...c, title: ruleTitleForDate(c, dateStr), subtasks: ruleSubtasksForDate(c, dateStr) };
-    comp = state.recurringCompletions[id+'_'+dateStr] || {completed:false, subtaskState:{}};
+    c = (state.recurring||[]).find(x => x.id === id);
+    if (c) c = { ...c, title: ruleTitleForDate(c, dateStr), subtasks: ruleSubtasksForDate(c, dateStr) };
+    comp = (state.recurringCompletions && state.recurringCompletions[id+'_'+dateStr]) || {completed:false, subtaskState:{}};
   } else if (kind === 'market') {
     const [marketId, scopeKey] = id.split('::');
-    const m = state.marketChores.find(x => x.id === marketId);
+    const m = (state.marketChores||[]).find(x => x.id === marketId);
     const claim = getMarketClaim(marketId, scopeKey);
     isUnclaimed = !claim;
-    c = { title: m.title, personId: claim?claim.personId:null, time: null, reward: m.reward, notes: m.notes, subtasks: m.subtasks||[] };
+    c = m ? { title: m.title, personId: claim?claim.personId:null, time: null, reward: m.reward, notes: m.notes, subtasks: m.subtasks||[], isTask:false } : null;
     comp = claim ? { completed: claim.completed, subtaskState: claim.subtaskState||{} } : { completed:false, subtaskState:{} };
   }
   if (!c) return;
@@ -1089,10 +1580,10 @@ function openChoreDetail(kind, id, dateStr) {
   document.getElementById('cdTitle').textContent = c.title;
   document.getElementById('cdMeta').innerHTML = isUnclaimed
     ? `<span class="person-chip bg-gray-200 text-gray-500">Unassigned</span> · <span class="text-pink-500 font-semibold">In the Marketplace</span>`
-    : `${personChip(c.personId)} ${c.time?('· '+formatTime(c.time)):''} ${kind==='recurring'?'· <span class=\"text-purple-500 font-semibold\">Recurring</span>':''} ${kind==='market'?'· <span class=\"text-pink-500 font-semibold\">From Marketplace</span>':''}`;
+    : `${personChip(c.personId, c.isTask)} ${c.time?('· '+formatTime(c.time)):''} ${c.isTask?'· <span class=\"text-purple-600 font-semibold\">Personal Task</span>':''}`;
 
   const rBox = document.getElementById('cdRewardBox');
-  if (c.reward && c.reward.enabled) {
+  if (c.reward && c.reward.enabled && !c.isTask) {
     rBox.classList.remove('hidden');
     rBox.className = 'rounded-xl p-2.5 mb-3 text-sm bg-purple-50 text-purple-700 font-semibold';
     rBox.innerHTML = `<i class="fa-solid fa-gift"></i> ${rewardLabel(c.reward)}`;
@@ -1119,6 +1610,9 @@ function openChoreDetail(kind, id, dateStr) {
     btn.innerHTML = comp.completed ? '<i class="fa-solid fa-rotate-left"></i> Undo Complete' : '<i class="fa-solid fa-check"></i> Mark Complete';
   }
 
+  const pokeBtn = document.getElementById('cdPokeBtn');
+  if (pokeBtn) pokeBtn.classList.toggle('hidden', !!c.isTask);
+
   const editBtn = document.getElementById('cdEditBtn');
   if (editBtn) editBtn.classList.toggle('hidden', kind === 'market');
   const delBtn = document.getElementById('cdDeleteBtn');
@@ -1130,11 +1624,14 @@ function openChoreDetail(kind, id, dateStr) {
 function toggleSubtask(subId, checked) {
   const { kind, id, dateStr } = currentChoreDetail;
   if (kind === 'single') {
-    const c = state.chores.find(x => x.id === id);
-    c.subtaskState = c.subtaskState || {};
-    c.subtaskState[subId] = checked;
+    const c = (state.chores||[]).find(x => x.id === id);
+    if (c) {
+      c.subtaskState = c.subtaskState || {};
+      c.subtaskState[subId] = checked;
+    }
   } else if (kind === 'recurring') {
     const key = id+'_'+dateStr;
+    state.recurringCompletions = state.recurringCompletions || {};
     state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
     state.recurringCompletions[key].subtaskState[subId] = checked;
   } else if (kind === 'market') {
@@ -1146,21 +1643,37 @@ function toggleSubtask(subId, checked) {
   }
   persist();
   openChoreDetail(kind, id, dateStr);
-  renderSelectedDay(); renderCalendar();
+  if (calViewMode === 'month') { renderCalendar(); }
+  else { renderWeekView(); }
+  renderSelectedDay();
 }
 
 function toggleChoreComplete() {
   const { kind, id, dateStr } = currentChoreDetail;
+  const today = todayStr();
+  
   if (kind === 'single') {
-    const c = state.chores.find(x => x.id === id);
-    c.completed = !c.completed;
-    if (c.completed) { c.completedAt = new Date().toISOString(); handleRewardOnComplete(c); }
+    const c = (state.chores||[]).find(x => x.id === id);
+    if (c) {
+      c.completed = !c.completed;
+      if (c.completed) {
+        c.completedAt = new Date().toISOString();
+        if (c.date > today) {
+          if (confirm(`Completed early! Update due date from ${c.date} to today (${today})?`)) {
+            c.date = today;
+          }
+        }
+        handleRewardOnComplete(c);
+      }
+    }
   } else if (kind === 'recurring') {
     const key = id+'_'+dateStr;
+    state.recurringCompletions = state.recurringCompletions || {};
     state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
     state.recurringCompletions[key].completed = !state.recurringCompletions[key].completed;
     if (state.recurringCompletions[key].completed) {
-      const rule = state.recurring.find(r => r.id === id);
+      state.recurringCompletions[key].completedAt = new Date().toISOString();
+      const rule = (state.recurring||[]).find(r => r.id === id);
       if (rule) handleRewardOnComplete(rule);
     }
   } else if (kind === 'market') {
@@ -1170,8 +1683,13 @@ function toggleChoreComplete() {
     claim.completed = !claim.completed;
     if (claim.completed) {
       claim.completedAt = new Date().toISOString();
-      const m = state.marketChores.find(x => x.id === marketId);
-      if (m) handleRewardOnComplete({ ...m, personId: claim.personId });
+      if (claim.dueDate && claim.dueDate > today) {
+        if (confirm(`Completed ahead of time! Update logged date to today (${today}) for immediate stats?`)) {
+          claim.dueDate = today;
+        }
+      }
+      const m = (state.marketChores||[]).find(x => x.id === marketId);
+      if (m) handleRewardOnComplete({ ...m, personId: claim.personId, reward: { ...m.reward, banked: claim.banked } });
     }
   }
   saveState();
@@ -1179,12 +1697,18 @@ function toggleChoreComplete() {
 }
 
 function handleRewardOnComplete(c) {
-  if (c.reward && c.reward.enabled && c.reward.banked) {
+  if (c.isTask || !c.reward || !c.reward.enabled) return;
+  const person = getPerson(c.personId);
+  const pName = person ? person.name : 'They';
+
+  if (c.reward.banked || c.reward.type === 'tickets') {
+    state.bankedRewards = state.bankedRewards || [];
     state.bankedRewards.push({
       id: uid('bank'), personId: c.personId, choreTitle: c.title,
       reward: { ...c.reward }, date: todayStr(), redeemed: false
     });
-    toast((getPerson(c.personId)||{}).name+"'s reward was banked!", 'fa-piggy-bank');
+    const icon = c.reward.type === 'tickets' ? 'fa-ticket' : 'fa-piggy-bank';
+    toast(`${pName} earned ${rewardLabel(c.reward)}!`, icon);
   }
 }
 
@@ -1193,6 +1717,7 @@ function editCurrentChore() {
   else if (currentChoreDetail.kind === 'recurring') openChoreModal(null, null, false, currentChoreDetail.id);
   closeModal('choreDetailModal');
 }
+
 function deleteCurrentChore() {
   const detail = currentChoreDetail;
   const kind = detail ? detail.kind : 'single';
@@ -1202,18 +1727,19 @@ function deleteCurrentChore() {
     if (!claim) { closeModal('choreDetailModal'); return; }
     if (!confirm('Release this chore back to the marketplace?')) return;
     archiveMarketClaimIfCompleted(marketId, scopeKey);
-    delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
+    if (state.marketClaims) delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
     closeModal('choreDetailModal');
     saveState();
     return;
   }
   const idToDelete = detail ? detail.id : document.getElementById('choreId').value;
-  if (!confirm('Delete this chore?')) return;
-  if (kind === 'single') state.chores = state.chores.filter(c => c.id !== idToDelete);
-  else { state.recurring = state.recurring.filter(r => r.id !== idToDelete); }
+  if (!confirm('Delete this item?')) return;
+  if (kind === 'single') state.chores = (state.chores||[]).filter(c => c.id !== idToDelete);
+  else { state.recurring = (state.recurring||[]).filter(r => r.id !== idToDelete); }
   closeModal('choreDetailModal'); closeModal('choreModal');
   saveState();
 }
+
 function pokeFromChore() {
   let personId = null;
   if (currentChoreDetail) {
@@ -1222,7 +1748,7 @@ function pokeFromChore() {
       const claim = getMarketClaim(marketId, scopeKey);
       personId = claim ? claim.personId : null;
     } else {
-      const p = state.chores.find(c=>c.id===currentChoreDetail.id) || state.recurring.find(r=>r.id===currentChoreDetail.id);
+      const p = (state.chores||[]).find(c=>c.id===currentChoreDetail.id) || (state.recurring||[]).find(r=>r.id===currentChoreDetail.id);
       personId = p ? p.personId : null;
     }
   }
@@ -1230,44 +1756,93 @@ function pokeFromChore() {
   openPokeModal(personId);
 }
 
-/* =========================== ADD/EDIT CHORE MODAL =========================== */
+/* =========================== ADD/EDIT ITEM & REWARDS =========================== */
 let choreRepeatMode = 'single';
-let rewardType = 'money';
+let rewardType = 'tickets';
+
+function setItemType(type) {
+  currentItemType = type;
+  const isChore = type === 'chore';
+  const cBtn = document.getElementById('itemTypeChoreBtn');
+  const tBtn = document.getElementById('itemTypeTaskBtn');
+  if (cBtn) cBtn.className = isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
+  if (tBtn) tBtn.className = !isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
+  
+  const titleLbl = document.getElementById('itemTitleLabel');
+  const personLbl = document.getElementById('itemPersonLabel');
+  const choreInp = document.getElementById('choreTitle');
+  if (titleLbl) titleLbl.textContent = isChore ? 'Chore Name' : 'Task Name';
+  if (personLbl) personLbl.textContent = isChore ? 'Assign To' : 'Whose Task';
+  if (choreInp) choreInp.placeholder = isChore ? 'Feed the dogs' : 'Balance checkbook';
+  
+  const rSec = document.getElementById('rewardSectionWrapper');
+  const rotOpt = document.getElementById('recurRotationOption');
+  if (rSec) rSec.classList.toggle('hidden', !isChore);
+  if (rotOpt) rotOpt.classList.toggle('hidden', !isChore);
+}
 
 function setChoreRepeatMode(mode) {
   choreRepeatMode = mode;
-  document.getElementById('singleDateBox').classList.toggle('hidden', mode !== 'single');
-  document.getElementById('recurBox').classList.toggle('hidden', mode !== 'recurring');
+  const sBox = document.getElementById('singleDateBox');
+  const rBox = document.getElementById('recurBox');
+  if (sBox) sBox.classList.toggle('hidden', mode !== 'single');
+  if (rBox) rBox.classList.toggle('hidden', mode !== 'recurring');
   ['repeatModeSingleBtn','repeatModeRecurBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
     const active = (bid==='repeatModeSingleBtn' && mode==='single') || (bid==='repeatModeRecurBtn' && mode==='recurring');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+    el.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
   });
 }
+
 function setRewardType(t) {
   rewardType = t;
-  document.getElementById('rewardAmount').classList.toggle('hidden', t !== 'money');
-  document.getElementById('rewardDesc').classList.toggle('hidden', t !== 'other');
-  ['rewardTypeMoneyBtn','rewardTypeOtherBtn'].forEach(bid => {
-    const active = (bid==='rewardTypeMoneyBtn' && t==='money') || (bid==='rewardTypeOtherBtn' && t==='other');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  const tktEl = document.getElementById('rewardTickets');
+  const amtEl = document.getElementById('rewardAmount');
+  const descEl = document.getElementById('rewardDesc');
+  
+  if (tktEl) tktEl.classList.toggle('hidden', t !== 'tickets');
+  if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
+  if (descEl) descEl.classList.toggle('hidden', t !== 'other');
+  
+  ['rewardTypeTicketsBtn','rewardTypeMoneyBtn','rewardTypeOtherBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='rewardTypeTicketsBtn' && t==='tickets') 
+      || (bid==='rewardTypeMoneyBtn' && t==='money') 
+      || (bid==='rewardTypeOtherBtn' && t==='other');
+    el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
   });
 }
-function updateRewardUI() { document.getElementById('rewardBox').classList.toggle('hidden', !document.getElementById('rewardEnabled').checked); }
+
+function updateRewardUI() { 
+  const chk = document.getElementById('rewardEnabled');
+  const box = document.getElementById('rewardBox');
+  if (chk && box) box.classList.toggle('hidden', !chk.checked); 
+}
+
 function updateRecurUI() {
-  const f = document.getElementById('recurFreq').value;
-  document.getElementById('recurWeeklyBox').classList.toggle('hidden', f !== 'weekly');
-  document.getElementById('recurMonthlyBox').classList.toggle('hidden', f !== 'monthly');
-  document.getElementById('recurRotationBox').classList.toggle('hidden', f !== 'rotation');
-  document.getElementById('subtaskSection').classList.toggle('hidden', f === 'rotation');
-  const intervalBox = document.getElementById('recurIntervalBox');
-  intervalBox.classList.toggle('hidden', f === 'yearly' || f === 'rotation');
+  const fEl = document.getElementById('recurFreq');
+  const f = fEl ? fEl.value : 'daily';
+  const wBox = document.getElementById('recurWeeklyBox');
+  const mBox = document.getElementById('recurMonthlyBox');
+  const rBox = document.getElementById('recurRotationBox');
+  const stSec = document.getElementById('subtaskSection');
+  const intBox = document.getElementById('recurIntervalBox');
+  if (wBox) wBox.classList.toggle('hidden', f !== 'weekly');
+  if (mBox) mBox.classList.toggle('hidden', f !== 'monthly');
+  if (rBox) rBox.classList.toggle('hidden', f !== 'rotation');
+  if (stSec) stSec.classList.toggle('hidden', f === 'rotation');
+  if (intBox) intBox.classList.toggle('hidden', f === 'yearly' || f === 'rotation');
   const unitLabel = document.getElementById('recurIntervalUnitLabel');
-  unitLabel.textContent = f === 'daily' ? 'day(s)' : f === 'monthly' ? 'month(s)' : 'week(s)';
-  if (f === 'rotation' && !document.getElementById('rotationStageBuilder').children.length) {
+  if (unitLabel) unitLabel.textContent = f === 'daily' ? 'day(s)' : f === 'monthly' ? 'month(s)' : 'week(s)';
+  const bld = document.getElementById('rotationStageBuilder');
+  if (f === 'rotation' && bld && !bld.children.length) {
     addRotationStageRow('Feed the dogs');
     addRotationStageRow('Clean up after dinner');
   }
 }
+
 function addRotationStageRow(title, subtasks) {
   rotationStageCount++;
   const rowId = uid('rs');
@@ -1280,26 +1855,34 @@ function addRotationStageRow(title, subtasks) {
       <button type="button" onclick="this.closest('[data-stageid]').remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>
     </div>
     <div class="pl-4">
-      <div class="text-[10px] font-bold text-gray-400 mb-1">Steps for this shift <span class="font-normal">(only apply while it's active)</span></div>
+      <div class="text-[10px] font-bold text-gray-400 mb-1">Steps for this shift</div>
       <div class="stage-subtask-list space-y-1"></div>
       <button type="button" onclick="addStageSubtaskRow(this)" class="stage-add-btn text-[11px] font-bold text-purple-500 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
     </div>`;
-  document.getElementById('rotationStageBuilder').appendChild(div);
-  (subtasks||[]).forEach(s => addStageSubtaskRow(div.querySelector('.stage-add-btn'), s.text, s.id));
+  const container = document.getElementById('rotationStageBuilder');
+  if (container) {
+    container.appendChild(div);
+    (subtasks||[]).forEach(s => addStageSubtaskRow(div.querySelector('.stage-add-btn'), s.text, s.id));
+  }
 }
+
 function addStageSubtaskRow(triggerEl, text, id) {
   const stageEl = triggerEl.closest('[data-stageid]');
+  if (!stageEl) return;
   const list = stageEl.querySelector('.stage-subtask-list');
-  const rowId = id || uid('rst');
+  if (!list) return;
   const row = document.createElement('div');
   row.className = 'flex items-center gap-1.5';
-  row.dataset.subid = rowId;
+  row.dataset.subid = id || uid('rst');
   row.innerHTML = `<input type="text" value="${escapeHtml(text||'')}" placeholder="Step" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1 text-xs stage-subtask-text-input">
     <button type="button" onclick="this.parentElement.remove()" class="w-6 h-6 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-[10px]"></i></button>`;
   list.appendChild(row);
 }
+
 function readRotationStagesFromBuilder() {
-  return Array.from(document.getElementById('rotationStageBuilder').children).map(stageEl => {
+  const builder = document.getElementById('rotationStageBuilder');
+  if (!builder) return [];
+  return Array.from(builder.children).map(stageEl => {
     const title = stageEl.querySelector('.rotation-stage-title').value.trim();
     const subtasks = Array.from(stageEl.querySelectorAll('.stage-subtask-text-input')).map(inp => ({
       id: inp.closest('[data-subid]').dataset.subid, text: inp.value.trim()
@@ -1307,40 +1890,127 @@ function readRotationStagesFromBuilder() {
     return { title, daysOfWeek: [0,1,2,3,4,5,6], subtasks };
   }).filter(s => s.title);
 }
+
 function buildRecurDaysGrid(selected) {
   const grid = document.getElementById('recurDaysGrid');
+  if (!grid) return;
   grid.innerHTML = WEEKDAY_LABELS.map((l,i) => `<button type="button" data-day="${i}" onclick="toggleRecurDay(${i})" class="recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ${((selected||[]).includes(i))?'bg-purple-600 text-white border-purple-600':'bg-white text-gray-500 border-gray-200'}">${l}</button>`).join('');
 }
+
 function toggleRecurDay(i) {
   const btn = document.querySelector(`.recur-day-btn[data-day="${i}"]`);
+  if (!btn) return;
   const active = btn.classList.contains('bg-purple-600');
   btn.className = 'recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ' + (!active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
 }
 function getSelectedRecurDays() { return Array.from(document.querySelectorAll('.recur-day-btn.bg-purple-600')).map(b => Number(b.dataset.day)); }
 
+/* Subtask Drag and Drop Setup */
+function makeDraggableList(container) {
+  if (!container) return;
+  let draggedEl = null;
+
+  container.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.draggable-item');
+    if (!item) return;
+    draggedEl = item;
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  container.addEventListener('dragend', (e) => {
+    const item = e.target.closest('.draggable-item');
+    if (item) item.classList.remove('dragging');
+    draggedEl = null;
+  });
+
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const afterElement = getDragAfterElement(container, e.clientY);
+    if (!draggedEl) return;
+    if (afterElement == null) {
+      container.appendChild(draggedEl);
+    } else {
+      container.insertBefore(draggedEl, afterElement);
+    }
+  });
+
+  let touchY = 0;
+  let activeTouchItem = null;
+
+  container.addEventListener('touchstart', (e) => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    activeTouchItem = handle.closest('.draggable-item');
+    if (activeTouchItem) {
+      activeTouchItem.classList.add('dragging');
+      touchY = e.touches[0].clientY;
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchmove', (e) => {
+    if (!activeTouchItem) return;
+    e.preventDefault();
+    const currentY = e.touches[0].clientY;
+    const afterElement = getDragAfterElement(container, currentY);
+    if (afterElement == null) {
+      container.appendChild(activeTouchItem);
+    } else {
+      container.insertBefore(activeTouchItem, afterElement);
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchend', () => {
+    if (activeTouchItem) {
+      activeTouchItem.classList.remove('dragging');
+      activeTouchItem = null;
+    }
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
 function addSubtaskRow(text, id) {
   subtaskBuilderCount++;
   const rowId = id || uid('st');
   const div = document.createElement('div');
-  div.className = 'flex items-center gap-1.5';
+  div.className = 'draggable-item flex items-center gap-1.5 bg-white p-1 rounded-lg border border-gray-100';
+  div.draggable = true;
   div.dataset.subid = rowId;
-  div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
+  div.innerHTML = `<span class="drag-handle text-gray-400 hover:text-purple-600"><i class="fa-solid fa-grip-lines-vertical text-xs"></i></span>
     <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${subtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm subtask-text-input">
-    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
-  document.getElementById('subtaskBuilder').appendChild(div);
+    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+  const container = document.getElementById('subtaskBuilder');
+  if (container) {
+    container.appendChild(div);
+    makeDraggableList(container);
+  }
 }
 function readSubtasksFromBuilder() {
-  return Array.from(document.getElementById('subtaskBuilder').children).map(row => ({
+  const builder = document.getElementById('subtaskBuilder');
+  if (!builder) return [];
+  return Array.from(builder.children).map(row => ({
     id: row.dataset.subid, text: row.querySelector('.subtask-text-input').value.trim()
   })).filter(s => s.text);
 }
 
 function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
-  document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Chore' : 'Add Chore';
+  document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Item' : 'Add Item';
   document.getElementById('choreId').value = choreId || '';
   document.getElementById('subtaskBuilder').innerHTML = ''; subtaskBuilderCount = 0;
   document.getElementById('rotationStageBuilder').innerHTML = ''; rotationStageCount = 0;
-  document.getElementById('chorePerson').innerHTML = personOptions(null);
+  document.getElementById('chorePerson').innerHTML = personOptions(localDeviceProfileId);
   document.getElementById('recurStart').value = presetDate || todayStr();
   document.getElementById('recurEnd').value = '';
   document.getElementById('recurInterval').value = 1;
@@ -1348,13 +2018,16 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   buildRecurDaysGrid([]);
   document.getElementById('choreDeleteBtn').classList.add('hidden');
   document.getElementById('rewardEnabled').checked = false;
-  setRewardType('money'); updateRewardUI();
+  setRewardType('tickets'); updateRewardUI();
+  setItemType('chore');
 
   if (recurringId) {
-    const r = state.recurring.find(x => x.id === recurringId);
+    const r = (state.recurring||[]).find(x => x.id === recurringId);
+    if (!r) return;
     document.getElementById('choreId').value = 'REC:'+recurringId;
     document.getElementById('choreTitle').value = r.title;
     document.getElementById('chorePerson').value = r.personId;
+    setItemType(r.isTask ? 'task' : 'chore');
     setChoreRepeatMode('recurring');
     document.getElementById('recurFreq').value = r.frequency;
     if (r.frequency === 'rotation') {
@@ -1371,40 +2044,42 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     (r.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
     if (r.reward && r.reward.enabled) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
-      setRewardType(r.reward.type);
-      document.getElementById('rewardAmount').value = r.reward.amount || '';
+      setRewardType(r.reward.type || 'tickets');
+      document.getElementById('rewardTickets').value = r.reward.tickets || 5;
+      document.getElementById('rewardAmount').value = r.reward.amount != null ? r.reward.amount : '';
       document.getElementById('rewardDesc').value = r.reward.description || '';
-      document.getElementById('rewardBanked').checked = !!r.reward.banked;
     }
     document.getElementById('choreNotes').value = r.notes || '';
     document.getElementById('choreDeleteBtn').classList.remove('hidden');
   } else if (choreId) {
-    const c = state.chores.find(x => x.id === choreId);
+    const c = (state.chores||[]).find(x => x.id === choreId);
+    if (!c) return;
     document.getElementById('choreTitle').value = c.title;
     document.getElementById('chorePerson').value = c.personId;
+    setItemType(c.isTask ? 'task' : 'chore');
     setChoreRepeatMode('single');
     document.getElementById('choreDate').value = c.date;
     document.getElementById('choreTime').value = c.time || '';
     (c.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
     if (c.reward && c.reward.enabled) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
-      setRewardType(c.reward.type);
-      document.getElementById('rewardAmount').value = c.reward.amount || '';
+      setRewardType(c.reward.type || 'tickets');
+      document.getElementById('rewardTickets').value = c.reward.tickets || 5;
+      document.getElementById('rewardAmount').value = c.reward.amount != null ? c.reward.amount : '';
       document.getElementById('rewardDesc').value = c.reward.description || '';
-      document.getElementById('rewardBanked').checked = !!c.reward.banked;
     }
-    document.getElementById('choreNotes').value = c.notes || '';
+    document.getElementById('choreNotes').value = r.notes || '';
     document.getElementById('choreDeleteBtn').classList.remove('hidden');
   } else {
     document.getElementById('choreTitle').value = '';
     document.getElementById('choreDate').value = presetDate || selectedDate || todayStr();
     document.getElementById('choreTime').value = '';
     document.getElementById('choreNotes').value = '';
+    document.getElementById('rewardTickets').value = 5;
     document.getElementById('rewardAmount').value = '';
     document.getElementById('rewardDesc').value = '';
-    document.getElementById('rewardBanked').checked = false;
     setChoreRepeatMode('single');
-    if (isKidLog && state.settings.myProfileId) document.getElementById('chorePerson').value = state.settings.myProfileId;
+    if (isKidLog && localDeviceProfileId) document.getElementById('chorePerson').value = localDeviceProfileId;
   }
   openModal('choreModal');
 }
@@ -1412,23 +2087,35 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
 function saveChore() {
   const idRaw = document.getElementById('choreId').value;
   const title = document.getElementById('choreTitle').value.trim();
-  if (!title) { toast('Give the chore a name', 'fa-triangle-exclamation'); return; }
+  if (!title) { toast('Give it a name', 'fa-triangle-exclamation'); return; }
   const personId = document.getElementById('chorePerson').value;
+  const isTask = (currentItemType === 'task');
   const subtasks = readSubtasksFromBuilder();
-  const rewardEnabled = document.getElementById('rewardEnabled').checked;
+  const rewardEnabled = !isTask && document.getElementById('rewardEnabled').checked;
+  
+  const rawAmt = document.getElementById('rewardAmount').value;
+  const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
+  const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
+  const ticketsAmt = parseInt(document.getElementById('rewardTickets').value) || 5;
+
   const reward = rewardEnabled ? {
-    enabled: true, type: rewardType,
-    amount: rewardType === 'money' ? Number(document.getElementById('rewardAmount').value || 0) : null,
+    enabled: true, 
+    type: rewardType,
+    tickets: rewardType === 'tickets' ? ticketsAmt : null,
+    amount: rewardType === 'money' ? parsedAmt : null,
     description: rewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null,
-    banked: document.getElementById('rewardBanked').checked
+    banked: rewardType === 'tickets' // Tickets automatically bank
   } : { enabled: false };
   const notes = document.getElementById('choreNotes').value.trim();
+
+  state.recurring = state.recurring || [];
+  state.chores = state.chores || [];
 
   if (choreRepeatMode === 'recurring') {
     const isEditingRec = idRaw.startsWith('REC:');
     const freq = document.getElementById('recurFreq').value;
     const ruleData = {
-      title, personId, frequency: freq,
+      title, personId, frequency: freq, isTask,
       daysOfWeek: freq === 'weekly' ? getSelectedRecurDays() : [],
       dayOfMonth: freq === 'monthly' ? Number(document.getElementById('recurDayOfMonth').value || 1) : null,
       interval: (freq === 'daily' || freq === 'weekly' || freq === 'monthly') ? Math.max(1, Number(document.getElementById('recurInterval').value || 1)) : 1,
@@ -1444,7 +2131,7 @@ function saveChore() {
     if (isEditingRec) {
       const rid = idRaw.split(':')[1];
       const r = state.recurring.find(x => x.id === rid);
-      Object.assign(r, ruleData);
+      if (r) Object.assign(r, ruleData);
     } else {
       state.recurring.push({ id: uid('rec'), ...ruleData });
     }
@@ -1453,25 +2140,21 @@ function saveChore() {
     const time = document.getElementById('choreTime').value || null;
     if (idRaw && !idRaw.startsWith('REC:')) {
       const c = state.chores.find(x => x.id === idRaw);
-      Object.assign(c, { title, personId, date, time, subtasks, reward, notes });
+      if (c) Object.assign(c, { title, personId, date, time, subtasks, reward, notes, isTask });
     } else {
-      state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false });
+      state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false, isTask });
     }
   }
   closeModal('choreModal');
   saveState();
-  toast('Chore saved', 'fa-check');
+  toast(isTask ? 'Personal task saved' : 'Chore saved', 'fa-check');
 }
 
 /* =========================== MARKETPLACE MODAL =========================== */
 let marketRepeats = 'once';
 let marketSchedule = 'fixed';
-let marketRewardType = 'money';
-// Day-offset labels for the marketplace's weekly-window pickers. Offset i always means
-// "i days after this family's configured week start" — so the label at index i must be
-// whatever weekday that actually lands on, not a fixed Sunday-first list. Mismatching these
-// (e.g. showing "Sunday" for offset 0 when the week actually starts Monday) makes end dates
-// silently resolve to before the start date, breaking the window.
+let marketRewardType = 'tickets';
+
 function offsetDayLabels() {
   const base = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const shift = getWeekStartSetting() === 'monday' ? 1 : 0;
@@ -1480,82 +2163,129 @@ function offsetDayLabels() {
 
 function setMarketRepeats(mode) {
   marketRepeats = mode;
-  ['marketRepeatsOnceBtn','marketRepeatsWeeklyBtn'].forEach(bid => {
-    const active = (bid==='marketRepeatsOnceBtn' && mode==='once') || (bid==='marketRepeatsWeeklyBtn' && mode==='weekly');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
+  ['marketRepeatsOnceBtn','marketRepeatsWeeklyBtn','marketRepeatsMonthlyBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='marketRepeatsOnceBtn' && mode==='once') 
+      || (bid==='marketRepeatsWeeklyBtn' && mode==='weekly')
+      || (bid==='marketRepeatsMonthlyBtn' && mode==='monthly');
+    el.className = 'flex-1 rounded-lg py-2 text-[11px] font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
   });
-  document.getElementById('marketRepeatsHelp').textContent = mode === 'once'
-    ? 'One-time: posted once, gone once claimed & done.'
-    : "Weekly Pool: reopens every week for someone new to claim — whoever claims it picks that week's date, so it never gets stuck.";
-  // Weekly pool chores always let the claimer pick a fresh date each week — a locked-in due
-  // date would get stuck on release, so "Specific Due Date" isn't offered for these.
+
+  const helpEl = document.getElementById('marketRepeatsHelp');
+  if (helpEl) {
+    if (mode === 'once') helpEl.textContent = 'One-time: posted once, gone once claimed & done.';
+    else if (mode === 'weekly') helpEl.textContent = "Weekly Pool: reopens every week for someone new to claim — whoever claims it picks that week's date.";
+    else if (mode === 'monthly') helpEl.textContent = "Monthly Pool: reopens every month for someone new to claim — whoever claims it picks that month's date.";
+  }
+
   const fixedBtn = document.getElementById('marketSchedFixedBtn');
-  fixedBtn.disabled = (mode === 'weekly');
-  fixedBtn.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (mode === 'weekly' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white text-gray-500 border-gray-200');
-  if (mode === 'weekly') setMarketSchedule('flexible'); else updateMarketScheduleUI();
+  if (fixedBtn) {
+    fixedBtn.disabled = (mode === 'weekly');
+    fixedBtn.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (mode === 'weekly' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white text-gray-500 border-gray-200');
+  }
+  if (mode === 'weekly') setMarketSchedule('flexible'); 
+  else updateMarketScheduleUI();
 }
+
 function setMarketSchedule(mode) {
   marketSchedule = mode;
   ['marketSchedFixedBtn','marketSchedFlexBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
     const active = (bid==='marketSchedFixedBtn' && mode==='fixed') || (bid==='marketSchedFlexBtn' && mode==='flexible');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
+    el.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
   });
   updateMarketScheduleUI();
 }
+
 function updateMarketScheduleUI() {
-  document.getElementById('marketFixedOnceBox').classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='once'));
-  document.getElementById('marketFixedWeeklyBox').classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='weekly'));
-  document.getElementById('marketFlexOnceBox').classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='once'));
-  document.getElementById('marketFlexWeeklyBox').classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='weekly'));
+  const fOnce = document.getElementById('marketFixedOnceBox');
+  const fWeek = document.getElementById('marketFixedWeeklyBox');
+  const fMonth = document.getElementById('marketFixedMonthlyBox');
+  const flOnce = document.getElementById('marketFlexOnceBox');
+  const flWeek = document.getElementById('marketFlexWeeklyBox');
+
+  if (fOnce) fOnce.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='once'));
+  if (fWeek) fWeek.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='weekly'));
+  if (fMonth) fMonth.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='monthly'));
+  if (flOnce) flOnce.classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='once'));
+  if (flWeek) flWeek.classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='weekly'));
 }
+
 function setMarketRewardType(t) {
   marketRewardType = t;
-  document.getElementById('marketRewardAmount').classList.toggle('hidden', t !== 'money');
-  document.getElementById('marketRewardDesc').classList.toggle('hidden', t !== 'other');
-  ['marketRewardTypeMoneyBtn','marketRewardTypeOtherBtn'].forEach(bid => {
-    const active = (bid==='marketRewardTypeMoneyBtn' && t==='money') || (bid==='marketRewardTypeOtherBtn' && t==='other');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  const tktEl = document.getElementById('marketRewardTickets');
+  const amtEl = document.getElementById('marketRewardAmount');
+  const descEl = document.getElementById('marketRewardDesc');
+  
+  if (tktEl) tktEl.classList.toggle('hidden', t !== 'tickets');
+  if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
+  if (descEl) descEl.classList.toggle('hidden', t !== 'other');
+
+  ['marketRewardTypeTicketsBtn','marketRewardTypeMoneyBtn','marketRewardTypeOtherBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='marketRewardTypeTicketsBtn' && t==='tickets')
+      || (bid==='marketRewardTypeMoneyBtn' && t==='money')
+      || (bid==='marketRewardTypeOtherBtn' && t==='other');
+    el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
   });
 }
+
 function addMarketSubtaskRow(text, id) {
   marketSubtaskBuilderCount++;
   const rowId = id || uid('mst');
   const div = document.createElement('div');
-  div.className = 'flex items-center gap-1.5';
+  div.className = 'draggable-item flex items-center gap-1.5 bg-white p-1 rounded-lg border border-gray-100';
+  div.draggable = true;
   div.dataset.subid = rowId;
-  div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
+  div.innerHTML = `<span class="drag-handle text-gray-400 hover:text-pink-600"><i class="fa-solid fa-grip-lines-vertical text-xs"></i></span>
     <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${marketSubtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm market-subtask-text-input">
-    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
-  document.getElementById('marketSubtaskBuilder').appendChild(div);
+    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+  const container = document.getElementById('marketSubtaskBuilder');
+  if (container) {
+    container.appendChild(div);
+    makeDraggableList(container);
+  }
 }
+
 function readMarketSubtasksFromBuilder() {
-  return Array.from(document.getElementById('marketSubtaskBuilder').children).map(row => ({
+  const builder = document.getElementById('marketSubtaskBuilder');
+  if (!builder) return [];
+  return Array.from(builder.children).map(row => ({
     id: row.dataset.subid, text: row.querySelector('.market-subtask-text-input').value.trim()
   })).filter(s => s.text);
 }
+
 function fillOffsetSelect(id, selected) {
-  document.getElementById(id).innerHTML = offsetDayLabels().map((l,i) => `<option value="${i}" ${i===selected?'selected':''}>${l}</option>`).join('');
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = offsetDayLabels().map((l,i) => `<option value="${i}" ${i===selected?'selected':''}>${l}</option>`).join('');
 }
 
 function openMarketModal(marketId) {
   document.getElementById('marketModalTitle').textContent = marketId ? 'Edit Listing' : 'Post to Marketplace';
   document.getElementById('marketId').value = marketId || '';
   document.getElementById('marketSubtaskBuilder').innerHTML = ''; marketSubtaskBuilderCount = 0;
-  document.getElementById('marketDueDayOfWeek').innerHTML = offsetDayLabels().map((l,i)=>`<option value="${i}">${l}</option>`).join('');
+  const daySel = document.getElementById('marketDueDayOfWeek');
+  if (daySel) daySel.innerHTML = offsetDayLabels().map((l,i)=>`<option value="${i}">${l}</option>`).join('');
   fillOffsetSelect('marketWindowStartOffset', 0);
   fillOffsetSelect('marketWindowEndOffset', 6);
   document.getElementById('marketRewardEnabled').checked = false;
   document.getElementById('marketRewardBox').classList.add('hidden');
-  setMarketRewardType('money');
+  setMarketRewardType('tickets');
   document.getElementById('marketDeleteBtn').classList.toggle('hidden', !marketId);
 
   if (marketId) {
-    const m = state.marketChores.find(x => x.id === marketId);
+    const m = (state.marketChores||[]).find(x => x.id === marketId);
+    if (!m) return;
     document.getElementById('marketTitle').value = m.title;
-    setMarketRepeats(m.repeats);
+    setMarketRepeats(m.repeats || 'once');
     if (!(m.repeats === 'weekly' && m.scheduleType === 'fixed')) setMarketSchedule(m.scheduleType);
     document.getElementById('marketDueDate').value = m.dueDate || '';
     document.getElementById('marketDueDayOfWeek').value = m.dueDayOffset || 0;
+    document.getElementById('marketDueDayOfMonth').value = m.dueDayOfMonth || 15;
     document.getElementById('marketWindowStart').value = m.windowStart || '';
     document.getElementById('marketWindowEnd').value = m.windowEnd || '';
     fillOffsetSelect('marketWindowStartOffset', m.windowStartOffset||0);
@@ -1564,16 +2294,19 @@ function openMarketModal(marketId) {
     if (m.reward && m.reward.enabled) {
       document.getElementById('marketRewardEnabled').checked = true;
       document.getElementById('marketRewardBox').classList.remove('hidden');
-      setMarketRewardType(m.reward.type);
-      document.getElementById('marketRewardAmount').value = m.reward.amount || '';
+      setMarketRewardType(m.reward.type || 'tickets');
+      document.getElementById('marketRewardTickets').value = m.reward.tickets || 5;
+      document.getElementById('marketRewardAmount').value = m.reward.amount != null ? m.reward.amount : '';
       document.getElementById('marketRewardDesc').value = m.reward.description || '';
     }
     document.getElementById('marketNotes').value = m.notes || '';
   } else {
     document.getElementById('marketTitle').value = '';
     document.getElementById('marketDueDate').value = todayStr();
+    document.getElementById('marketDueDayOfMonth').value = 15;
     document.getElementById('marketWindowStart').value = todayStr();
     document.getElementById('marketWindowEnd').value = todayStr();
+    document.getElementById('marketRewardTickets').value = 5;
     document.getElementById('marketRewardAmount').value = '';
     document.getElementById('marketRewardDesc').value = '';
     document.getElementById('marketNotes').value = '';
@@ -1581,22 +2314,33 @@ function openMarketModal(marketId) {
   }
   openModal('marketModal');
 }
+
 function saveMarketChore() {
   const id = document.getElementById('marketId').value;
   const title = document.getElementById('marketTitle').value.trim();
   if (!title) { toast('Give the chore a name', 'fa-triangle-exclamation'); return; }
   const subtasks = readMarketSubtasksFromBuilder();
   const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
+  
+  const rawAmt = document.getElementById('marketRewardAmount').value;
+  const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
+  const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
+  const ticketsAmt = parseInt(document.getElementById('marketRewardTickets').value) || 5;
+
   const reward = rewardEnabled ? {
-    enabled: true, type: marketRewardType,
-    amount: marketRewardType === 'money' ? Number(document.getElementById('marketRewardAmount').value || 0) : null,
+    enabled: true, 
+    type: marketRewardType,
+    tickets: marketRewardType === 'tickets' ? ticketsAmt : null,
+    amount: marketRewardType === 'money' ? parsedAmt : null,
     description: marketRewardType === 'other' ? document.getElementById('marketRewardDesc').value.trim() : null
-  } : { enabled:false };
+  } : { enabled: false };
   const notes = document.getElementById('marketNotes').value.trim();
 
   const data = { title, subtasks, reward, notes, repeats: marketRepeats, scheduleType: marketSchedule };
   if (marketSchedule === 'fixed' && marketRepeats === 'once') data.dueDate = document.getElementById('marketDueDate').value || todayStr();
   if (marketSchedule === 'fixed' && marketRepeats === 'weekly') data.dueDayOffset = Number(document.getElementById('marketDueDayOfWeek').value || 0);
+  if (marketSchedule === 'fixed' && marketRepeats === 'monthly') data.dueDayOfMonth = Number(document.getElementById('marketDueDayOfMonth').value || 15);
+  
   if (marketSchedule === 'flexible' && marketRepeats === 'once') {
     data.windowStart = document.getElementById('marketWindowStart').value || todayStr();
     data.windowEnd = document.getElementById('marketWindowEnd').value || data.windowStart;
@@ -1612,9 +2356,10 @@ function saveMarketChore() {
     }
   }
 
+  state.marketChores = state.marketChores || [];
   if (id) {
     const m = state.marketChores.find(x => x.id === id);
-    Object.assign(m, data);
+    if (m) Object.assign(m, data);
   } else {
     state.marketChores.push({ id: uid('mkt'), ...data });
   }
@@ -1622,36 +2367,58 @@ function saveMarketChore() {
   saveState(); renderMarketplace();
   toast('Posted to the marketplace', 'fa-store');
 }
+
 function deleteMarketChore() {
   const id = document.getElementById('marketId').value;
   if (!id) return;
   if (!confirm('Delete this listing? Any current claim will be removed too.')) return;
-  Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
-  state.marketChores = state.marketChores.filter(x => x.id !== id);
+  if (state.marketClaims) {
+    Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
+  }
+  state.marketChores = (state.marketChores||[]).filter(x => x.id !== id);
   closeModal('marketModal');
   saveState(); renderMarketplace();
 }
+
 function quickDeleteMarketChore(id) {
-  const m = state.marketChores.find(x => x.id === id);
+  const m = (state.marketChores||[]).find(x => x.id === id);
   if (!m) return;
   if (!confirm(`Delete "${m.title}" from the marketplace? Any current claim will be removed too.`)) return;
-  Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
-  state.marketChores = state.marketChores.filter(x => x.id !== id);
+  if (state.marketClaims) {
+    Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
+  }
+  state.marketChores = (state.marketChores||[]).filter(x => x.id !== id);
   saveState(); renderMarketplace();
 }
 
 /* =========================== MARKETPLACE CLAIM FLOW =========================== */
 function openMarketClaimModal(marketId, scopeKey) {
-  const m = state.marketChores.find(x => x.id === marketId);
+  const m = (state.marketChores||[]).find(x => x.id === marketId);
   if (!m) return;
   document.getElementById('claimMarketId').value = marketId;
   document.getElementById('claimScopeKey').value = scopeKey;
   document.getElementById('claimChoreTitle').textContent = m.title;
-  document.getElementById('claimPerson').innerHTML = personOptions(state.settings.myProfileId);
+
+  const rewDisp = document.getElementById('claimRewardDisplay');
+  const bankChoiceWrapper = document.getElementById('claimBankChoiceWrapper');
+  const bankedCheckbox = document.getElementById('claimBankedCheckbox');
+
+  if (m.reward && m.reward.enabled) {
+    rewDisp.textContent = 'Reward: ' + rewardLabel(m.reward);
+    rewDisp.classList.remove('hidden');
+    bankChoiceWrapper.classList.remove('hidden');
+    bankedCheckbox.checked = m.reward.type === 'tickets'; // Automatically check for carnival tickets
+  } else {
+    rewDisp.classList.add('hidden');
+    bankChoiceWrapper.classList.add('hidden');
+    bankedCheckbox.checked = false;
+  }
+
+  document.getElementById('claimPerson').innerHTML = personOptions(localDeviceProfileId);
   const dateBox = document.getElementById('claimDateBox');
   if (m.scheduleType === 'flexible') {
     dateBox.classList.remove('hidden');
-    const inst = activeMarketInstances(scopeKey==='once' ? todayStr() : scopeKey).find(x => x.market.id === marketId);
+    const inst = activeMarketInstances(scopeKey==='once' ? todayStr() : (scopeKey.includes('-') && scopeKey.length===7 ? scopeKey+'-01' : scopeKey)).find(x => x.market.id === marketId);
     const min = inst ? inst.windowStart : todayStr();
     const max = inst ? inst.windowEnd : todayStr();
     document.getElementById('claimDate').min = min;
@@ -1663,46 +2430,69 @@ function openMarketClaimModal(marketId, scopeKey) {
   }
   openModal('marketClaimModal');
 }
+
 function confirmClaimMarket() {
   const marketId = document.getElementById('claimMarketId').value;
   const scopeKey = document.getElementById('claimScopeKey').value;
   const personId = document.getElementById('claimPerson').value;
   if (!personId) { toast('Pick who is claiming this', 'fa-triangle-exclamation'); return; }
-  const m = state.marketChores.find(x => x.id === marketId);
+  const m = (state.marketChores||[]).find(x => x.id === marketId);
   let dueDate = null;
-  if (m.scheduleType === 'flexible') {
+  if (m && m.scheduleType === 'flexible') {
     dueDate = document.getElementById('claimDate').value;
     if (!dueDate) { toast('Pick a due date', 'fa-triangle-exclamation'); return; }
   }
-  state.marketClaims[marketClaimKey(marketId, scopeKey)] = { personId, dueDate, claimedAt: new Date().toISOString(), completed:false, subtaskState:{} };
+  const isBanked = document.getElementById('claimBankedCheckbox').checked;
+
+  state.marketClaims = state.marketClaims || {};
+  state.marketClaims[marketClaimKey(marketId, scopeKey)] = { 
+    personId, 
+    dueDate, 
+    banked: isBanked,
+    claimedAt: new Date().toISOString(), 
+    completed:false, 
+    subtaskState:{} 
+  };
   closeModal('marketClaimModal');
   saveState(); renderMarketplace();
   toast((getPerson(personId)||{}).name+' claimed it!', 'fa-hand');
 }
+
 function unclaimMarket(marketId, scopeKey) {
   if (!confirm('Release this chore back to the marketplace?')) return;
   archiveMarketClaimIfCompleted(marketId, scopeKey);
-  delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
+  if (state.marketClaims) delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
   saveState(); renderMarketplace();
 }
 
 /* =========================== MARKETPLACE TAB RENDER =========================== */
 function marketScheduleLabel(x) {
   if (x.market.scheduleType === 'fixed') {
-    return x.market.repeats === 'weekly' ? `Due every ${offsetDayLabels()[x.market.dueDayOffset||0]}` : `Due ${x.dueDate}`;
+    if (x.market.repeats === 'weekly') return `Due every ${offsetDayLabels()[x.market.dueDayOffset||0]}`;
+    if (x.market.repeats === 'monthly') return `Due on day ${x.market.dueDayOfMonth || 15} each month`;
+    return `Due ${x.dueDate}`;
   }
-  return x.market.repeats === 'weekly'
-    ? `Open ${offsetDayLabels()[x.market.windowStartOffset||0]}–${offsetDayLabels()[x.market.windowEndOffset!=null?x.market.windowEndOffset:6]}, at their leisure`
-    : `Open ${x.windowStart} to ${x.windowEnd}, at their leisure`;
+  if (x.market.repeats === 'weekly') {
+    return `Open ${offsetDayLabels()[x.market.windowStartOffset||0]}–${offsetDayLabels()[x.market.windowEndOffset!=null?x.market.windowEndOffset:6]}, at their leisure`;
+  }
+  if (x.market.repeats === 'monthly') {
+    return `Open any day this month, at their leisure`;
+  }
+  return `Open ${x.windowStart} to ${x.windowEnd}, at their leisure`;
 }
+
 function marketListingCardHtml(x, claimedView) {
   const claim = x.claim;
   const p = claim ? getPerson(claim.personId) : null;
+  let poolBadge = '';
+  if (x.market.repeats === 'weekly') poolBadge = '<span class="text-[10px] font-bold text-pink-500 bg-pink-100 rounded-full px-1.5 py-0.5">Weekly Pool</span>';
+  else if (x.market.repeats === 'monthly') poolBadge = '<span class="text-[10px] font-bold text-purple-600 bg-purple-100 rounded-full px-1.5 py-0.5">Monthly Pool</span>';
+
   return `<div class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 ${claimedView?'bg-gray-50':'bg-gradient-to-r from-amber-50 to-pink-50 border border-pink-100'}">
     <div class="min-w-0 flex-1">
       <div class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(x.market.title)}</div>
       <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-        ${x.market.repeats==='weekly' ? '<span class="text-[10px] font-bold text-pink-500 bg-pink-100 rounded-full px-1.5 py-0.5">Weekly Pool</span>' : ''}
+        ${poolBadge}
         <span class="text-[10px] text-gray-500">${marketScheduleLabel(x)}</span>
         ${x.market.reward && x.market.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(x.market.reward)}</span>` : ''}
         ${claimedView && p ? personChip(p.id) : ''}
@@ -1713,65 +2503,309 @@ function marketListingCardHtml(x, claimedView) {
       ${claimedView
         ? `<button onclick="unclaimMarket('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-gray-200 text-gray-600 rounded-lg px-2 py-1.5">Release</button>`
         : `<button onclick="openMarketClaimModal('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-pink-500 text-white rounded-lg px-2.5 py-1.5"><i class="fa-solid fa-hand"></i> Claim</button>`}
-      ${!claimedView ? `<button onclick="openMarketModal('${x.market.id}')" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-pen text-xs"></i></button>
-      <button onclick="quickDeleteMarketChore('${x.market.id}')" class="w-7 h-7 flex-shrink-0 rounded-lg bg-red-50 text-red-400"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
+      ${!claimedView ? `<button onclick="openMarketModal('${x.market.id}')" class="admin-only w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-pen text-xs"></i></button>
+      <button onclick="quickDeleteMarketChore('${x.market.id}')" class="admin-only w-7 h-7 flex-shrink-0 rounded-lg bg-red-50 text-red-400"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
     </div>
   </div>`;
 }
+
 function renderMarketplace() {
   const instances = activeMarketInstances();
   const open = instances.filter(x => !x.claim);
   const claimed = instances.filter(x => x.claim);
 
-  document.getElementById('marketOpenList').innerHTML = open.length
-    ? open.map(x => marketListingCardHtml(x, false)).join('')
-    : '<div class="text-xs text-gray-400 text-center py-3">Nothing up for grabs right now 🎉</div>';
-  document.getElementById('marketClaimedList').innerHTML = claimed.length
-    ? claimed.map(x => marketListingCardHtml(x, true)).join('')
-    : '<div class="text-xs text-gray-400 text-center py-3">No claims yet this week.</div>';
+  const openList = document.getElementById('marketOpenList');
+  if (openList) {
+    openList.innerHTML = open.length
+      ? open.map(x => marketListingCardHtml(x, false)).join('')
+      : '<div class="text-xs text-gray-400 text-center py-3">Nothing up for grabs right now 🎉</div>';
+  }
+  const claimedList = document.getElementById('marketClaimedList');
+  if (claimedList) {
+    claimedList.innerHTML = claimed.length
+      ? claimed.map(x => marketListingCardHtml(x, true)).join('')
+      : '<div class="text-xs text-gray-400 text-center py-3">No claims yet in this active cycle.</div>';
+  }
 
-  const quota = Number(state.settings.weeklyQuota || 0);
-  document.getElementById('marketQuotaCards').innerHTML = state.people.map(p => {
-    const n = weeklyClaimCountForPerson(p.id);
-    const met = quota > 0 && n >= quota;
-    return `<div class="rounded-xl px-3 py-2 flex items-center justify-between" style="background:${p.color}15">
-      <div class="flex items-center gap-1.5 min-w-0"><span class="person-dot" style="background:${p.color}"></span><span class="text-xs font-bold truncate" style="color:${p.color}">${escapeHtml(p.name)}</span></div>
-      <span class="text-xs font-mono font-bold ${met?'text-emerald-500':'text-gray-500'}">${n}${quota?'/'+quota:''}${met?' ✓':''}</span>
-    </div>`;
-  }).join('');
+  const wQuota = Number((state.settings && state.settings.weeklyQuota) || 0);
+  const mQuota = Number((state.settings && state.settings.monthlyQuota) || 0);
+  const quotaCards = document.getElementById('marketQuotaCards');
+  if (quotaCards) {
+    quotaCards.innerHTML = (state.people||[]).map(p => {
+      const wn = weeklyClaimCountForPerson(p.id);
+      const mn = monthlyClaimCountForPerson(p.id);
+      const wMet = wQuota > 0 && wn >= wQuota;
+      const mMet = mQuota > 0 && mn >= mQuota;
+
+      return `<div class="rounded-xl px-2.5 py-2 flex flex-col justify-between" style="background:${p.color||'#8b5cf6'}15">
+        <div class="flex items-center gap-1.5 min-w-0 mb-1">
+          <span class="person-dot" style="background:${p.color||'#8b5cf6'}"></span>
+          <span class="text-xs font-bold truncate" style="color:${p.color||'#8b5cf6'}">${escapeHtml(p.name)}</span>
+        </div>
+        <div class="flex items-center justify-between text-[10px] font-mono font-bold text-gray-600 gap-1">
+          <span class="${wMet?'text-emerald-600 font-bold':''}">W: ${wn}${wQuota?'/'+wQuota:''}</span>
+          <span class="${mMet?'text-emerald-600 font-bold':''}">M: ${mn}${mQuota?'/'+mQuota:''}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
 
   const banner = document.getElementById('marketBannerCount');
   if (banner) banner.textContent = open.length + (open.length===1?' open':' open');
 }
 
+/* =========================== SETTINGS & QUOTAS =========================== */
+function setWeeklyQuota(val) { 
+  state.settings = state.settings || {}; 
+  state.settings.weeklyQuota = Math.max(0, Number(val||0)); 
+  saveState(); 
+}
+
+function setMonthlyQuota(val) { 
+  state.settings = state.settings || {}; 
+  state.settings.monthlyQuota = Math.max(0, Number(val||0)); 
+  saveState(); 
+}
+
+function setWeekStart(val) { 
+  state.settings = state.settings || {}; 
+  state.settings.weekStart = val; 
+  saveState(); 
+  toast('Calendar updated', 'fa-calendar-days'); 
+}
+
+function saveVapidKey(val) {
+  state.settings = state.settings || {};
+  state.settings.vapidKey = val.trim();
+  saveState();
+  toast('VAPID key saved', 'fa-key');
+}
+
+/* =========================== CARNIVAL TICKET & PRIZE BOOTH SYSTEM =========================== */
+function getPersonTicketBalance(personId) {
+  const earned = (state.bankedRewards || [])
+    .filter(b => b.personId === personId && b.reward && b.reward.type === 'tickets')
+    .reduce((sum, b) => sum + parseInt(b.reward.tickets || b.reward.amount || 0), 0);
+  
+  const spent = (state.bankedRewards || [])
+    .filter(b => b.personId === personId && b.isPrizeRedemption)
+    .reduce((sum, b) => sum + parseInt(b.ticketCost || 0), 0);
+
+  return Math.max(0, earned - spent);
+}
+
+function openPrizeModal(prizeId) {
+  document.getElementById('prizeId').value = prizeId || '';
+  document.getElementById('prizeModalTitle').innerHTML = prizeId 
+    ? '<i class="fa-solid fa-pen text-amber-500"></i> Edit Prize' 
+    : '<i class="fa-solid fa-ticket text-amber-500"></i> Add Prize';
+  document.getElementById('prizeDeleteBtn').classList.toggle('hidden', !prizeId);
+
+  if (prizeId) {
+    const p = (state.carnivalPrizes || []).find(x => x.id === prizeId);
+    if (!p) return;
+    document.getElementById('prizeName').value = p.name;
+    document.getElementById('prizeCost').value = p.cost;
+  } else {
+    document.getElementById('prizeName').value = '';
+    document.getElementById('prizeCost').value = '';
+  }
+  openModal('prizeModal');
+}
+
+function saveCarnivalPrize() {
+  const id = document.getElementById('prizeId').value;
+  const name = document.getElementById('prizeName').value.trim();
+  const cost = parseInt(document.getElementById('prizeCost').value);
+  if (!name || isNaN(cost) || cost <= 0) {
+    toast('Give prize a valid name and ticket cost', 'fa-triangle-exclamation');
+    return;
+  }
+  state.carnivalPrizes = state.carnivalPrizes || [];
+  if (id) {
+    const p = state.carnivalPrizes.find(x => x.id === id);
+    if (p) Object.assign(p, { name, cost });
+  } else {
+    state.carnivalPrizes.push({ id: uid('prz'), name, cost });
+  }
+  closeModal('prizeModal');
+  saveState();
+  toast(id ? 'Prize updated!' : 'Prize added to booth!', 'fa-store');
+}
+
+function deleteCarnivalPrize() {
+  const id = document.getElementById('prizeId').value;
+  if (!id) return;
+  if (!confirm('Remove this prize from the booth?')) return;
+  state.carnivalPrizes = (state.carnivalPrizes || []).filter(p => p.id !== id);
+  closeModal('prizeModal');
+  saveState();
+}
+
+/* Explicit Confirmation with Target Dropdown */
+function promptRedeemPrize(prizeId) {
+  const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
+  if (!prize) return;
+
+  document.getElementById('redeemPrizeId').value = prizeId;
+  document.getElementById('redeemPrizeTitle').textContent = prize.name;
+  document.getElementById('redeemPrizeCost').textContent = `Cost: 🎟️ ${prize.cost} Tickets`;
+
+  const sel = document.getElementById('redeemPersonSelect');
+  sel.innerHTML = personOptions(localDeviceProfileId);
+
+  updateRedeemModalEligible();
+  openModal('redeemModal');
+}
+
+function updateRedeemModalEligible() {
+  const prizeId = document.getElementById('redeemPrizeId').value;
+  const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
+  if (!prize) return;
+
+  const personId = document.getElementById('redeemPersonSelect').value;
+  const balance = getPersonTicketBalance(personId);
+  const statusNotice = document.getElementById('redeemStatusNotice');
+  const btn = document.getElementById('confirmRedeemBtn');
+
+  if (balance >= prize.cost) {
+    statusNotice.innerHTML = `<span class="text-emerald-600">Wallet: 🎟️ ${balance} tickets (Eligible!)</span>`;
+    btn.disabled = false;
+    btn.className = 'w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2.5 font-bold text-sm';
+  } else {
+    statusNotice.innerHTML = `<span class="text-red-500">Wallet: 🎟️ ${balance} tickets (Need ${prize.cost - balance} more)</span>`;
+    btn.disabled = true;
+    btn.className = 'w-full bg-gray-300 text-gray-500 rounded-xl py-2.5 font-bold text-sm cursor-not-allowed';
+  }
+}
+
+function confirmPrizeRedemption() {
+  const prizeId = document.getElementById('redeemPrizeId').value;
+  const personId = document.getElementById('redeemPersonSelect').value;
+  const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
+  const person = getPerson(personId);
+
+  if (!prize || !person) return;
+  if (getPersonTicketBalance(personId) < prize.cost) {
+    toast('Not enough tickets!', 'fa-triangle-exclamation');
+    return;
+  }
+
+  state.bankedRewards = state.bankedRewards || [];
+  state.bankedRewards.push({
+    id: uid('rdm'),
+    personId: personId,
+    choreTitle: `Redeemed: ${prize.name}`,
+    ticketCost: prize.cost,
+    isPrizeRedemption: true,
+    date: todayStr(),
+    redeemed: true,
+    redeemedAt: new Date().toISOString()
+  });
+
+  closeModal('redeemModal');
+  saveState();
+  toast(`🎉 ${person.name} redeemed ${prize.name}!`, 'fa-gift');
+}
+
 /* =========================== CHORE LOG TAB =========================== */
 function renderLog() {
   const filterSel = document.getElementById('logPersonFilter');
-  if (filterSel.options.length <= 1) filterSel.innerHTML = '<option value="all">Everyone</option>' + personOptions(null);
-  const filter = filterSel.value;
-
-  // Build combined list: all single chores (any status) + only the recurring/marketplace
-  // occurrences that were actually completed — otherwise a daily chore floods the log with
-  // one entry per day whether or not it was done.
-  const items = [];
-  state.chores.forEach(c => items.push({ kind:'single', id:c.id, dateStr:c.date, title:c.title, personId:c.personId, time:c.time, completed:c.completed, subtasks:c.subtasks||[], reward:c.reward }));
-  const start = new Date(); start.setDate(start.getDate()-45);
-  const end = new Date(); end.setDate(end.getDate()+45);
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
-    const ds = formatLocalDate(d);
-    getRecurringForDate(ds).forEach(o => { if (o.completed) items.push(o); });
+  if (filterSel && filterSel.options.length <= 1) {
+    filterSel.innerHTML = '<option value="all">Everyone</option>' + personOptions(null);
   }
-  const marketStart = formatLocalDate(start), marketEnd = formatLocalDate(end);
-  completedChoresInRange(marketStart, marketEnd).forEach(c => { if (c.kind === 'market') items.push(c); });
+  const personFilter = filterSel ? filterSel.value : 'all';
+  const statusFilter = document.getElementById('logStatusFilter') ? document.getElementById('logStatusFilter').value : 'all';
+  const rangeFilter = document.getElementById('logRangeFilter') ? document.getElementById('logRangeFilter').value : 'next7';
 
-  let filtered = filter === 'all' ? items : items.filter(i => i.personId === filter);
-  filtered.sort((a,b) => b.dateStr.localeCompare(a.dateStr));
+  const items = [];
+  const today = todayStr();
+
+  // 1. Single Chores
+  (state.chores || []).filter(c => !c.isTask).forEach(c => {
+    items.push({
+      kind: 'single',
+      id: c.id,
+      dateStr: c.date || today,
+      title: c.title,
+      personId: c.personId,
+      time: c.time,
+      completed: !!c.completed,
+      subtasks: c.subtasks || [],
+      reward: c.reward
+    });
+  });
+  
+  // 2. Recurring Chores across 45-day window
+  for (let i = -45; i <= 45; i++) {
+    const curDate = new Date();
+    curDate.setDate(curDate.getDate() + i);
+    const ds = formatLocalDate(curDate);
+    getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => {
+      items.push(o);
+    });
+  }
+
+  // 3. Market Chores
+  activeMarketInstances().forEach(x => {
+    if (x.claim) {
+      items.push({
+        kind: 'market',
+        id: x.market.id + '::' + x.scopeKey,
+        marketId: x.market.id,
+        scopeKey: x.scopeKey,
+        dateStr: x.claim.dueDate || today,
+        title: x.market.title,
+        personId: x.claim.personId,
+        time: null,
+        subtasks: x.market.subtasks || [],
+        reward: x.market.reward,
+        isTask: false,
+        completed: !!x.claim.completed,
+        subtaskState: x.claim.subtaskState || {}
+      });
+    }
+  });
+
+  let filtered = items;
+
+  if (personFilter !== 'all') {
+    filtered = filtered.filter(i => i.personId === personFilter);
+  }
+
+  if (statusFilter === 'completed') {
+    filtered = filtered.filter(i => i.completed);
+  } else if (statusFilter === 'pending') {
+    filtered = filtered.filter(i => !i.completed);
+  }
+
+  if (rangeFilter === 'past7') {
+    const p7 = new Date(); p7.setDate(p7.getDate() - 7);
+    const p7Str = formatLocalDate(p7);
+    filtered = filtered.filter(i => (i.dateStr || today) >= p7Str && (i.dateStr || today) <= today);
+  } else if (rangeFilter === 'next7') {
+    const n7 = new Date(); n7.setDate(n7.getDate() + 7);
+    const n7Str = formatLocalDate(n7);
+    filtered = filtered.filter(i => (i.dateStr || today) >= today && (i.dateStr || today) <= n7Str);
+  } else if (rangeFilter === 'thisMonth') {
+    const mStr = today.slice(0, 7);
+    filtered = filtered.filter(i => (i.dateStr || today).startsWith(mStr));
+  }
+
+  filtered.sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return (a.dateStr || '').localeCompare(b.dateStr || '');
+  });
 
   const list = document.getElementById('logList');
-  list.innerHTML = filtered.length ? filtered.slice(0,150).map(c => choreRowHtml(c)).join('') : '<div class="text-xs text-gray-400 py-4 text-center">No chores yet.</div>';
+  if (list) {
+    list.innerHTML = filtered.length
+      ? filtered.slice(0, 150).map(c => choreRowHtml(c)).join('')
+      : '<div class="text-xs text-gray-400 py-6 text-center"><i class="fa-solid fa-list-check text-2xl mb-2 opacity-40 block"></i>No matching chores found.</div>';
+  }
 }
 
-/* =========================== STATS TAB =========================== */
+/* =========================== STATS TAB RENDERING =========================== */
 function periodRange(period) {
   const now = new Date();
   let start, end = new Date(now);
@@ -1784,69 +2818,140 @@ function periodRange(period) {
 
 function completedChoresInRange(start, end) {
   const results = [];
-  state.chores.forEach(c => { if (c.completed && c.date >= start && c.date <= end) results.push({ ...c, dateStr: c.date }); });
-  for (let d = parseLocalDate(start); d <= parseLocalDate(end); d.setDate(d.getDate()+1)) {
-    const ds = formatLocalDate(d);
-    getRecurringForDate(ds).forEach(o => { if (o.completed) results.push(o); });
-  }
-  allMarketClaimEntries().forEach(x => {
-    if (x.claim.completed && x.dueDate && x.dueDate >= start && x.dueDate <= end) {
-      results.push({ kind:'market', dateStr:x.dueDate, title:x.market.title, personId:x.claim.personId, completed:true, subtasks:[] });
+  (state.chores||[]).filter(c => !c.isTask).forEach(c => {
+    if (c.completed) {
+      const compDate = (c.completedAt ? c.completedAt.slice(0,10) : c.date);
+      if (compDate >= start && compDate <= end) {
+        results.push({ ...c, dateStr: compDate });
+      }
     }
   });
-  state.marketCompletions.forEach(m => {
-    if (m.dueDate >= start && m.dueDate <= end) {
-      results.push({ kind:'market', dateStr:m.dueDate, title:m.title, personId:m.personId, completed:true, subtasks:[] });
+
+  for (let d = parseLocalDate(start); d <= parseLocalDate(end); d.setDate(d.getDate()+1)) {
+    const ds = formatLocalDate(d);
+    getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => { if (o.completed) results.push(o); });
+  }
+
+  allMarketClaimEntries().forEach(x => {
+    if (x.claim && x.claim.completed) {
+      const compDate = (x.claim.completedAt ? x.claim.completedAt.slice(0,10) : x.dueDate);
+      if (compDate && compDate >= start && compDate <= end) {
+        results.push({ kind:'market', dateStr:compDate, title:x.market.title, personId:x.claim.personId, completed:true, subtasks:[] });
+      }
+    }
+  });
+
+  (state.marketCompletions||[]).forEach(m => {
+    const compDate = (m.completedAt ? m.completedAt.slice(0,10) : m.dueDate);
+    if (compDate >= start && compDate <= end) {
+      results.push({ kind:'market', dateStr:compDate, title:m.title, personId:m.personId, completed:true, subtasks:[] });
     }
   });
   return results;
 }
 
 function renderStats() {
-  const period = document.getElementById('statsPeriod').value;
+  const pSel = document.getElementById('statsPeriod');
+  const period = pSel ? pSel.value : 'month';
   const { start, end } = periodRange(period);
   const completed = completedChoresInRange(start, end);
 
-  const counts = {};
-  state.people.forEach(p => counts[p.id] = 0);
-  completed.forEach(c => { if (counts[c.personId] !== undefined) counts[c.personId]++; });
+  // 1. Render Ticket Wallets
+  const tktCards = document.getElementById('statsTicketCards');
+  if (tktCards) {
+    tktCards.innerHTML = (state.people || []).map(p => {
+      const balance = getPersonTicketBalance(p.id);
+      return `<div class="rounded-xl px-2.5 py-2 flex items-center justify-between bg-white border border-amber-100 shadow-xs">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span class="person-dot" style="background:${p.color||'#8b5cf6'}"></span>
+          <span class="text-xs font-bold truncate" style="color:${p.color||'#8b5cf6'}">${escapeHtml(p.name)}</span>
+        </div>
+        <div class="text-xs font-mono font-extrabold text-amber-600 flex items-center gap-1">
+          <span>🎟️</span><span>${balance}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
 
-  const ctx = document.getElementById('statsChart').getContext('2d');
-  if (window._statsChart) window._statsChart.destroy();
-  window._statsChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: state.people.map(p => p.name),
-      datasets: [{ data: state.people.map(p => counts[p.id]), backgroundColor: state.people.map(p => p.color), borderRadius: 6 }]
-    },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{stepSize:1} } } }
-  });
-
-  document.getElementById('statsPersonCards').innerHTML = state.people.map(p => {
-    const banked = state.bankedRewards.filter(b => b.personId === p.id && !b.redeemed);
-    const bankedMoney = banked.filter(b=>b.reward.type==='money').reduce((s,b)=>s+Number(b.reward.amount||0),0);
-    return `<div onclick="openStatsPersonDetail('${p.id}')" class="bg-white rounded-2xl shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50">
-      <div class="flex items-center gap-2.5">
-        <span class="person-dot" style="background:${p.color};width:12px;height:12px"></span>
-        <div>
-          <div class="font-bold text-sm">${escapeHtml(p.name)}</div>
-          <div class="text-[11px] text-gray-500">${counts[p.id]||0} chores completed</div>
+  // 2. Carnival Prize Booth List (Always available & Editable)
+  const boothList = document.getElementById('prizeBoothList');
+  if (boothList) {
+    const prizes = state.carnivalPrizes || [];
+    boothList.innerHTML = prizes.length ? prizes.map(prz => `
+      <div class="flex items-center justify-between bg-white rounded-xl p-2.5 border border-purple-100 shadow-xs">
+        <div class="min-w-0 flex-1">
+          <div class="text-xs font-bold text-gray-800 truncate">${escapeHtml(prz.name)}</div>
+          <div class="text-[10px] font-bold text-amber-600 flex items-center gap-1 mt-0.5">
+            <span>🎟️ ${prz.cost} Tickets</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button onclick="promptRedeemPrize('${prz.id}')" class="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2.5 py-1 flex items-center gap-1">
+            <i class="fa-solid fa-gift"></i> Redeem
+          </button>
+          <button onclick="openPrizeModal('${prz.id}')" class="admin-only w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-purple-600">
+            <i class="fa-solid fa-pen text-[10px]"></i>
+          </button>
         </div>
       </div>
-      <div class="text-right flex items-center gap-2">
-        <div class="text-sm font-mono font-bold text-purple-600">${bankedMoney>0?'$'+bankedMoney.toFixed(2):(banked.length?banked.length+' banked':'')}</div>
-        <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
-      </div>
-    </div>`;
-  }).join('');
+    `).join('') : '<div class="text-xs text-gray-400 py-2 text-center">No prizes in the booth yet. Add one!</div>';
+  }
+
+  // 3. Render Chart
+  const counts = {};
+  (state.people||[]).forEach(p => counts[p.id] = 0);
+  completed.forEach(c => { if (counts[c.personId] !== undefined) counts[c.personId]++; });
+
+  const canvas = document.getElementById('statsChart');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    if (window._statsChart) window._statsChart.destroy();
+    window._statsChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: (state.people||[]).map(p => p.name),
+        datasets: [{ data: (state.people||[]).map(p => counts[p.id]), backgroundColor: (state.people||[]).map(p => p.color||'#8b5cf6'), borderRadius: 6 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{stepSize:1} } } }
+    });
+  }
+
+  // 4. Person Activity Cards
+  const pCards = document.getElementById('statsPersonCards');
+  if (pCards) {
+    pCards.innerHTML = (state.people||[]).map(p => {
+      const banked = (state.bankedRewards||[]).filter(b => b.personId === p.id && !b.redeemed && !b.isPrizeRedemption);
+      const bankedMoney = banked.filter(b=>b.reward&&b.reward.type==='money').reduce((s,b)=>s+Number(b.reward.amount||0),0);
+      const tBalance = getPersonTicketBalance(p.id);
+
+      return `<div onclick="openStatsPersonDetail('${p.id}')" class="bg-white rounded-2xl shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50">
+        <div class="flex items-center gap-2.5">
+          <span class="person-dot" style="background:${p.color||'#8b5cf6'};width:12px;height:12px"></span>
+          <div>
+            <div class="font-bold text-sm">${escapeHtml(p.name)}</div>
+            <div class="text-[11px] text-gray-500">${counts[p.id]||0} chores completed</div>
+          </div>
+        </div>
+        <div class="text-right flex items-center gap-2">
+          <div class="text-xs font-mono font-bold text-purple-600">
+            ${bankedMoney>0?'$'+bankedMoney.toFixed(2):''}
+            ${tBalance>0?`<span class="text-amber-600 ml-1">🎟️ ${tBalance}</span>`:''}
+          </div>
+          <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+        </div>
+      </div>`;
+    }).join('');
+  }
 
   renderBankList();
+  updateRoleUI();
 }
 
 function openStatsPersonDetail(personId) {
   const p = getPerson(personId);
   if (!p) return;
-  const period = document.getElementById('statsPeriod').value;
+  const pSel = document.getElementById('statsPeriod');
+  const period = pSel ? pSel.value : 'month';
   const { start, end } = periodRange(period);
   const items = completedChoresInRange(start, end).filter(c => c.personId === personId)
     .sort((a,b) => b.dateStr.localeCompare(a.dateStr));
@@ -1865,21 +2970,30 @@ function openStatsPersonDetail(personId) {
 
 function renderBankList() {
   const list = document.getElementById('bankList');
-  const unredeemed = state.bankedRewards.filter(b => !b.redeemed);
-  if (!unredeemed.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-2">Nothing banked yet.</div>'; return; }
-  list.innerHTML = unredeemed.map(b => `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
-    <div class="min-w-0 flex-1">
-      <div class="text-xs font-semibold truncate">${escapeHtml(b.choreTitle)}</div>
-      <div class="flex items-center gap-1.5 mt-0.5">${personChip(b.personId)}<span class="text-[10px] text-gray-400">${b.date}</span></div>
-    </div>
-    <div class="flex items-center gap-2 flex-shrink-0">
-      <span class="text-xs font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
-      <button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-1">Redeem</button>
-    </div>
-  </div>`).join('');
+  if (!list) return;
+  const entries = (state.bankedRewards||[]).filter(b => (!b.redeemed && !b.isPrizeRedemption) || b.isPrizeRedemption);
+  if (!entries.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-1">No banked cash or prize claims yet.</div>'; return; }
+  
+  list.innerHTML = entries.slice(-10).reverse().map(b => {
+    const isRedeem = b.isPrizeRedemption;
+    return `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+      <div class="min-w-0 flex-1">
+        <div class="text-xs font-semibold truncate ${isRedeem?'text-amber-800':'text-gray-800'}">${escapeHtml(b.choreTitle)}</div>
+        <div class="flex items-center gap-1.5 mt-0.5">${personChip(b.personId)}<span class="text-[10px] text-gray-400">${b.date}</span></div>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        ${isRedeem 
+          ? `<span class="text-xs font-bold text-amber-600">-🎟️ ${b.ticketCost}</span>`
+          : `<span class="text-xs font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
+             <button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-1">Redeem</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
 }
+
 function redeemBank(id) {
-  const b = state.bankedRewards.find(x => x.id === id);
+  const b = (state.bankedRewards||[]).find(x => x.id === id);
   if (!b) return;
   if (!confirm('Mark this reward as redeemed?')) return;
   b.redeemed = true; b.redeemedAt = new Date().toISOString();
@@ -1889,7 +3003,8 @@ function redeemBank(id) {
 /* =========================== HONEY-DO TAB =========================== */
 function renderHoneyDo() {
   const list = document.getElementById('honeyDoList');
-  const items = [...state.honeyDo].sort((a,b) => (a.done - b.done) || ({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority]));
+  if (!list) return;
+  const items = [...(state.honeyDo||[])].sort((a,b) => (a.done - b.done) || ({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority]));
   if (!items.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-4">Nothing on the list. Add a project!</div>'; return; }
   list.innerHTML = items.map(h => `<div class="flex items-start gap-2.5 bg-gray-50 rounded-xl px-3 py-2.5">
     <input type="checkbox" class="chk mt-0.5" ${h.done?'checked':''} onchange="toggleHoneyDone('${h.id}', this.checked)">
@@ -1903,8 +3018,8 @@ function renderHoneyDo() {
   </div>`).join('');
 }
 function toggleHoneyDone(id, checked) {
-  const h = state.honeyDo.find(x => x.id === id);
-  h.done = checked; h.doneAt = checked ? new Date().toISOString() : null;
+  const h = (state.honeyDo||[]).find(x => x.id === id);
+  if (h) { h.done = checked; h.doneAt = checked ? new Date().toISOString() : null; }
   saveState(); renderHoneyDo();
 }
 function openHoneyDoModal(id) {
@@ -1912,7 +3027,8 @@ function openHoneyDoModal(id) {
   document.getElementById('honeyPerson').innerHTML = '<option value="">Anyone / Whole family</option>' + personOptions(null);
   document.getElementById('honeyDeleteBtn').classList.toggle('hidden', !id);
   if (id) {
-    const h = state.honeyDo.find(x => x.id === id);
+    const h = (state.honeyDo||[]).find(x => x.id === id);
+    if (!h) return;
     document.getElementById('honeyTitle').value = h.title;
     document.getElementById('honeyPerson').value = h.personId || '';
     document.getElementById('honeyPriority').value = h.priority || 'normal';
@@ -1934,15 +3050,20 @@ function saveHoneyDo() {
     priority: document.getElementById('honeyPriority').value,
     notes: document.getElementById('honeyNotes').value.trim()
   };
-  if (id) Object.assign(state.honeyDo.find(x => x.id === id), data);
-  else state.honeyDo.push({ id: uid('hd'), done:false, createdAt: new Date().toISOString(), ...data });
+  state.honeyDo = state.honeyDo || [];
+  if (id) {
+    const item = state.honeyDo.find(x => x.id === id);
+    if (item) Object.assign(item, data);
+  } else {
+    state.honeyDo.push({ id: uid('hd'), done:false, createdAt: new Date().toISOString(), ...data });
+  }
   closeModal('honeyDoModal');
   saveState(); renderHoneyDo();
 }
 function deleteHoneyDo() {
   const id = document.getElementById('honeyId').value;
   if (!confirm('Delete this item?')) return;
-  state.honeyDo = state.honeyDo.filter(x => x.id !== id);
+  state.honeyDo = (state.honeyDo||[]).filter(x => x.id !== id);
   closeModal('honeyDoModal');
   saveState(); renderHoneyDo();
 }
@@ -1950,29 +3071,34 @@ function deleteHoneyDo() {
 /* =========================== YEARLY CHORE (HEADER) =========================== */
 function renderHeader() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('headerMonthLabel').textContent = monthNames[calMonth]+' '+calYear;
-  const [g1,g2] = MONTH_GRADIENTS[calMonth];
+  const monthLbl = document.getElementById('headerMonthLabel');
+  if (monthLbl) monthLbl.textContent = monthNames[calMonth]+' '+calYear;
+  const [g1,g2] = MONTH_GRADIENTS[calMonth] || ['#8B5CF6','#EC4899'];
   const banner = document.getElementById('yearlyChoreBanner');
   if (banner) banner.style.background = `linear-gradient(135deg, ${g1}, ${g2})`;
-  const yc = state.yearlyChores.find(y => y.month === calMonth+1);
-  document.getElementById('yearlyChoreTitle').textContent = yc ? yc.title : '--';
+  const yc = (state.yearlyChores||[]).find(y => y.month === calMonth+1);
+  const ycTitle = document.getElementById('yearlyChoreTitle');
+  if (ycTitle) ycTitle.textContent = yc ? yc.title : '--';
   const key = calYear+'-'+(calMonth+1);
-  const comp = state.yearlyCompletions[key] || {};
+  const comp = (state.yearlyCompletions && state.yearlyCompletions[key]) || {};
   const total = yc ? (yc.subtasks||[]).length : 0;
   const done = yc ? (yc.subtasks||[]).filter(s => comp[s.id]).length : 0;
-  document.getElementById('yearlyChoreProgress').textContent = total ? `${done}/${total}` : '';
+  const ycProg = document.getElementById('yearlyChoreProgress');
+  if (ycProg) ycProg.textContent = total ? `${done}/${total}` : '';
 }
 
 function openYearlyChoreModal() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const editor = document.getElementById('yearlyChoreEditor');
+  if (!editor) return;
+  state.yearlyChores = state.yearlyChores || [];
   editor.innerHTML = monthNames.map((m,i) => {
     const yc = state.yearlyChores.find(y => y.month === i+1) || { id: uid('yc'), month: i+1, title: m+' Family Chore', subtasks: [] };
     if (!state.yearlyChores.find(y => y.month === i+1)) state.yearlyChores.push(yc);
     const isCurrent = i === calMonth;
     const key = calYear+'-'+(i+1);
-    const comp = state.yearlyCompletions[key] || {};
-    const [mg1,mg2] = MONTH_GRADIENTS[i];
+    const comp = (state.yearlyCompletions && state.yearlyCompletions[key]) || {};
+    const [mg1,mg2] = MONTH_GRADIENTS[i] || ['#8B5CF6','#EC4899'];
     return `<div class="rounded-xl border p-2.5" style="border-color:${mg1}55;${isCurrent?`background:linear-gradient(135deg,${mg1}14,${mg2}14)`:''}">
       <div class="flex items-center justify-between gap-2 mb-1.5">
         <div class="text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5" style="color:${mg1}"><span class="inline-block w-2.5 h-2.5 rounded-full" style="background:linear-gradient(135deg,${mg1},${mg2})"></span>${m}${isCurrent?' · Current':''}</div>
@@ -1995,75 +3121,141 @@ function openYearlyChoreModal() {
   }).join('');
   openModal('yearlyChoreModal');
 }
-function updateYearlyTitle(month, val) { const yc = state.yearlyChores.find(y=>y.month===month); yc.title = val; saveState(); renderHeader(); }
+function updateYearlyTitle(month, val) { const yc = (state.yearlyChores||[]).find(y=>y.month===month); if (yc) yc.title = val; saveState(); renderHeader(); }
 function addYearlySubtask(month) {
   const input = document.getElementById('ycNewSub-'+month);
-  const text = input.value.trim();
+  const text = input ? input.value.trim() : '';
   if (!text) return;
   const personId = document.getElementById('ycNewSubPerson-'+month).value || null;
-  const yc = state.yearlyChores.find(y => y.month === month);
-  yc.subtasks = yc.subtasks || [];
-  yc.subtasks.push({ id: uid('ycs'), text, personId });
+  const yc = (state.yearlyChores||[]).find(y => y.month === month);
+  if (yc) {
+    yc.subtasks = yc.subtasks || [];
+    yc.subtasks.push({ id: uid('ycs'), text, personId });
+  }
   saveState(); openYearlyChoreModal();
 }
 function removeYearlySubtask(month, subId) {
-  const yc = state.yearlyChores.find(y => y.month === month);
-  yc.subtasks = (yc.subtasks||[]).filter(s => s.id !== subId);
+  const yc = (state.yearlyChores||[]).find(y => y.month === month);
+  if (yc) yc.subtasks = (yc.subtasks||[]).filter(s => s.id !== subId);
   saveState(); openYearlyChoreModal();
 }
 function toggleYearlySubtask(month, subId, checked) {
   const key = calYear+'-'+month;
+  state.yearlyCompletions = state.yearlyCompletions || {};
   state.yearlyCompletions[key] = state.yearlyCompletions[key] || {};
   state.yearlyCompletions[key][subId] = checked;
   saveState(); renderHeader();
 }
 
-/* =========================== PROFILES / SETTINGS =========================== */
+/* =========================== PROFILES & ROLES =========================== */
 function renderProfiles() {
-  document.getElementById('peopleList').innerHTML = state.people.map(p => `<div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2.5 py-2">
-    <input type="color" value="${p.color}" onchange="updatePersonColor('${p.id}', this.value)" class="w-8 h-8 rounded-lg border-0 flex-shrink-0" style="background:${p.color}">
-    <input type="text" value="${escapeHtml(p.name)}" onchange="updatePersonName('${p.id}', this.value)" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm">
-    <button onclick="removePerson('${p.id}')" class="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
-  </div>`).join('');
+  const pList = document.getElementById('peopleList');
+  if (pList) {
+    pList.innerHTML = (state.people||[]).map(p => `
+      <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2.5 py-2">
+        <input type="color" value="${p.color||'#8b5cf6'}" onchange="updatePersonColor('${p.id}', this.value)" class="w-8 h-8 rounded-lg border-0 flex-shrink-0" style="background:${p.color||'#8b5cf6'}">
+        <input type="text" value="${escapeHtml(p.name)}" onchange="updatePersonName('${p.id}', this.value)" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm">
+        <select onchange="updatePersonRole('${p.id}', this.value)" class="text-xs font-bold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+          <option value="parent" ${p.role==='parent'?'selected':''}>Parent</option>
+          <option value="kid" ${p.role==='kid'?'selected':''}>Kid</option>
+        </select>
+        <button onclick="removePerson('${p.id}')" class="admin-only w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+      </div>
+    `).join('');
+  }
 
   const mySel = document.getElementById('myProfileSelect');
-  mySel.innerHTML = '<option value="">-- select --</option>' + personOptions(state.settings.myProfileId);
+  if (mySel) mySel.innerHTML = '<option value="">-- select active profile --</option>' + personOptions(localDeviceProfileId);
+
+  const roleLabel = document.getElementById('roleLabelBadge');
+  if (roleLabel) {
+    const admin = isCurrentAdmin();
+    roleLabel.textContent = admin ? 'Admin (Parent)' : 'Member (Kid - View Only)';
+    roleLabel.className = `text-xs font-bold px-2 py-0.5 rounded-full ${admin ? 'bg-purple-600 text-white' : 'bg-gray-300 text-gray-700'}`;
+  }
+
+  const vapidInput = document.getElementById('fcmVapidKeyInput');
+  if (vapidInput) vapidInput.value = (state.settings && state.settings.vapidKey) || '';
 
   const weekStartSel = document.getElementById('weekStartSelect');
-  if (weekStartSel) weekStartSel.value = state.settings.weekStart || 'sunday';
+  if (weekStartSel) weekStartSel.value = (state.settings && state.settings.weekStart) || 'sunday';
   const quotaInput = document.getElementById('weeklyQuotaInput');
-  if (quotaInput) quotaInput.value = state.settings.weeklyQuota != null ? state.settings.weeklyQuota : 2;
+  if (quotaInput) quotaInput.value = (state.settings && state.settings.weeklyQuota != null) ? state.settings.weeklyQuota : 2;
+  const mQuotaInput = document.getElementById('monthlyQuotaInput');
+  if (mQuotaInput) mQuotaInput.value = (state.settings && state.settings.monthlyQuota != null) ? state.settings.monthlyQuota : 8;
 
   const notifStatus = document.getElementById('notifPermStatus');
-  if ('Notification' in window) {
-    notifStatus.textContent = 'Browser permission: ' + Notification.permission;
-  } else {
-    notifStatus.textContent = 'Notifications not supported in this browser.';
+  if (notifStatus) {
+    if ('Notification' in window) {
+      notifStatus.textContent = 'Notification permission: ' + Notification.permission;
+    } else {
+      notifStatus.textContent = 'Notifications not supported in this browser.';
+    }
   }
+
+  const verDisplay = document.getElementById('appVersionDisplay');
+  if (verDisplay) verDisplay.textContent = APP_VERSION;
+  const verBadge = document.getElementById('appVersionBadge');
+  if (verBadge) verBadge.textContent = APP_VERSION;
+
+  updateRoleUI();
 }
+
 function addPersonRow() {
+  state.people = state.people || [];
   const usedColors = state.people.map(p => p.color);
   const nextColor = DEFAULT_COLORS.find(c => !usedColors.includes(c.hex)) || DEFAULT_COLORS[state.people.length % 5];
-  state.people.push({ id: uid('p'), name: 'New Person', color: nextColor.hex });
+  state.people.push({ id: uid('p'), name: 'New Person', color: nextColor.hex, role: 'kid' });
   saveState(); renderProfiles();
 }
-function updatePersonName(id, val) { getPerson(id).name = val; saveState(); renderProfiles(); }
-function updatePersonColor(id, val) { getPerson(id).color = val; saveState(); renderProfiles(); }
+function updatePersonName(id, val) { const p = getPerson(id); if (p) p.name = val; saveState(); renderProfiles(); }
+function updatePersonColor(id, val) { const p = getPerson(id); if (p) p.color = val; saveState(); renderProfiles(); }
+function updatePersonRole(id, val) { const p = getPerson(id); if (p) p.role = val; saveState(); renderProfiles(); }
 function removePerson(id) {
-  if (!confirm('Remove this person? Their assigned chores will stay but show as unassigned until reassigned.')) return;
-  state.people = state.people.filter(p => p.id !== id);
+  if (!confirm('Remove this person? Their assigned chores will stay but show as unassigned.')) return;
+  state.people = (state.people||[]).filter(p => p.id !== id);
   saveState(); renderProfiles();
 }
-function setMyProfile(id) { state.settings.myProfileId = id; persist(); toast('Saved — this phone is set up.', 'fa-check'); }
-function setWeekStart(val) { state.settings.weekStart = val; saveState(); toast('Calendar updated', 'fa-calendar-days'); }
-function setWeeklyQuota(val) { state.settings.weeklyQuota = Math.max(0, Number(val||0)); saveState(); }
 
-async function requestNotifPermission() {
+function setMyProfile(id) { 
+  localDeviceProfileId = id || null;
+  localStorage.setItem('chores_local_profile_id', localDeviceProfileId || '');
+  renderApp(); 
+  toast('Profile switched for this device', 'fa-check'); 
+  registerDeviceToken();
+}
+
+/* =========================== PUSH NOTIFICATIONS (FCM) =========================== */
+async function requestPushNotificationPermission() {
   if (!('Notification' in window)) { toast('Notifications not supported here', 'fa-triangle-exclamation'); return; }
   const perm = await Notification.requestPermission();
   renderProfiles();
-  if (perm === 'granted') toast('Notifications enabled on this phone', 'fa-bell');
-  else toast('Permission not granted', 'fa-triangle-exclamation');
+  if (perm === 'granted') {
+    toast('Notifications permitted! Registering FCM token...', 'fa-bell');
+    await registerDeviceToken();
+  } else {
+    toast('Permission denied', 'fa-triangle-exclamation');
+  }
+}
+
+async function registerDeviceToken() {
+  if (!fcmMessaging || !localDeviceProfileId) return;
+  try {
+    const swReg = await navigator.serviceWorker.ready;
+    const vapidKey = state.settings && state.settings.vapidKey;
+    const token = await fcmMessaging.getToken({
+      vapidKey: vapidKey || undefined,
+      serviceWorkerRegistration: swReg
+    });
+    if (token) {
+      state.deviceTokens = state.deviceTokens || {};
+      state.deviceTokens[localDeviceProfileId] = token;
+      saveState();
+      toast('Device push token registered!', 'fa-shield-halved');
+    }
+  } catch (err) {
+    console.error('FCM Token registration error:', err);
+  }
 }
 
 /* =========================== POKES =========================== */
@@ -2075,7 +3267,8 @@ function openPokeModal(presetTarget) {
 function sendPoke() {
   const toId = document.getElementById('pokeTarget').value;
   const message = document.getElementById('pokeMessage').value.trim() || 'Poke!';
-  const poke = { id: uid('poke'), fromPersonId: state.settings.myProfileId, toPersonId: toId, message, ts: Date.now(), read: false };
+  const poke = { id: uid('poke'), fromPersonId: localDeviceProfileId, toPersonId: toId, message, ts: Date.now(), read: false };
+  state.pokes = state.pokes || [];
   state.pokes.unshift(poke);
   if (state.pokes.length > 100) state.pokes.length = 100;
   saveState();
@@ -2085,7 +3278,8 @@ function sendPoke() {
 }
 function renderPokeHistory() {
   const box = document.getElementById('pokeHistory');
-  const recent = state.pokes.slice(0,8);
+  if (!box) return;
+  const recent = (state.pokes||[]).slice(0, 3);
   box.innerHTML = recent.length ? '<div class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Recent Pokes</div>' + recent.map(p => `<div class="text-xs text-gray-600 flex items-center gap-1.5">
     <i class="fa-solid fa-bell text-purple-400 text-[10px]"></i>
     <span>${personChip(p.fromPersonId)} → ${personChip(p.toPersonId)}</span>
@@ -2093,19 +3287,14 @@ function renderPokeHistory() {
   </div>`).join('') : '';
 }
 function maybeShowLocalNotification(poke) {
-  if (poke.toPersonId !== state.settings.myProfileId && state.settings.myProfileId) {
-    // Not for this device's profile — on a real device this only fires for whichever
-    // profile is targeted, checked again on sync pull below.
-  }
-  if ('Notification' in window && Notification.permission === 'granted' && poke.toPersonId === state.settings.myProfileId) {
+  if ('Notification' in window && Notification.permission === 'granted' && poke.toPersonId === localDeviceProfileId) {
     new Notification('Poke from '+((getPerson(poke.fromPersonId)||{}).name||'Family'), { body: poke.message, icon: 'icon-192.png' });
   }
 }
-// Called after a cloud sync pulls new data, to catch pokes meant for this device.
 let lastSeenPokeCount = 0;
 function checkForNewPokesTargetingMe() {
-  if (!state.settings.myProfileId) return;
-  const mine = state.pokes.filter(p => p.toPersonId === state.settings.myProfileId);
+  if (!localDeviceProfileId) return;
+  const mine = (state.pokes||[]).filter(p => p.toPersonId === localDeviceProfileId);
   if (mine.length > lastSeenPokeCount) {
     const newest = mine[0];
     if (newest && Date.now() - newest.ts < 60000) maybeShowLocalNotification(newest);
@@ -2113,7 +3302,19 @@ function checkForNewPokesTargetingMe() {
   lastSeenPokeCount = mine.length;
 }
 
-/* =========================== CLOUD SYNC (Firebase) =========================== */
+/* =========================== CLOUD SYNC =========================== */
+function parseConfigInput(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch(e) {
+    try {
+      return (new Function("return " + raw))();
+    } catch(err) {
+      return null;
+    }
+  }
+}
+
 function loadSyncConfigFromStorage() {
   try { const raw = localStorage.getItem('chores_sync_config'); return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
 }
@@ -2122,20 +3323,31 @@ function applySyncConfig(cfg) {
     if (typeof firebase === 'undefined') return false;
     firebaseApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(cfg.fbConfig);
     firestoreDb = firebase.firestore();
+    if (firebase.messaging && firebase.messaging.isSupported()) {
+      fcmMessaging = firebase.messaging();
+      fcmMessaging.onMessage((payload) => {
+        const title = payload.notification?.title || 'Family Chores';
+        const body = payload.notification?.body || '';
+        toast(title + ': ' + body, 'fa-bell');
+      });
+    }
     return true;
   } catch(e) { console.error('Sync config failed', e); return false; }
 }
 async function enableCloudSync() {
   const raw = document.getElementById('syncConfigInput').value.trim();
   if (!raw) { toast('Paste a Firebase config first', 'fa-triangle-exclamation'); return; }
-  let fbConfig;
-  try { fbConfig = JSON.parse(raw); } catch(e) { toast("That JSON didn't parse", 'fa-triangle-exclamation'); return; }
+  
+  const fbConfig = parseConfigInput(raw);
+  if (!fbConfig) { toast("That JSON didn't parse — check formatting", 'fa-triangle-exclamation'); return; }
+  
   const cfg = { fbConfig, docId: 'family-chores-shared' };
   localStorage.setItem('chores_sync_config', JSON.stringify(cfg));
   if (applySyncConfig(cfg)) {
     document.getElementById('syncStatusLine').textContent = 'Connected. Pulling latest data...';
     await pullFromCloud();
     listenForCloudChanges();
+    registerDeviceToken();
     toast('Cloud sync enabled', 'fa-cloud');
   } else {
     document.getElementById('syncStatusLine').textContent = 'Could not connect — check the config.';
@@ -2144,6 +3356,14 @@ async function enableCloudSync() {
 async function pushToCloud() {
   if (!firestoreDb) return;
   try {
+    const doc = await firestoreDb.collection('chores_sync').doc('family-chores-shared').get();
+    let mergedTokens = { ...(state.deviceTokens || {}) };
+    if (doc.exists && doc.data().data) {
+      const remote = JSON.parse(doc.data().data);
+      mergedTokens = { ...(remote.deviceTokens || {}), ...mergedTokens };
+    }
+    state.deviceTokens = mergedTokens;
+
     await firestoreDb.collection('chores_sync').doc('family-chores-shared').set({
       data: JSON.stringify(state), updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -2156,6 +3376,7 @@ async function pullFromCloud() {
     if (doc.exists && doc.data().data) {
       const remote = JSON.parse(doc.data().data);
       state = Object.assign(state, remote);
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
       persist();
       renderApp();
       checkForNewPokesTargetingMe();
@@ -2169,6 +3390,7 @@ function listenForCloudChanges() {
       if (doc.exists && doc.data().data) {
         const remote = JSON.parse(doc.data().data);
         state = Object.assign(state, remote);
+        if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
         persist();
         renderApp();
         checkForNewPokesTargetingMe();
@@ -2179,8 +3401,12 @@ function manualSyncNow() { if (firestoreDb) { pullFromCloud(); toast('Synced', '
 function initSyncOnBoot() {
   const cfg = loadSyncConfigFromStorage();
   if (cfg && applySyncConfig(cfg)) {
-    document.getElementById('syncConfigInput').value = JSON.stringify(cfg.fbConfig);
-    pullFromCloud().then(listenForCloudChanges);
+    const syncInp = document.getElementById('syncConfigInput');
+    if (syncInp) syncInp.value = JSON.stringify(cfg.fbConfig, null, 2);
+    pullFromCloud().then(() => {
+      listenForCloudChanges();
+      registerDeviceToken();
+    });
   }
 }
 
@@ -2201,6 +3427,7 @@ function importDataJSON(e) {
       const imported = JSON.parse(evt.target.result);
       if (!confirm('This will replace all current data with the imported file. Continue?')) return;
       state = Object.assign(state, imported);
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
       saveState(); renderProfiles();
       toast('Data imported', 'fa-check');
     } catch(err) { toast('Could not read that file', 'fa-triangle-exclamation'); }
@@ -2217,7 +3444,11 @@ function toggleDarkMode() {
 /* =========================== MASTER RENDER =========================== */
 function renderApp() {
   renderHeader();
-  renderCalendar();
+  if (calViewMode === 'month') {
+    renderCalendar();
+  } else {
+    renderWeekView();
+  }
   renderSelectedDay();
   renderProfiles();
   renderMarketplaceBannerOnly();
@@ -2229,6 +3460,7 @@ function renderApp() {
   if (activeTab === 'log') renderLog();
   if (activeTab === 'stats') renderStats();
   if (activeTab === 'honeydo') renderHoneyDo();
+  updateRoleUI();
 }
 function renderMarketplaceBannerOnly() {
   const banner = document.getElementById('marketBannerCount');
@@ -2240,8 +3472,10 @@ function renderMarketplaceBannerOnly() {
 /* =========================== BOOT =========================== */
 window.onload = async function() {
   await loadState();
+  setCalView(calViewMode);
   renderApp();
   initSyncOnBoot();
+  initCalendarSwipe();
   const lastTab = localStorage.getItem('chores_last_tab');
   if (lastTab) switchTab(lastTab);
   setInterval(checkForNewPokesTargetingMe, 15000);
