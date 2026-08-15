@@ -294,14 +294,14 @@
 
       <div>
         <div class="text-xs font-extrabold text-purple-600 uppercase tracking-wider mb-2 flex items-center gap-1">
-          <i class="fa-solid fa-rotate"></i> Weekly Pool Chores
+          <i class="fa-solid fa-rotate"></i> Weekly Chore Market
         </div>
         <div id="marketOpenWeeklyList" class="space-y-2"></div>
       </div>
 
       <div>
         <div class="text-xs font-extrabold text-blue-600 uppercase tracking-wider mb-2 flex items-center gap-1">
-          <i class="fa-solid fa-calendar-days"></i> Monthly Pool Chores
+          <i class="fa-solid fa-calendar-days"></i> Monthly Chore Market
         </div>
         <div id="marketOpenMonthlyList" class="space-y-2"></div>
       </div>
@@ -655,7 +655,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.10.0</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.1</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -717,7 +717,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.10.0</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.1</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -806,8 +806,8 @@
 
       <div class="flex gap-1.5">
         <button type="button" onclick="setMarketRepeats('once')" id="marketRepeatsOnceBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">One-time</button>
-        <button type="button" onclick="setMarketRepeats('weekly')" id="marketRepeatsWeeklyBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">Weekly Pool</button>
-        <button type="button" onclick="setMarketRepeats('monthly')" id="marketRepeatsMonthlyBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">Monthly Pool</button>
+        <button type="button" onclick="setMarketRepeats('weekly')" id="marketRepeatsWeeklyBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">Weekly Chore Market</button>
+        <button type="button" onclick="setMarketRepeats('monthly')" id="marketRepeatsMonthlyBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">Monthly Chore Market</button>
       </div>
       <div class="text-[10px] text-gray-400" id="marketRepeatsHelp">One-time: posted once, gone once claimed & done.</div>
 
@@ -1005,7 +1005,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.10.0";
+const APP_VERSION = "v6.29.09.1";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -3087,7 +3087,7 @@ function renderMarketplace() {
   const open = instances.filter(x => !x.claim);
   const claimed = instances.filter(x => x.claim);
 
-  // Split open listings into Once, Weekly Pool, Monthly Pool
+  // Split open listings into Once, Weekly Chore Market, Monthly Chore Market
   const onceList = open.filter(x => x.market.repeats === 'once');
   const weeklyList = open.filter(x => x.market.repeats === 'weekly');
   const monthlyList = open.filter(x => x.market.repeats === 'monthly');
@@ -3868,9 +3868,10 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
       reg.update().catch(() => {});
-    }).catch(err => console.error('SW registration failed', err));
+    }).catch(err => console.error('SW registration registration failed', err));
   });
 }
 </script>
 </body>
 </html>
+```[cite: 1]
