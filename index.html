@@ -149,7 +149,7 @@
       <!-- Filter controls for Chore Log -->
       <div class="grid grid-cols-2 gap-2 mb-2">
         <select id="logStatusFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
-          <option value="all">All</option>
+          <option value="all">All Statuses</option>
           <option value="completed">Completed</option>
           <option value="pending">Pending</option>
         </select>
@@ -333,7 +333,7 @@
 
         <div id="recurRotationBox" class="hidden">
           <label class="text-xs font-bold text-gray-500">Rotating shifts</label>
-        <div id="rotationStageBuilder" class="space-y-1.5 mt-1"></div>
+          <div id="rotationStageBuilder" class="space-y-1.5 mt-1"></div>
           <button type="button" onclick="addRotationStageRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add shift</button>
           <div class="mt-2">
             <label class="text-xs font-bold text-gray-500">Weeks per shift</label>
@@ -644,7 +644,7 @@
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[80vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-3">
       <div id="statsPersonModalTitle" class="text-lg font-bold"></div>
-    <button onclick="closeModal('statsPersonModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      <button onclick="closeModal('statsPersonModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="statsPersonModalList" class="space-y-2"></div>
   </div>
@@ -667,6 +667,7 @@
 </div>
 
 <div id="toastBox" class="fixed top-3 left-1/2 -translate-x-1/2 z-[60] space-y-2 w-full max-w-xs px-3"></div>
+
 <script>
 /* =========================== STATE & APP VERSION =========================== */
 const APP_VERSION = "v6.1.2";
@@ -1729,8 +1730,8 @@ function updateMarketScheduleUI() {
 }
 function setMarketRewardType(t) {
   marketRewardType = t;
-  const amtEl = document.getElementById('marketRewardAmount');
-  const descEl = document.getElementById('marketRewardDesc');
+  const amtEl = document.getElementById('rewardAmount');
+  const descEl = document.getElementById('rewardDesc');
   if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
   if (descEl) descEl.classList.toggle('hidden', t !== 'other');
   ['marketRewardTypeMoneyBtn','marketRewardTypeOtherBtn'].forEach(bid => {
@@ -1819,7 +1820,7 @@ function saveMarketChore() {
   const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
   const reward = rewardEnabled ? {
     enabled: true, type: marketRewardType,
-    amount: marketRewardType === 'money' ? Number(document.getElementById('marketRewardAmount').value || 0) : null,
+    amount: marketRewardType === 'money' ? Number(document.getElementById('rewardAmount').value || 0) : null,
     description: marketRewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null
   } : { enabled:false };
   const notes = document.getElementById('marketNotes').value.trim();
@@ -2683,4 +2684,27 @@ function renderMarketplaceBannerOnly() {
 
 /* =========================== BOOT =========================== */
 window.onload = async function() {
-  await 
+  await loadState();
+  renderApp();
+  initSyncOnBoot();
+  const lastTab = localStorage.getItem('chores_last_tab');
+  if (lastTab) switchTab(lastTab);
+  setInterval(checkForNewPokesTargetingMe, 15000);
+};
+
+if ('serviceWorker' in navigator) {
+  let refreshingOnce = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshingOnce) return;
+    refreshingOnce = true;
+    window.location.reload();
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      reg.update().catch(() => {});
+    }).catch(err => console.error('SW registration failed', err));
+  });
+}
+</script>
+</body>
+</html>
