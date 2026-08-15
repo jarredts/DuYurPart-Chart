@@ -657,7 +657,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.3</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.4</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -719,7 +719,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.2</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.3</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -1007,7 +1007,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.29.09.2";
+const APP_VERSION = "v6.29.09.3";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -3300,6 +3300,7 @@ function confirmPrizeRedemption() {
     choreTitle: `Redeemed: ${prize.name}`,
     ticketCost: prize.cost,
     isPrizeRedemption: true,
+    claimedPrize: false,
     date: todayStr(),
     redeemed: true,
     redeemedAt: new Date().toISOString()
@@ -3308,6 +3309,16 @@ function confirmPrizeRedemption() {
   closeModal('redeemModal');
   saveState();
   toast(`🎉 ${person.name} redeemed ${prize.name}!`, 'fa-gift');
+}
+
+function claimPrizeRedemption(bankId) {
+  const b = (state.bankedRewards||[]).find(x => x.id === bankId);
+  if (!b) return;
+  if (!confirm('Mark this prize as claimed / handed out? It will be archived from the active list.')) return;
+  b.claimedPrize = true;
+  saveState();
+  renderStats();
+  toast('Prize marked as claimed!', 'fa-check');
 }
 
 /* =========================== LOG & STATS =========================== */
@@ -3513,7 +3524,7 @@ function openStatsPersonDetail(personId) {
 function renderBankList() {
   const list = document.getElementById('bankList');
   if (!list) return;
-  const entries = (state.bankedRewards||[]).filter(b => (!b.redeemed && !b.isPrizeRedemption) || b.isPrizeRedemption);
+  const entries = (state.bankedRewards||[]).filter(b => (!b.redeemed && !b.isPrizeRedemption) || (b.isPrizeRedemption && !b.claimedPrize));
   if (!entries.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-1">No banked cash or prize claims yet.</div>'; return; }
   
   list.innerHTML = entries.slice(-15).reverse().map(b => {
@@ -3525,9 +3536,10 @@ function renderBankList() {
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         ${isRedeem 
-          ? `<span class="text-xs font-bold text-amber-600">-🎟️ ${b.ticketCost}</span>`
+          ? `<span class="text-xs font-bold text-amber-600">-🎟️ ${b.ticketCost}</span>
+             <button onclick="claimPrizeRedemption('${b.id}')" class="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2 py-1">Mark Claimed</button>`
           : `<span class="text-xs font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
-             ${b.reward?.type === 'money' ? `<button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-1">Redeem</button>` : ''}`
+             ${b.reward?.type === 'money' ? `<button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-1">Mark Paid</button>` : ''}`
         }
         <button onclick="deleteBankEntry('${b.id}')" class="admin-only text-gray-400 hover:text-red-500 text-xs px-1"><i class="fa-solid fa-trash"></i></button>
       </div>
@@ -3538,7 +3550,7 @@ function renderBankList() {
 function redeemBank(id) {
   const b = (state.bankedRewards||[]).find(x => x.id === id);
   if (!b) return;
-  if (!confirm('Mark this cash payout as redeemed?')) return;
+  if (!confirm('Mark this cash payout as deposited/paid? This will clear it from the cash bank.')) return;
   b.redeemed = true; b.redeemedAt = new Date().toISOString();
   saveState(); renderStats();
 }
