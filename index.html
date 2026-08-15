@@ -523,7 +523,7 @@
         <select id="chorePerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
       </div>
 
-      <div class="flex gap-2 admin-only" id="repeatModeToggleWrapper">
+      <div class="flex gap-2" id="repeatModeToggleWrapper">
         <button type="button" onclick="setChoreRepeatMode('single')" id="repeatModeSingleBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Single</button>
         <button type="button" onclick="setChoreRepeatMode('recurring')" id="repeatModeRecurBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Recurring</button>
       </div>
@@ -540,11 +540,11 @@
       </div>
 
       <div id="recurBox" class="hidden space-y-2 bg-gray-50 rounded-lg p-2.5">
-        <label class="text-xs font-bold text-gray-500">Repeats</label>
+        <label class="text-xs font-bold text-gray-500" id="recurFreqLabel">Repeats</label>
         <select id="recurFreq" onchange="updateRecurUI()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
-          <option value="weekly_daily_progress">Weekly (Daily Category Progress e.g. Laundry)</option>
+          <option value="weekly_daily_progress" id="recurWeeklyProgressOpt">Weekly (Daily Category Progress e.g. Laundry)</option>
           <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>
           <option value="rotation" id="recurRotationOption">Rotating (alternating chores)</option>
@@ -657,7 +657,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.1</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.3</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -719,7 +719,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.1</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.2</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -1007,7 +1007,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.29.09.1";
+const APP_VERSION = "v6.29.09.2";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -1548,13 +1548,15 @@ function getChoresForDate(dateStr) {
   
   if (calendarFilter.size) {
     items = items.filter(c => {
-      if (c.isTask) return calendarFilter.has(c.personId);
+      if (c.isTask) {
+        if (!calendarFilter.has(c.personId)) return false;
+      }
       return calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__'));
     });
   } else {
     items = items.filter(c => {
       if (c.isTask) {
-        return c.personId === localDeviceProfileId || isCurrentAdmin();
+        return c.personId === localDeviceProfileId;
       }
       return true;
     });
@@ -2629,17 +2631,40 @@ function setRewardType(t) {
 }
 
 function openPersonalTaskModal(presetDate) {
-  openChoreModal(null, presetDate);
-  setItemType('task');
-  setChoreRepeatMode('single');
-  document.getElementById('chorePerson').value = localDeviceProfileId || (state.people[0] ? state.people[0].id : '');
-  document.getElementById('repeatModeToggleWrapper').classList.add('hidden');
-  document.getElementById('rewardSectionWrapper').classList.add('hidden');
-  document.getElementById('choreModalTitle').textContent = 'Add Personal Task';
+  openChoreModal(null, presetDate, false, null, true);
 }
 
-function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
-  document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Item' : 'Add Item';
+function openChoreModal(choreId, presetDate, isKidLog, recurringId, isPersonalTaskMode) {
+  const isAdmin = isCurrentAdmin();
+  const modalTitle = document.getElementById('choreModalTitle');
+  const titleLabel = document.getElementById('itemTitleLabel');
+  const personLabel = document.getElementById('itemPersonLabel');
+  const repeatToggle = document.getElementById('repeatModeToggleWrapper');
+  const rewardSec = document.getElementById('rewardSectionWrapper');
+  const recurFreqLabel = document.getElementById('recurFreqLabel');
+  const recurWeeklyProgressOpt = document.getElementById('recurWeeklyProgressOpt');
+  const recurRotationOption = document.getElementById('recurRotationOption');
+
+  if (isPersonalTaskMode || !isAdmin) {
+    modalTitle.textContent = (choreId || recurringId) ? 'Edit Personal Task' : 'Add Personal Task';
+    titleLabel.textContent = 'Task Name';
+    personLabel.textContent = 'Task Owner';
+    repeatToggle.classList.remove('hidden');
+    rewardSec.classList.add('hidden');
+    if (recurFreqLabel) recurFreqLabel.textContent = 'Task Repeats';
+    if (recurWeeklyProgressOpt) recurWeeklyProgressOpt.style.display = 'none';
+    if (recurRotationOption) recurRotationOption.style.display = 'none';
+  } else {
+    modalTitle.textContent = (choreId || recurringId) ? 'Edit Item' : 'Add Item';
+    titleLabel.textContent = 'Chore Name';
+    personLabel.textContent = 'Assign To';
+    repeatToggle.classList.remove('hidden');
+    rewardSec.classList.remove('hidden');
+    if (recurFreqLabel) recurFreqLabel.textContent = 'Repeats';
+    if (recurWeeklyProgressOpt) recurWeeklyProgressOpt.style.display = '';
+    if (recurRotationOption) recurRotationOption.style.display = '';
+  }
+
   document.getElementById('choreId').value = choreId || '';
   document.getElementById('subtaskBuilder').innerHTML = ''; subtaskBuilderCount = 0;
   document.getElementById('rotationStageBuilder').innerHTML = ''; rotationStageCount = 0;
@@ -2653,10 +2678,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   document.getElementById('rewardEnabled').checked = false;
   setRewardType('tickets');
   updateRewardUI();
-  setItemType('chore');
-
-  document.getElementById('repeatModeToggleWrapper').classList.remove('hidden');
-  document.getElementById('rewardSectionWrapper').classList.remove('hidden');
+  setItemType(isPersonalTaskMode ? 'task' : 'chore');
 
   if (recurringId) {
     const r = (state.recurring||[]).find(x => x.id === recurringId);
@@ -2679,7 +2701,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     document.getElementById('recurEnd').value = r.endDate || '';
     document.getElementById('recurTime').value = r.time || '';
     (r.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
-    if (r.reward && r.reward.enabled) {
+    if (r.reward && r.reward.enabled && !r.isTask) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
       setRewardType(r.reward.type || 'tickets');
       document.getElementById('rewardTickets').value = r.reward.tickets || 5;
@@ -2696,7 +2718,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     setChoreRepeatMode('single');
     document.getElementById('choreDate').value = c.date;
     (c.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
-    if (c.reward && c.reward.enabled) {
+    if (c.reward && c.reward.enabled && !c.isTask) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
       setRewardType(c.reward.type || 'tickets');
       document.getElementById('rewardTickets').value = c.reward.tickets || 5;
@@ -2710,13 +2732,16 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     document.getElementById('rewardTickets').value = '5';
     document.getElementById('rewardAmount').value = '0.50';
     setChoreRepeatMode('single');
+    if (isPersonalTaskMode) {
+      document.getElementById('chorePerson').value = localDeviceProfileId || (state.people[0] ? state.people[0].id : '');
+    }
   }
 
-  if (!isCurrentAdmin()) {
-    setItemType('task');
+  if (!isAdmin) {
     document.getElementById('chorePerson').value = localDeviceProfileId;
-    document.getElementById('repeatModeToggleWrapper').classList.add('hidden');
-    document.getElementById('rewardSectionWrapper').classList.add('hidden');
+    document.getElementById('chorePerson').disabled = true;
+  } else {
+    document.getElementById('chorePerson').disabled = false;
   }
 
   openModal('choreModal');
@@ -2726,8 +2751,9 @@ function saveChore() {
   const idRaw = document.getElementById('choreId').value;
   const title = document.getElementById('choreTitle').value.trim();
   if (!title) { toast('Give it a name', 'fa-triangle-exclamation'); return; }
-  const personId = document.getElementById('chorePerson').value;
-  const isTask = !isCurrentAdmin() ? true : (currentItemType === 'task');
+  const personId = document.getElementById('chorePerson').value || localDeviceProfileId;
+  const isAdmin = isCurrentAdmin();
+  const isTask = !isAdmin ? true : (currentItemType === 'task');
   const subtasks = readSubtasksFromBuilder();
   const rewardEnabled = !isTask && document.getElementById('rewardEnabled').checked;
 
@@ -2743,7 +2769,7 @@ function saveChore() {
   state.recurring = state.recurring || [];
   state.chores = state.chores || [];
 
-  if (choreRepeatMode === 'recurring' && isCurrentAdmin()) {
+  if (choreRepeatMode === 'recurring') {
     const isEditingRec = idRaw.startsWith('REC:');
     const freq = document.getElementById('recurFreq').value;
     const ruleData = {
@@ -3298,7 +3324,7 @@ function renderLog() {
   const today = todayStr();
 
   (state.chores || []).filter(c => !c.deleted).forEach(c => {
-    if (c.isTask && !isCurrentAdmin() && c.personId !== localDeviceProfileId) return;
+    if (c.isTask && c.personId !== localDeviceProfileId && !isCurrentAdmin()) return;
     items.push({ kind: 'single', id: c.id, dateStr: c.date || today, title: c.title, personId: c.personId, time: c.time, completed: !!c.completed, subtasks: c.subtasks || [], reward: c.reward, isTask: c.isTask });
   });
   
@@ -3306,7 +3332,7 @@ function renderLog() {
     const curDate = new Date(); curDate.setDate(curDate.getDate() + i);
     const ds = formatLocalDate(curDate);
     getRecurringForDate(ds).forEach(o => {
-      if (o.isTask && !isCurrentAdmin() && o.personId !== localDeviceProfileId) return;
+      if (o.isTask && o.personId !== localDeviceProfileId && !isCurrentAdmin()) return;
       items.push(o);
     });
   }
@@ -3338,7 +3364,7 @@ function completedChoresInRange(start, end) {
   const results = [];
   (state.chores||[]).forEach(c => {
     if (c.completed) {
-      if (c.isTask && !isCurrentAdmin() && c.personId !== localDeviceProfileId) return;
+      if (c.isTask && c.personId !== localDeviceProfileId && !isCurrentAdmin()) return;
       const compDate = (c.completedAt ? c.completedAt.slice(0,10) : c.date);
       if (compDate >= start && compDate <= end) results.push({ ...c, dateStr: compDate });
     }
@@ -3352,7 +3378,7 @@ function completedChoresInRange(start, end) {
     const ds = formatLocalDate(d);
     getRecurringForDate(ds).forEach(o => { 
       if (o.completed) {
-        if (o.isTask && !isCurrentAdmin() && o.personId !== localDeviceProfileId) return;
+        if (o.isTask && o.personId !== localDeviceProfileId && !isCurrentAdmin()) return;
         results.push(o);
       }
     });
@@ -3769,7 +3795,10 @@ function checkForNewPokesTargetingMe() {
   const mine = (state.pokes||[]).filter(p => p.toPersonId === localDeviceProfileId);
   if (mine.length > lastSeenPokeCount) {
     const newest = mine[0];
-    if (newest && Date.now() - newest.ts < 60000) maybeShowLocalNotification(newest);
+    if (newest && Date.now() - newest.ts < 60000 && newest.id !== window._lastNotifiedPokeId) {
+      window._lastNotifiedPokeId = newest.id;
+      maybeShowLocalNotification(newest);
+    }
   }
   lastSeenPokeCount = mine.length;
 }
