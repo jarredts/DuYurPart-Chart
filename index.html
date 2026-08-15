@@ -119,7 +119,7 @@
     </div>
   </div>
 
-  <!-- Parent Approvals Banner -->
+  <!-- Parent Approvals Needed Banner -->
   <div id="parentApprovalBanner" onclick="switchTab('log')" class="hidden cursor-pointer mt-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3.5 py-2 flex items-center justify-between shadow-sm animate-pulse">
     <div class="flex items-center gap-2 min-w-0">
       <i class="fa-solid fa-hourglass-half text-sm"></i>
@@ -152,11 +152,13 @@
         </div>
       </div>
 
+      <!-- Month Grid Container -->
       <div id="monthViewContainer">
         <div id="calWeekdayHeader" class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-bold text-gray-400 mb-1"></div>
         <div id="calendarGrid" class="grid grid-cols-7 gap-0.5"></div>
       </div>
 
+      <!-- Week View Container -->
       <div id="weekViewContainer" class="hidden">
         <div id="weekWeekdayHeader" class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-bold text-gray-400 mb-1"></div>
         <div id="weekGrid" class="grid grid-cols-7 gap-0.5"></div>
@@ -173,8 +175,9 @@
     </div>
   </section>
 
-  <!-- TAB: Chore Log -->
+  <!-- TAB: Chore Log & Parent Approvals -->
   <section id="tab-log" class="hidden space-y-3">
+    <!-- Parent Review Queue -->
     <div id="pendingReviewSection" class="hidden bg-amber-50 border border-amber-200 rounded-2xl shadow-sm p-3 space-y-2">
       <div class="flex items-center justify-between">
         <div class="font-bold text-sm text-amber-900 flex items-center gap-1.5">
@@ -207,6 +210,7 @@
         </select>
       </div>
 
+      <!-- Option for kids/anyone to propose or log an unlisted chore -->
       <button onclick="openKidProposalModal()" class="w-full text-xs font-bold border-2 border-dashed border-purple-300 text-purple-700 bg-purple-50/50 hover:bg-purple-100 rounded-lg py-2.5 mb-2 flex items-center justify-center gap-1.5">
         <i class="fa-solid fa-hand-holding-dollar text-purple-600"></i> Did something extra? Propose an unlisted chore & reward
       </button>
@@ -322,7 +326,7 @@
 
 <!-- ============ MODALS ============ -->
 
-<!-- Day Chore Detail & Cumulative Subtask Manager -->
+<!-- Day Chore Detail & Reward Payout Chooser Modal -->
 <div id="choreDetailModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-start mb-2">
@@ -335,9 +339,17 @@
     
     <div id="cdRewardBox" class="rounded-xl p-2.5 mb-3 text-sm hidden"></div>
     
-    <div id="cdCumulativeBanner" class="bg-blue-50 text-blue-800 border border-blue-200 rounded-xl p-2.5 mb-3 text-xs hidden flex items-center gap-2">
-      <i class="fa-solid fa-list-check text-blue-500"></i>
-      <span><strong>Weekly Cumulative Progress:</strong> Progress made any day is saved through the week!</span>
+    <!-- Payout Currency Chooser (Cash vs Tickets) when completing -->
+    <div id="cdPayoutChooser" class="bg-purple-50/80 border border-purple-100 rounded-xl p-2.5 mb-3 hidden space-y-1.5">
+      <div class="text-xs font-bold text-purple-900">Choose Reward Payout:</div>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" id="payoutChooseTicketsBtn" onclick="setCompletionPayoutPref('tickets')" class="py-2 px-2 rounded-lg text-xs font-bold border border-purple-300 bg-white text-purple-700 shadow-xs flex items-center justify-center gap-1">
+          🎟️ Tickets
+        </button>
+        <button type="button" id="payoutChooseCashBtn" onclick="setCompletionPayoutPref('cash')" class="py-2 px-2 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-600 flex items-center justify-center gap-1">
+          💵 Cash
+        </button>
+      </div>
     </div>
 
     <div id="cdSubtasks" class="mb-3"></div>
@@ -450,7 +462,7 @@
     <div class="space-y-3">
       <div>
         <label class="text-xs font-bold text-gray-500" id="itemTitleLabel">Chore Name</label>
-        <input id="choreTitle" type="text" placeholder="e.g. Weekly Laundry" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        <input id="choreTitle" type="text" placeholder="Feed the dogs" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
       <div>
         <label class="text-xs font-bold text-gray-500" id="itemPersonLabel">Assign To</label>
@@ -478,14 +490,10 @@
         <select id="recurFreq" onchange="updateRecurUI()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
-          <option value="weekly_cumulative">Weekly (Daily Progress / Cumulative)</option>
           <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>
           <option value="rotation" id="recurRotationOption">Rotating (alternating chores)</option>
         </select>
-        <div id="recurCumulativeHelp" class="text-[10px] text-purple-600 font-medium hidden">
-          Appears every day of the week with shared checklist progress (e.g. Laundry, cleaning zones). Completed steps stay checked through the week!
-        </div>
 
         <div id="recurIntervalBox" class="hidden">
           <label class="text-xs font-bold text-gray-500">Every <span id="recurIntervalUnitLabel">week(s)</span></label>
@@ -568,7 +576,7 @@
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-2">
       <div id="dayListTitle" class="text-lg font-bold"></div>
-      <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
+      <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="dayListItems" class="space-y-2 mb-3"></div>
     <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="admin-only w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Item This Day</button>
@@ -581,7 +589,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.6.0</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.5.0</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -644,7 +652,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.6.0</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.5.0</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -916,8 +924,8 @@
 <div id="toastBox" class="fixed top-3 left-1/2 -translate-x-1/2 z-[60] space-y-2 w-full max-w-xs px-3"></div>
 
 <script>
-/* =========================== STATE & PERSISTENCE =========================== */
-const APP_VERSION = "v6.6.0";
+/* =========================== STATE & APP VERSION =========================== */
+const APP_VERSION = "v6.5.0";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -955,7 +963,6 @@ let state = {
   chores: [],
   recurring: [],
   recurringCompletions: {},
-  archivedCompletions: [], // Permanently preserved completion history
   yearlyChores: [],
   yearlyCompletions: {},
   honeyDo: [],
@@ -970,6 +977,7 @@ let state = {
 };
 
 let localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || null;
+let currentCompletionPayoutPref = 'tickets'; // 'tickets' or 'cash'
 
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
@@ -991,28 +999,344 @@ function formatLocalDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).
 function parseLocalDate(s) { const [y,m,d] = (s||todayStr()).split('-').map(Number); return new Date(y,m-1,d); }
 function uid(prefix) { return prefix+'-'+Date.now()+'-'+Math.floor(Math.random()*10000); }
 
-/* =========================== RECURRENCE ENGINE WITH CUMULATIVE SUPPORT =========================== */
+/* =========================== ROLE HELPERS =========================== */
+function isCurrentAdmin() {
+  if (!localDeviceProfileId) return true;
+  const p = getPerson(localDeviceProfileId);
+  return !p || p.role !== 'kid';
+}
+
+function updateRoleUI() {
+  const admin = isCurrentAdmin();
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.classList.toggle('hidden', !admin);
+  });
+  const rBadge = document.getElementById('roleBadge');
+  if (rBadge) {
+    rBadge.textContent = admin ? 'Admin' : 'Member';
+    rBadge.className = `text-[9px] font-bold px-1.5 py-0.2 rounded-md ${admin ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-700'}`;
+  }
+}
+
+/* =========================== REWARD CONVERSION & DUAL LABELS ($0.50 = 1 TICKET) =========================== */
+function cashToTickets(cashAmt) {
+  const val = parseFloat(cashAmt) || 0;
+  return Math.round(val * 2); // $0.50 = 1 ticket, $1.00 = 2 tickets
+}
+
+function ticketsToCash(tktAmt) {
+  const val = parseInt(tktAmt) || 0;
+  return (val * 0.50).toFixed(2);
+}
+
+function rewardLabel(r) { 
+  if (!r || !r.enabled) return ''; 
+  if (r.type === 'tickets') {
+    const t = parseInt(r.tickets || r.amount || 0);
+    const cashEquivalent = (t * 0.50).toFixed(2);
+    return `🎟️ ${t} Ticket${t===1?'':'s'} ($${cashEquivalent})${r.banked ? ' (banked)' : ''}`;
+  }
+  if (r.type === 'money') {
+    const amt = parseFloat(r.amount) || 0;
+    const t = Math.round(amt * 2);
+    return `$${amt.toFixed(2)} (or 🎟️ ${t})${r.banked ? ' (banked)' : ''}`;
+  }
+  return (r.description || 'Reward') + (r.banked ? ' (banked)' : ''); 
+}
+
+/* =========================== KID PROPOSAL & PARENT APPROVAL FLOW =========================== */
+function openKidProposalModal() {
+  document.getElementById('propTitle').value = '';
+  document.getElementById('propNotes').value = '';
+  document.getElementById('propTickets').value = '2';
+  document.getElementById('propAmount').value = '1.00';
+  document.getElementById('propPerson').innerHTML = personOptions(localDeviceProfileId);
+  openModal('kidProposalModal');
+}
+
+function syncPropFromTickets(val) {
+  const t = parseInt(val) || 0;
+  document.getElementById('propAmount').value = (t * 0.50).toFixed(2);
+}
+
+function syncPropFromCash(val) {
+  const c = parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;
+  document.getElementById('propTickets').value = Math.round(c * 2);
+}
+
+function submitKidProposal() {
+  const title = document.getElementById('propTitle').value.trim();
+  const personId = document.getElementById('propPerson').value;
+  const tkt = parseInt(document.getElementById('propTickets').value) || 2;
+  const cash = parseFloat(document.getElementById('propAmount').value) || 1.00;
+  const notes = document.getElementById('propNotes').value.trim();
+
+  if (!title) {
+    toast('Please enter what chore you completed', 'fa-triangle-exclamation');
+    return;
+  }
+
+  state.chores = state.chores || [];
+  state.chores.push({
+    id: uid('prop'),
+    title: title,
+    personId: personId,
+    date: todayStr(),
+    time: null,
+    subtasks: [],
+    subtaskState: {},
+    reward: {
+      enabled: true,
+      type: 'tickets',
+      tickets: tkt,
+      amount: cash,
+      banked: true
+    },
+    notes: notes,
+    completed: true,
+    completedAt: new Date().toISOString(),
+    isKidProposal: true,
+    pendingApproval: true
+  });
+
+  closeModal('kidProposalModal');
+  saveState();
+  toast('Submitted! A parent will review and award your tickets.', 'fa-paper-plane');
+}
+
+function syncReviewFromTickets(val) {
+  const t = parseInt(val) || 0;
+  document.getElementById('reviewAmount').value = (t * 0.50).toFixed(2);
+}
+
+function syncReviewFromCash(val) {
+  const c = parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;
+  document.getElementById('reviewTickets').value = Math.round(c * 2);
+}
+
+function openParentApprovalModal(choreId) {
+  const chore = (state.chores || []).find(c => c.id === choreId);
+  if (!chore) return;
+
+  document.getElementById('reviewChoreId').value = choreId;
+  document.getElementById('reviewTitle').textContent = chore.title;
+  
+  const person = getPerson(chore.personId);
+  document.getElementById('reviewPersonMeta').innerHTML = `${personChip(chore.personId)} · Logged on ${chore.date}`;
+
+  const notesBox = document.getElementById('reviewNotesBox');
+  if (chore.notes) {
+    notesBox.textContent = `"${chore.notes}"`;
+    notesBox.classList.remove('hidden');
+  } else {
+    notesBox.classList.add('hidden');
+  }
+
+  const initialTickets = chore.reward ? (chore.reward.tickets || Math.round((chore.reward.amount || 0) * 2)) : 2;
+  document.getElementById('reviewTickets').value = initialTickets;
+  document.getElementById('reviewAmount').value = (initialTickets * 0.50).toFixed(2);
+
+  openModal('parentApprovalModal');
+}
+
+function approveChoreProposal() {
+  const choreId = document.getElementById('reviewChoreId').value;
+  const chore = (state.chores || []).find(c => c.id === choreId);
+  if (!chore) return;
+
+  const finalTickets = parseInt(document.getElementById('reviewTickets').value) || 0;
+  const finalCash = parseFloat(document.getElementById('reviewAmount').value) || 0;
+
+  chore.pendingApproval = false;
+  chore.reward = {
+    enabled: true,
+    type: 'tickets',
+    tickets: finalTickets,
+    amount: finalCash,
+    banked: true
+  };
+
+  // Award to bank wallet
+  state.bankedRewards = state.bankedRewards || [];
+  state.bankedRewards.push({
+    id: uid('bank'),
+    personId: chore.personId,
+    choreTitle: chore.title,
+    reward: { ...chore.reward },
+    date: todayStr(),
+    redeemed: false
+  });
+
+  closeModal('parentApprovalModal');
+  saveState();
+  const person = getPerson(chore.personId);
+  toast(`Approved! Awarded 🎟️ ${finalTickets} tickets to ${person ? person.name : 'them'}`, 'fa-circle-check');
+}
+
+function rejectChoreProposal() {
+  const choreId = document.getElementById('reviewChoreId').value;
+  if (!confirm('Decline and remove this proposal?')) return;
+  state.chores = (state.chores || []).filter(c => c.id !== choreId);
+  closeModal('parentApprovalModal');
+  saveState();
+  toast('Proposal declined and removed', 'fa-trash');
+}
+
+/* =========================== FORCE UPDATE ENGINE =========================== */
+async function forceAppUpdate() {
+  toast("Updating app and refreshing cache...", "fa-rotate");
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (let reg of registrations) {
+        await reg.unregister();
+      }
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      for (let key of keys) {
+        await caches.delete(key);
+      }
+    }
+  } catch (e) {
+    console.error("Cache purge error:", e);
+  }
+  setTimeout(() => {
+    window.location.href = window.location.origin + window.location.pathname + '?update=' + Date.now();
+  }, 400);
+}
+
+/* =========================== PERSIST =========================== */
+function saveState() { 
+  persist(); 
+  if (firestoreDb) pushToCloud(); 
+  renderApp(); 
+}
+
+function persist() { 
+  try { 
+    localStorage.setItem('chores_state', JSON.stringify(state)); 
+    localStorage.setItem('chores_local_profile_id', localDeviceProfileId || '');
+  } catch(e){ console.error(e); } 
+}
+
+async function loadState() {
+  try {
+    const raw = localStorage.getItem('chores_state');
+    localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || null;
+    if (raw) {
+      const loaded = JSON.parse(raw);
+      state = Object.assign(state, loaded);
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
+      if (!Array.isArray(state.people)) state.people = [];
+      if (!Array.isArray(state.chores)) state.chores = [];
+      if (!Array.isArray(state.recurring)) state.recurring = [];
+      if (!Array.isArray(state.yearlyChores)) state.yearlyChores = [];
+      if (!Array.isArray(state.carnivalPrizes)) state.carnivalPrizes = [];
+    } else {
+      seedDefaultData();
+    }
+  } catch(e) { console.error(e); seedDefaultData(); }
+}
+
+function seedDefaultData() {
+  state.people = [
+    { id: uid('p'), name: 'Jarred', color: DEFAULT_COLORS[1].hex, role: 'parent' },
+    { id: uid('p'), name: 'Jaclyn', color: DEFAULT_COLORS[0].hex, role: 'parent' },
+    { id: uid('p'), name: 'Jiana', color: DEFAULT_COLORS[2].hex, role: 'kid' },
+    { id: uid('p'), name: 'Juliette', color: DEFAULT_COLORS[3].hex, role: 'kid' },
+    { id: uid('p'), name: 'Jayde', color: DEFAULT_COLORS[4].hex, role: 'kid' }
+  ];
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  state.yearlyChores = monthNames.map((m,i) => ({ id: uid('yc'), month: i+1, title: m+' Family Chore', subtasks: [] }));
+  state.carnivalPrizes = [
+    { id: uid('prz'), name: 'Extra 30 Min Screen Time', cost: 5 },
+    { id: uid('prz'), name: 'Pick Dinner Any Night', cost: 15 },
+    { id: uid('prz'), name: 'Dollar Store Shopping Spree', cost: 20 }
+  ];
+}
+
+/* =========================== TOAST =========================== */
+function toast(msg, icon) {
+  const box = document.getElementById('toastBox');
+  if (!box) return;
+  const el = document.createElement('div');
+  el.className = 'bg-gray-900 text-white text-xs font-semibold rounded-xl px-3.5 py-2.5 shadow-lg fade-in flex items-center gap-2';
+  el.innerHTML = `${icon?`<i class="fa-solid ${icon}"></i>`:''}<span>${escapeHtml(msg)}</span>`;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+function escapeHtml(s) { const d=document.createElement('div'); d.innerText = s==null?'':s; return d.innerHTML; }
+
+/* =========================== MODALS / TABS =========================== */
+function openModal(id) { 
+  const el = document.getElementById(id); 
+  if (el) el.classList.remove('hidden'); 
+}
+function closeModal(id) { 
+  const el = document.getElementById(id); 
+  if (el) el.classList.add('hidden'); 
+}
+
+function switchTab(tab) {
+  ['calendar','market','log','stats','honeydo'].forEach(t => {
+    const tabEl = document.getElementById('tab-'+t);
+    if (tabEl) tabEl.classList.toggle('hidden', t !== tab);
+    const nav = document.getElementById('nav-'+t);
+    const color = NAV_COLORS[t] || 'purple';
+    if (nav) {
+      if (t === tab) { nav.className = `flex flex-col items-center gap-1 text-${color}-600 font-bold bg-${color}-50 rounded-2xl px-2.5 py-1.5 -my-1`; }
+      else { nav.className = 'flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1'; }
+    }
+  });
+  if (tab === 'market') renderMarketplace();
+  if (tab === 'log') renderLog();
+  if (tab === 'stats') renderStats();
+  if (tab === 'honeydo') renderHoneyDo();
+  localStorage.setItem('chores_last_tab', tab);
+}
+
+/* =========================== PEOPLE HELPERS =========================== */
+function getPerson(id) { return (state.people||[]).find(p => p.id === id); }
+function personChip(id, isTask) {
+  const p = getPerson(id);
+  if (!p) return '<span class="person-chip bg-gray-100 text-gray-400">Unassigned</span>';
+  return `<span class="person-chip" style="background:${p.color||'#8B5CF6'}22;color:${p.color||'#8B5CF6'}"><span class="person-dot" style="background:${p.color||'#8B5CF6'}"></span>${escapeHtml(p.name)}${isTask?' · Task':''}</span>`;
+}
+function personOptions(selectedId, includeBlankLabel) {
+  let html = includeBlankLabel ? `<option value="">${escapeHtml(includeBlankLabel)}</option>` : '';
+  html += (state.people||[]).map(p => `<option value="${p.id}" ${p.id===selectedId?'selected':''}>${escapeHtml(p.name)}</option>`).join('');
+  return html;
+}
+
+/* =========================== RECURRING ENGINE =========================== */
+function getWeekStartSetting() { return (state.settings && state.settings.weekStart) || 'sunday'; }
+function startOfWeek(dateStr, weekStart) {
+  const d = parseLocalDate(dateStr);
+  const dow = d.getDay();
+  const diff = (weekStart||getWeekStartSetting()) === 'monday' ? ((dow + 6) % 7) : dow;
+  d.setDate(d.getDate() - diff);
+  return d;
+}
+function weekDiff(startDateStr, dateStr, weekStart) {
+  const a = startOfWeek(startDateStr, weekStart);
+  const b = startOfWeek(dateStr, weekStart);
+  return Math.round((b - a) / (7*86400000));
+}
+function currentWeekStartStr(refDateStr) { return formatLocalDate(startOfWeek(refDateStr || todayStr())); }
+
 function ruleFiresOnDate(rule, dateStr) {
   if (rule.active === false) return false;
   if (dateStr < rule.startDate) return false;
   if (rule.endDate && dateStr > rule.endDate) return false;
   const d = parseLocalDate(dateStr);
   const interval = Math.max(1, Number(rule.interval || 1));
-
   if (rule.frequency === 'daily') {
     const days = Math.round((d - parseLocalDate(rule.startDate)) / 86400000);
     return days >= 0 && days % interval === 0;
   }
   if (rule.frequency === 'weekly') {
     if (!(rule.daysOfWeek||[]).includes(d.getDay())) return false;
-    const w = weekDiff(rule.startDate, dateStr);
-    return w >= 0 && w % interval === 0;
-  }
-  if (rule.frequency === 'weekly_cumulative') {
-    // Appears every day of the week (or selected days) with shared weekly state
-    if (rule.daysOfWeek && rule.daysOfWeek.length) {
-      if (!rule.daysOfWeek.includes(d.getDay())) return false;
-    }
     const w = weekDiff(rule.startDate, dateStr);
     return w >= 0 && w % interval === 0;
   }
@@ -1039,317 +1363,312 @@ function ruleFiresOnDate(rule, dateStr) {
   }
   return false;
 }
-
+function ruleTitleForDate(rule, dateStr) {
+  if (rule.frequency !== 'rotation') return rule.title;
+  const stages = (rule.rotation && rule.rotation.stages) || [];
+  if (!stages.length) return rule.title;
+  const w = weekDiff(rule.startDate, dateStr);
+  const stageWeeks = Math.max(1, Number((rule.rotation && rule.rotation.stageWeeks) || 1));
+  const stageIdx = Math.floor(Math.max(0,w) / stageWeeks) % stages.length;
+  return stages[stageIdx].title || rule.title;
+}
+function ruleSubtasksForDate(rule, dateStr) {
+  if (rule.frequency !== 'rotation') return rule.subtasks || [];
+  const stages = (rule.rotation && rule.rotation.stages) || [];
+  if (!stages.length) return rule.subtasks || [];
+  const w = weekDiff(rule.startDate, dateStr);
+  const stageWeeks = Math.max(1, Number((rule.rotation && rule.rotation.stageWeeks) || 1));
+  const stageIdx = Math.floor(Math.max(0,w) / stageWeeks) % stages.length;
+  return stages[stageIdx].subtasks || [];
+}
 function getRecurringForDate(dateStr) {
   return (state.recurring||[]).filter(r => ruleFiresOnDate(r, dateStr)).map(r => {
-    // Cumulative weekly chores share completion state by weekStartStr
-    const isCumulative = r.frequency === 'weekly_cumulative';
-    const completionKey = isCumulative ? (r.id + '_' + currentWeekStartStr(dateStr)) : (r.id + '_' + dateStr);
-    const comp = (state.recurringCompletions && state.recurringCompletions[completionKey]) || {};
-    
+    const key = r.id+'_'+dateStr;
+    const comp = (state.recurringCompletions && state.recurringCompletions[key]) || {};
     return {
-      kind: 'recurring', 
-      id: r.id, 
-      dateStr, 
-      title: ruleTitleForDate(r, dateStr), 
-      personId: r.personId,
-      time: r.time, 
-      subtasks: ruleSubtasksForDate(r, dateStr), 
-      reward: r.reward, 
-      isTask: !!r.isTask,
-      completed: !!comp.completed, 
-      subtaskState: comp.subtaskState || {},
-      isCumulative: isCumulative
+      kind: 'recurring', id: r.id, dateStr, title: ruleTitleForDate(r, dateStr), personId: r.personId,
+      time: r.time, subtasks: ruleSubtasksForDate(r, dateStr), reward: r.reward, isTask: !!r.isTask,
+      completed: !!comp.completed, subtaskState: comp.subtaskState || {}
     };
   });
 }
-
-/* =========================== HISTORICAL DATA PRESERVATION =========================== */
-function archivePastRecurringCompletions(ruleId) {
-  const rule = (state.recurring || []).find(r => r.id === ruleId);
-  if (!rule || !state.recurringCompletions) return;
-
-  state.archivedCompletions = state.archivedCompletions || [];
-
-  Object.keys(state.recurringCompletions).forEach(key => {
-    if (key.startsWith(ruleId + '_')) {
-      const comp = state.recurringCompletions[key];
-      if (comp && comp.completed) {
-        const dateStrPart = key.slice(ruleId.length + 1);
-        state.archivedCompletions.push({
-          id: uid('arch'),
-          title: rule.title,
-          personId: rule.personId,
-          dateStr: dateStrPart.length === 10 ? dateStrPart : todayStr(),
-          completedAt: comp.completedAt || new Date().toISOString(),
-          reward: rule.reward || null
-        });
-      }
-    }
-  });
+function getSingleForDate(dateStr) {
+  return (state.chores||[]).filter(c => c.date === dateStr).map(c => ({
+    kind: 'single', id: c.id, dateStr, title: c.title, personId: c.personId,
+    time: c.time, subtasks: c.subtasks || [], reward: c.reward, isTask: !!c.isTask,
+    completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid,
+    pendingApproval: !!c.pendingApproval, isKidProposal: !!c.isKidProposal
+  }));
 }
 
-function archiveSingleChoreCompletion(chore) {
-  if (!chore || !chore.completed) return;
-  state.archivedCompletions = state.archivedCompletions || [];
-  state.archivedCompletions.push({
-    id: uid('arch'),
-    title: chore.title,
-    personId: chore.personId,
-    dateStr: chore.date || todayStr(),
-    completedAt: chore.completedAt || new Date().toISOString(),
-    reward: chore.reward || null
-  });
+/* =========================== CARNIVAL TICKET & PRIZE BOOTH SYSTEM =========================== */
+function getPersonTicketBalance(personId) {
+  const earned = (state.bankedRewards || [])
+    .filter(b => b.personId === personId && b.reward && (b.reward.type === 'tickets' || b.payoutChoice === 'tickets'))
+    .reduce((sum, b) => {
+      if (b.reward && b.reward.type === 'tickets') return sum + parseInt(b.reward.tickets || b.reward.amount || 0);
+      if (b.reward && b.reward.type === 'money') return sum + cashToTickets(b.reward.amount);
+      return sum;
+    }, 0);
+  
+  const spent = (state.bankedRewards || [])
+    .filter(b => b.personId === personId && b.isPrizeRedemption)
+    .reduce((sum, b) => sum + parseInt(b.ticketCost || 0), 0);
+
+  return Math.max(0, earned - spent);
 }
 
-function deleteCurrentChore() {
-  const detail = currentChoreDetail;
-  const kind = detail ? detail.kind : 'single';
+function openPrizeModal(prizeId) {
+  document.getElementById('prizeId').value = prizeId || '';
+  document.getElementById('prizeModalTitle').innerHTML = prizeId 
+    ? '<i class="fa-solid fa-pen text-amber-500"></i> Edit Prize' 
+    : '<i class="fa-solid fa-ticket text-amber-500"></i> Add Prize';
+  document.getElementById('prizeDeleteBtn').classList.toggle('hidden', !prizeId);
 
-  if (kind === 'market') {
-    const [marketId, scopeKey] = detail.id.split('::');
-    const claim = getMarketClaim(marketId, scopeKey);
-    if (!claim) { closeModal('choreDetailModal'); return; }
-    if (!confirm('Release this chore back to the marketplace?')) return;
-    archiveMarketClaimIfCompleted(marketId, scopeKey);
-    if (state.marketClaims) delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
-    closeModal('choreDetailModal');
-    saveState();
+  if (prizeId) {
+    const p = (state.carnivalPrizes || []).find(x => x.id === prizeId);
+    if (!p) return;
+    document.getElementById('prizeName').value = p.name;
+    document.getElementById('prizeCost').value = p.cost;
+  } else {
+    document.getElementById('prizeName').value = '';
+    document.getElementById('prizeCost').value = '';
+  }
+  openModal('prizeModal');
+}
+
+function saveCarnivalPrize() {
+  const id = document.getElementById('prizeId').value;
+  const name = document.getElementById('prizeName').value.trim();
+  const cost = parseInt(document.getElementById('prizeCost').value);
+  if (!name || isNaN(cost) || cost <= 0) {
+    toast('Give prize a valid name and ticket cost', 'fa-triangle-exclamation');
+    return;
+  }
+  state.carnivalPrizes = state.carnivalPrizes || [];
+  if (id) {
+    const p = state.carnivalPrizes.find(x => x.id === id);
+    if (p) Object.assign(p, { name, cost });
+  } else {
+    state.carnivalPrizes.push({ id: uid('prz'), name, cost });
+  }
+  closeModal('prizeModal');
+  saveState();
+  toast(id ? 'Prize updated!' : 'Prize added to booth!', 'fa-store');
+}
+
+function deleteCarnivalPrize() {
+  const id = document.getElementById('prizeId').value;
+  if (!id) return;
+  if (!confirm('Remove this prize from the booth?')) return;
+  state.carnivalPrizes = (state.carnivalPrizes || []).filter(p => p.id !== id);
+  closeModal('prizeModal');
+  saveState();
+}
+
+function promptRedeemPrize(prizeId) {
+  const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
+  if (!prize) return;
+
+  document.getElementById('redeemPrizeId').value = prizeId;
+  document.getElementById('redeemPrizeTitle').textContent = prize.name;
+  document.getElementById('redeemPrizeCost').textContent = `Cost: 🎟️ ${prize.cost} Tickets`;
+
+  const sel = document.getElementById('redeemPersonSelect');
+  sel.innerHTML = personOptions(localDeviceProfileId);
+
+  updateRedeemModalEligible();
+  openModal('redeemModal');
+}
+
+function updateRedeemModalEligible() {
+  const prizeId = document.getElementById('redeemPrizeId').value;
+  const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
+  if (!prize) return;
+
+  const personId = document.getElementById('redeemPersonSelect').value;
+  const balance = getPersonTicketBalance(personId);
+  const statusNotice = document.getElementById('redeemStatusNotice');
+  const btn = document.getElementById('confirmRedeemBtn');
+
+  if (balance >= prize.cost) {
+    statusNotice.innerHTML = `<span class="text-emerald-600 font-bold">Wallet: 🎟️ ${balance} tickets (Eligible!)</span>`;
+    btn.disabled = false;
+    btn.className = 'w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2.5 font-bold text-sm';
+  } else {
+    statusNotice.innerHTML = `<span class="text-red-500 font-bold">Wallet: 🎟️ ${balance} tickets (Need ${prize.cost - balance} more)</span>`;
+    btn.disabled = true;
+    btn.className = 'w-full bg-gray-300 text-gray-500 rounded-xl py-2.5 font-bold text-sm cursor-not-allowed';
+  }
+}
+
+function confirmPrizeRedemption() {
+  const prizeId = document.getElementById('redeemPrizeId').value;
+  const personId = document.getElementById('redeemPersonSelect').value;
+  const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
+  const person = getPerson(personId);
+
+  if (!prize || !person) return;
+  if (getPersonTicketBalance(personId) < prize.cost) {
+    toast('Not enough tickets!', 'fa-triangle-exclamation');
     return;
   }
 
-  const idToDelete = detail ? detail.id : document.getElementById('choreId').value;
-  if (!confirm('Delete this item? (Past completed stats and banked rewards will be preserved safely)')) return;
-
-  if (kind === 'single') {
-    const c = (state.chores||[]).find(x => x.id === idToDelete);
-    if (c) archiveSingleChoreCompletion(c);
-    state.chores = (state.chores||[]).filter(c => c.id !== idToDelete);
-  } else {
-    const rId = idToDelete.startsWith('REC:') ? idToDelete.split(':')[1] : idToDelete;
-    archivePastRecurringCompletions(rId);
-    state.recurring = (state.recurring||[]).filter(r => r.id !== rId);
-  }
-
-  closeModal('choreDetailModal'); 
-  closeModal('choreModal');
-  saveState();
-  toast('Item deleted. Past history preserved.', 'fa-shield-halved');
-}
-
-/* =========================== CHORE DETAIL & CUMULATIVE PROGRESS =========================== */
-function openChoreDetail(kind, id, dateStr) {
-  closeModal('dayListModal');
-  currentChoreDetail = { kind, id, dateStr };
-  let c, comp, isUnclaimed = false, isCumulative = false;
-
-  if (kind === 'single') {
-    c = (state.chores||[]).find(x => x.id === id);
-    comp = { completed: c ? c.completed : false, subtaskState: c ? (c.subtaskState||{}) : {} };
-  } else if (kind === 'recurring') {
-    c = (state.recurring||[]).find(x => x.id === id);
-    if (c) {
-      isCumulative = c.frequency === 'weekly_cumulative';
-      const completionKey = isCumulative ? (c.id + '_' + currentWeekStartStr(dateStr)) : (c.id + '_' + dateStr);
-      c = { ...c, title: ruleTitleForDate(c, dateStr), subtasks: ruleSubtasksForDate(c, dateStr) };
-      comp = (state.recurringCompletions && state.recurringCompletions[completionKey]) || { completed:false, subtaskState:{} };
-    }
-  } else if (kind === 'market') {
-    const [marketId, scopeKey] = id.split('::');
-    const m = (state.marketChores||[]).find(x => x.id === marketId);
-    const claim = getMarketClaim(marketId, scopeKey);
-    isUnclaimed = !claim;
-    c = m ? { title: m.title, personId: claim?claim.personId:null, time: null, reward: m.reward, notes: m.notes, subtasks: m.subtasks||[], isTask:false } : null;
-    comp = claim ? { completed: claim.completed, subtaskState: claim.subtaskState||{} } : { completed:false, subtaskState:{} };
-  }
-  if (!c) return;
-
-  document.getElementById('cdTitle').textContent = c.title;
-  document.getElementById('cdMeta').innerHTML = isUnclaimed
-    ? `<span class="person-chip bg-gray-200 text-gray-500">Unassigned</span> · <span class="text-pink-500 font-semibold">In the Marketplace</span>`
-    : `${personChip(c.personId, c.isTask)} ${c.time?('· '+formatTime(c.time)):''} ${c.isTask?'· <span class=\"text-purple-600 font-semibold\">Personal Task</span>':''}`;
-
-  const rBox = document.getElementById('cdRewardBox');
-  if (c.reward && c.reward.enabled && !c.isTask) {
-    rBox.classList.remove('hidden');
-    rBox.className = 'rounded-xl p-2.5 mb-3 text-sm bg-purple-50 text-purple-700 font-semibold';
-    rBox.innerHTML = `<i class="fa-solid fa-gift"></i> ${rewardLabel(c.reward)}`;
-  } else { rBox.classList.add('hidden'); }
-
-  const cumBanner = document.getElementById('cdCumulativeBanner');
-  if (cumBanner) cumBanner.classList.toggle('hidden', !isCumulative);
-
-  const subs = c.subtasks || [];
-  const subBox = document.getElementById('cdSubtasks');
-  if (subs.length) {
-    subBox.innerHTML = subs.map(s => `<div class="subtask-row">
-      <input type="checkbox" class="chk" ${comp.subtaskState[s.id]?'checked':''} ${isUnclaimed?'disabled':''} onchange="toggleSubtask('${s.id}', this.checked)">
-      <span class="text-sm ${comp.subtaskState[s.id]?'line-through text-gray-400':'text-gray-700'}">${escapeHtml(s.text)}</span>
-    </div>`).join('');
-  } else { subBox.innerHTML = ''; }
-
-  const notesEl = document.getElementById('cdNotes');
-  if (c.notes) { notesEl.classList.remove('hidden'); notesEl.textContent = c.notes; } else { notesEl.classList.add('hidden'); }
-
-  const btn = document.getElementById('cdCompleteBtn');
-  if (isUnclaimed) {
-    btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-pink-500';
-    btn.innerHTML = '<i class="fa-solid fa-hand"></i> Claim It';
-  } else {
-    btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white ' + (comp.completed ? 'bg-gray-400' : 'bg-emerald-600');
-    btn.innerHTML = comp.completed ? '<i class="fa-solid fa-rotate-left"></i> Undo Complete' : '<i class="fa-solid fa-check"></i> Mark Complete';
-  }
-
-  const pokeBtn = document.getElementById('cdPokeBtn');
-  if (pokeBtn) pokeBtn.classList.toggle('hidden', !!c.isTask);
-
-  const editBtn = document.getElementById('cdEditBtn');
-  if (editBtn) editBtn.classList.toggle('hidden', kind === 'market');
-  const delBtn = document.getElementById('cdDeleteBtn');
-  if (delBtn) delBtn.innerHTML = (kind === 'market' && !isUnclaimed) ? '<i class="fa-solid fa-rotate-left"></i>' : '<i class="fa-solid fa-trash"></i>';
-
-  openModal('choreDetailModal');
-}
-
-function toggleSubtask(subId, checked) {
-  const { kind, id, dateStr } = currentChoreDetail;
-  if (kind === 'single') {
-    const c = (state.chores||[]).find(x => x.id === id);
-    if (c) {
-      c.subtaskState = c.subtaskState || {};
-      c.subtaskState[subId] = checked;
-    }
-  } else if (kind === 'recurring') {
-    const rule = (state.recurring||[]).find(x => x.id === id);
-    const isCumulative = rule && rule.frequency === 'weekly_cumulative';
-    const completionKey = isCumulative ? (id + '_' + currentWeekStartStr(dateStr)) : (id + '_' + dateStr);
-
-    state.recurringCompletions = state.recurringCompletions || {};
-    state.recurringCompletions[completionKey] = state.recurringCompletions[completionKey] || { completed:false, subtaskState:{} };
-    state.recurringCompletions[completionKey].subtaskState[subId] = checked;
-
-    // If cumulative weekly chore has all subtasks checked, mark completed automatically
-    if (isCumulative && rule.subtasks && rule.subtasks.length) {
-      const allDone = rule.subtasks.every(s => state.recurringCompletions[completionKey].subtaskState[s.id]);
-      state.recurringCompletions[completionKey].completed = allDone;
-      if (allDone) handleRewardOnComplete(rule);
-    }
-  } else if (kind === 'market') {
-    const [marketId, scopeKey] = id.split('::');
-    const claim = getMarketClaim(marketId, scopeKey);
-    if (!claim) return;
-    claim.subtaskState = claim.subtaskState || {};
-    claim.subtaskState[subId] = checked;
-  }
-  persist();
-  openChoreDetail(kind, id, dateStr);
-  if (calViewMode === 'month') { renderCalendar(); }
-  else { renderWeekView(); }
-  renderSelectedDay();
-}
-
-function toggleChoreComplete() {
-  const { kind, id, dateStr } = currentChoreDetail;
-  const today = todayStr();
-  
-  if (kind === 'single') {
-    const c = (state.chores||[]).find(x => x.id === id);
-    if (c) {
-      c.completed = !c.completed;
-      if (c.completed) {
-        c.completedAt = new Date().toISOString();
-        if (c.date > today) {
-          if (confirm(`Completed early! Update due date from ${c.date} to today (${today})?`)) {
-            c.date = today;
-          }
-        }
-        handleRewardOnComplete(c);
-      }
-    }
-  } else if (kind === 'recurring') {
-    const rule = (state.recurring||[]).find(r => r.id === id);
-    const isCumulative = rule && rule.frequency === 'weekly_cumulative';
-    const completionKey = isCumulative ? (id + '_' + currentWeekStartStr(dateStr)) : (id + '_' + dateStr);
-
-    state.recurringCompletions = state.recurringCompletions || {};
-    state.recurringCompletions[completionKey] = state.recurringCompletions[completionKey] || { completed:false, subtaskState:{} };
-    state.recurringCompletions[completionKey].completed = !state.recurringCompletions[completionKey].completed;
-    
-    if (state.recurringCompletions[completionKey].completed) {
-      state.recurringCompletions[completionKey].completedAt = new Date().toISOString();
-      if (rule) handleRewardOnComplete(rule);
-    }
-  } else if (kind === 'market') {
-    const [marketId, scopeKey] = id.split('::');
-    const claim = getMarketClaim(marketId, scopeKey);
-    if (!claim) { closeModal('choreDetailModal'); openMarketClaimModal(marketId, scopeKey); return; }
-    claim.completed = !claim.completed;
-    if (claim.completed) {
-      claim.completedAt = new Date().toISOString();
-      if (claim.dueDate && claim.dueDate > today) {
-        if (confirm(`Completed ahead of time! Update logged date to today (${today}) for immediate stats?`)) {
-          claim.dueDate = today;
-        }
-      }
-      const m = (state.marketChores||[]).find(x => x.id === marketId);
-      if (m) handleRewardOnComplete({ ...m, personId: claim.personId, reward: { ...m.reward, banked: claim.banked } });
-    }
-  }
-  saveState();
-  openChoreDetail(kind, id, dateStr);
-}
-
-function handleRewardOnComplete(c) {
-  if (c.isTask || !c.reward || !c.reward.enabled) return;
-  const person = getPerson(c.personId);
-  const pName = person ? person.name : 'They';
-
-  // Bank tickets or cash automatically into child wallet
   state.bankedRewards = state.bankedRewards || [];
   state.bankedRewards.push({
-    id: uid('bank'),
-    personId: c.personId,
-    choreTitle: c.title,
-    reward: { ...c.reward },
+    id: uid('rdm'),
+    personId: personId,
+    choreTitle: `Redeemed: ${prize.name}`,
+    ticketCost: prize.cost,
+    isPrizeRedemption: true,
     date: todayStr(),
-    redeemed: false
+    redeemed: true,
+    redeemedAt: new Date().toISOString()
   });
-  toast(`${pName} completed "${c.title}" & earned ${rewardLabel(c.reward)}!`, 'fa-ticket');
+
+  closeModal('redeemModal');
+  saveState();
+  toast(`🎉 ${person.name} redeemed ${prize.name}!`, 'fa-gift');
 }
 
-/* =========================== RECURRENCE UI UPDATES =========================== */
-function updateRecurUI() {
-  const fEl = document.getElementById('recurFreq');
-  const f = fEl ? fEl.value : 'daily';
-  const wBox = document.getElementById('recurWeeklyBox');
-  const mBox = document.getElementById('recurMonthlyBox');
-  const rBox = document.getElementById('recurRotationBox');
-  const stSec = document.getElementById('subtaskSection');
-  const intBox = document.getElementById('recurIntervalBox');
-  const cumHelp = document.getElementById('recurCumulativeHelp');
+/* =========================== CHORE LOG & APPROVAL RENDERING =========================== */
+function renderLog() {
+  const filterSel = document.getElementById('logPersonFilter');
+  if (filterSel && filterSel.options.length <= 1) {
+    filterSel.innerHTML = '<option value="all">Everyone</option>' + personOptions(null);
+  }
+  const personFilter = filterSel ? filterSel.value : 'all';
+  const statusFilter = document.getElementById('logStatusFilter') ? document.getElementById('logStatusFilter').value : 'all';
+  const rangeFilter = document.getElementById('logRangeFilter') ? document.getElementById('logRangeFilter').value : 'next7';
 
-  if (wBox) wBox.classList.toggle('hidden', f !== 'weekly');
-  if (mBox) mBox.classList.toggle('hidden', f !== 'monthly');
-  if (rBox) rBox.classList.toggle('hidden', f !== 'rotation');
-  if (stSec) stSec.classList.toggle('hidden', f === 'rotation');
-  if (intBox) intBox.classList.toggle('hidden', f === 'yearly' || f === 'rotation' || f === 'weekly_cumulative');
-  if (cumHelp) cumHelp.classList.toggle('hidden', f !== 'weekly_cumulative');
-
-  const unitLabel = document.getElementById('recurIntervalUnitLabel');
-  if (unitLabel) unitLabel.textContent = f === 'daily' ? 'day(s)' : f === 'monthly' ? 'month(s)' : 'week(s)';
+  // 1. Pending Approvals Queue
+  const pendingSection = document.getElementById('pendingReviewSection');
+  const pendingList = document.getElementById('pendingReviewList');
+  const pendingItems = (state.chores || []).filter(c => c.pendingApproval);
   
-  const bld = document.getElementById('rotationStageBuilder');
-  if (f === 'rotation' && bld && !bld.children.length) {
-    addRotationStageRow('Feed the dogs');
-    addRotationStageRow('Clean up after dinner');
+  if (pendingSection && pendingList) {
+    const isParent = isCurrentAdmin();
+    if (pendingItems.length && isParent) {
+      pendingSection.classList.remove('hidden');
+      document.getElementById('pendingCountBadge').textContent = pendingItems.length;
+      pendingList.innerHTML = pendingItems.map(c => `
+        <div class="bg-white rounded-xl p-2.5 border border-amber-300 shadow-xs flex items-center justify-between">
+          <div class="min-w-0 flex-1">
+            <div class="text-xs font-bold text-gray-900 truncate">${escapeHtml(c.title)}</div>
+            <div class="flex items-center gap-1 mt-0.5">${personChip(c.personId)} · <span class="text-[10px] font-bold text-purple-700">${rewardLabel(c.reward)}</span></div>
+          </div>
+          <button onclick="openParentApprovalModal('${c.id}')" class="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2.5 py-1.5 flex items-center gap-1 shadow-xs">
+            <i class="fa-solid fa-stamp"></i> Review
+          </button>
+        </div>
+      `).join('');
+    } else {
+      pendingSection.classList.add('hidden');
+    }
+  }
+
+  // Update Header Banner
+  const appBanner = document.getElementById('parentApprovalBanner');
+  if (appBanner) {
+    if (pendingItems.length && isCurrentAdmin()) {
+      appBanner.classList.remove('hidden');
+      document.getElementById('parentApprovalCountBadge').textContent = pendingItems.length;
+    } else {
+      appBanner.classList.add('hidden');
+    }
+  }
+
+  // 2. Full Items List
+  const items = [];
+  const today = todayStr();
+
+  (state.chores || []).filter(c => !c.isTask && !c.pendingApproval).forEach(c => {
+    items.push({
+      kind: 'single',
+      id: c.id,
+      dateStr: c.date || today,
+      title: c.title,
+      personId: c.personId,
+      time: c.time,
+      completed: !!c.completed,
+      subtasks: c.subtasks || [],
+      reward: c.reward
+    });
+  });
+  
+  for (let i = -45; i <= 45; i++) {
+    const curDate = new Date();
+    curDate.setDate(curDate.getDate() + i);
+    const ds = formatLocalDate(curDate);
+    getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => {
+      items.push(o);
+    });
+  }
+
+  activeMarketInstances().forEach(x => {
+    if (x.claim) {
+      items.push({
+        kind: 'market',
+        id: x.market.id + '::' + x.scopeKey,
+        marketId: x.market.id,
+        scopeKey: x.scopeKey,
+        dateStr: x.claim.dueDate || today,
+        title: x.market.title,
+        personId: x.claim.personId,
+        time: null,
+        subtasks: x.market.subtasks || [],
+        reward: x.market.reward,
+        isTask: false,
+        completed: !!x.claim.completed,
+        subtaskState: x.claim.subtaskState || {}
+      });
+    }
+  });
+
+  let filtered = items;
+  if (personFilter !== 'all') filtered = filtered.filter(i => i.personId === personFilter);
+  if (statusFilter === 'completed') filtered = filtered.filter(i => i.completed);
+  else if (statusFilter === 'pending') filtered = filtered.filter(i => !i.completed);
+
+  if (rangeFilter === 'past7') {
+    const p7 = new Date(); p7.setDate(p7.getDate() - 7);
+    const p7Str = formatLocalDate(p7);
+    filtered = filtered.filter(i => (i.dateStr || today) >= p7Str && (i.dateStr || today) <= today);
+  } else if (rangeFilter === 'next7') {
+    const n7 = new Date(); n7.setDate(n7.getDate() + 7);
+    const n7Str = formatLocalDate(n7);
+    filtered = filtered.filter(i => (i.dateStr || today) >= today && (i.dateStr || today) <= n7Str);
+  } else if (rangeFilter === 'thisMonth') {
+    const mStr = today.slice(0, 7);
+    filtered = filtered.filter(i => (i.dateStr || today).startsWith(mStr));
+  }
+
+  filtered.sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return (a.dateStr || '').localeCompare(b.dateStr || '');
+  });
+
+  const list = document.getElementById('logList');
+  if (list) {
+    list.innerHTML = filtered.length
+      ? filtered.slice(0, 150).map(c => choreRowHtml(c)).join('')
+      : '<div class="text-xs text-gray-400 py-6 text-center"><i class="fa-solid fa-list-check text-2xl mb-2 opacity-40 block"></i>No matching chores found.</div>';
   }
 }
 
-/* =========================== STATS CALCULATIONS WITH ARCHIVED HISTORICAL PRESERVATION =========================== */
+/* =========================== STATS & PRIZE BOOTH TAB =========================== */
+function periodRange(period) {
+  const now = new Date();
+  let start, end = new Date(now);
+  if (period === 'week') { start = new Date(now); start.setDate(now.getDate()-now.getDay()); }
+  else if (period === 'month') { start = new Date(now.getFullYear(), now.getMonth(), 1); }
+  else if (period === 'year') { start = new Date(now.getFullYear(), 0, 1); }
+  else { start = new Date(now); start.setDate(now.getDate()-30); }
+  return { start: formatLocalDate(start), end: formatLocalDate(end) };
+}
+
 function completedChoresInRange(start, end) {
   const results = [];
-
-  // 1. Single active chores
   (state.chores||[]).filter(c => !c.isTask && !c.pendingApproval).forEach(c => {
     if (c.completed) {
       const compDate = (c.completedAt ? c.completedAt.slice(0,10) : c.date);
@@ -1359,13 +1678,11 @@ function completedChoresInRange(start, end) {
     }
   });
 
-  // 2. Recurring chores
   for (let d = parseLocalDate(start); d <= parseLocalDate(end); d.setDate(d.getDate()+1)) {
     const ds = formatLocalDate(d);
     getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => { if (o.completed) results.push(o); });
   }
 
-  // 3. Marketplace chores
   allMarketClaimEntries().forEach(x => {
     if (x.claim && x.claim.completed) {
       const compDate = (x.claim.completedAt ? x.claim.completedAt.slice(0,10) : x.dueDate);
@@ -1375,417 +1692,581 @@ function completedChoresInRange(start, end) {
     }
   });
 
-  // 4. Completed marketplace archives
   (state.marketCompletions||[]).forEach(m => {
     const compDate = (m.completedAt ? m.completedAt.slice(0,10) : m.dueDate);
     if (compDate >= start && compDate <= end) {
       results.push({ kind:'market', dateStr:compDate, title:m.title, personId:m.personId, completed:true, subtasks:[] });
     }
   });
-
-  // 5. Permanently preserved deleted historical completions
-  (state.archivedCompletions||[]).forEach(a => {
-    const compDate = (a.completedAt ? a.completedAt.slice(0,10) : a.dateStr);
-    if (compDate >= start && compDate <= end) {
-      results.push({ kind:'archived', dateStr:compDate, title:a.title, personId:a.personId, completed:true, subtasks:[] });
-    }
-  });
-
   return results;
 }
 
-/* =========================== REST OF APP HELPERS =========================== */
-function editCurrentChore() {
-  if (currentChoreDetail.kind === 'single') openChoreModal(currentChoreDetail.id);
-  else if (currentChoreDetail.kind === 'recurring') openChoreModal(null, null, false, currentChoreDetail.id);
-  closeModal('choreDetailModal');
-}
+function renderStats() {
+  const pSel = document.getElementById('statsPeriod');
+  const period = pSel ? pSel.value : 'month';
+  const { start, end } = periodRange(period);
+  const completed = completedChoresInRange(start, end);
 
-function pokeFromChore() {
-  let personId = null;
-  if (currentChoreDetail) {
-    if (currentChoreDetail.kind === 'market') {
-      const [marketId, scopeKey] = currentChoreDetail.id.split('::');
-      const claim = getMarketClaim(marketId, scopeKey);
-      personId = claim ? claim.personId : null;
-    } else {
-      const p = (state.chores||[]).find(c=>c.id===currentChoreDetail.id) || (state.recurring||[]).find(r=>r.id===currentChoreDetail.id);
-      personId = p ? p.personId : null;
-    }
+  // 1. Render Ticket Wallets
+  const tktCards = document.getElementById('statsTicketCards');
+  if (tktCards) {
+    tktCards.innerHTML = (state.people || []).map(p => {
+      const balance = getPersonTicketBalance(p.id);
+      const cashVal = (balance * 0.50).toFixed(2);
+      return `<div class="rounded-xl px-2.5 py-2 flex items-center justify-between bg-white border border-amber-100 shadow-xs">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span class="person-dot" style="background:${p.color||'#8b5cf6'}"></span>
+          <span class="text-xs font-bold truncate" style="color:${p.color||'#8b5cf6'}">${escapeHtml(p.name)}</span>
+        </div>
+        <div class="text-right">
+          <div class="text-xs font-mono font-extrabold text-amber-600 flex items-center justify-end gap-1">
+            <span>🎟️</span><span>${balance}</span>
+          </div>
+          <div class="text-[9px] text-gray-400 font-mono">($${cashVal})</div>
+        </div>
+      </div>`;
+    }).join('');
   }
-  closeModal('choreDetailModal');
-  openPokeModal(personId);
-}
 
-function setItemType(type) {
-  currentItemType = type;
-  const isChore = type === 'chore';
-  const cBtn = document.getElementById('itemTypeChoreBtn');
-  const tBtn = document.getElementById('itemTypeTaskBtn');
-  if (cBtn) cBtn.className = isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
-  if (tBtn) tBtn.className = !isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
-  
-  const titleLbl = document.getElementById('itemTitleLabel');
-  const personLbl = document.getElementById('itemPersonLabel');
-  const choreInp = document.getElementById('choreTitle');
-  if (titleLbl) titleLbl.textContent = isChore ? 'Chore Name' : 'Task Name';
-  if (personLbl) personLbl.textContent = isChore ? 'Assign To' : 'Whose Task';
-  if (choreInp) choreInp.placeholder = isChore ? 'e.g. Weekly Laundry' : 'Balance checkbook';
-  
-  const rSec = document.getElementById('rewardSectionWrapper');
-  const rotOpt = document.getElementById('recurRotationOption');
-  if (rSec) rSec.classList.toggle('hidden', !isChore);
-  if (rotOpt) rotOpt.classList.toggle('hidden', !isChore);
-}
-
-function setChoreRepeatMode(mode) {
-  choreRepeatMode = mode;
-  const sBox = document.getElementById('singleDateBox');
-  const rBox = document.getElementById('recurBox');
-  if (sBox) sBox.classList.toggle('hidden', mode !== 'single');
-  if (rBox) rBox.classList.toggle('hidden', mode !== 'recurring');
-  ['repeatModeSingleBtn','repeatModeRecurBtn'].forEach(bid => {
-    const el = document.getElementById(bid);
-    if (!el) return;
-    const active = (bid==='repeatModeSingleBtn' && mode==='single') || (bid==='repeatModeRecurBtn' && mode==='recurring');
-    el.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
-  });
-}
-
-function setRewardType(t) {
-  rewardType = t;
-  const tktEl = document.getElementById('rewardTickets');
-  const amtEl = document.getElementById('rewardAmount');
-  const descEl = document.getElementById('rewardDesc');
-  
-  if (tktEl) tktEl.classList.toggle('hidden', t !== 'tickets');
-  if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
-  if (descEl) descEl.classList.toggle('hidden', t !== 'other');
-  
-  ['rewardTypeTicketsBtn','rewardTypeMoneyBtn','rewardTypeOtherBtn'].forEach(bid => {
-    const el = document.getElementById(bid);
-    if (!el) return;
-    const active = (bid==='rewardTypeTicketsBtn' && t==='tickets') 
-      || (bid==='rewardTypeMoneyBtn' && t==='money') 
-      || (bid==='rewardTypeOtherBtn' && t==='other');
-    el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
-  });
-}
-
-function updateRewardUI() { 
-  const chk = document.getElementById('rewardEnabled');
-  const box = document.getElementById('rewardBox');
-  if (chk && box) box.classList.toggle('hidden', !chk.checked); 
-}
-
-function addRotationStageRow(title, subtasks) {
-  rotationStageCount++;
-  const rowId = uid('rs');
-  const div = document.createElement('div');
-  div.className = 'border border-gray-200 rounded-lg p-2 bg-white space-y-1.5';
-  div.dataset.stageid = rowId;
-  div.innerHTML = `<div class="flex items-center gap-1.5">
-      <i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
-      <input type="text" value="${escapeHtml(title||'')}" placeholder="Shift ${rotationStageCount} name" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm rotation-stage-title">
-      <button type="button" onclick="this.closest('[data-stageid]').remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>
-    </div>
-    <div class="pl-4">
-      <div class="text-[10px] font-bold text-gray-400 mb-1">Steps for this shift</div>
-      <div class="stage-subtask-list space-y-1"></div>
-      <button type="button" onclick="addStageSubtaskRow(this)" class="stage-add-btn text-[11px] font-bold text-purple-500 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
-    </div>`;
-  const container = document.getElementById('rotationStageBuilder');
-  if (container) {
-    container.appendChild(div);
-    (subtasks||[]).forEach(s => addStageSubtaskRow(div.querySelector('.stage-add-btn'), s.text, s.id));
+  // 2. Carnival Prize Booth List (Always available & Editable)
+  const boothList = document.getElementById('prizeBoothList');
+  if (boothList) {
+    const prizes = state.carnivalPrizes || [];
+    boothList.innerHTML = prizes.length ? prizes.map(prz => `
+      <div class="flex items-center justify-between bg-white rounded-xl p-2.5 border border-purple-100 shadow-xs">
+        <div class="min-w-0 flex-1">
+          <div class="text-xs font-bold text-gray-800 truncate">${escapeHtml(prz.name)}</div>
+          <div class="text-[10px] font-bold text-amber-600 flex items-center gap-1 mt-0.5">
+            <span>🎟️ ${prz.cost} Tickets</span>
+            <span class="text-gray-400 font-normal">($${(prz.cost * 0.50).toFixed(2)})</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button onclick="promptRedeemPrize('${prz.id}')" class="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2.5 py-1 flex items-center gap-1">
+            <i class="fa-solid fa-gift"></i> Redeem
+          </button>
+          <button onclick="openPrizeModal('${prz.id}')" class="admin-only w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-purple-600">
+            <i class="fa-solid fa-pen text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+    `).join('') : '<div class="text-xs text-gray-400 py-2 text-center">No prizes in the booth yet. Add one!</div>';
   }
+
+  // 3. Render Chart
+  const counts = {};
+  (state.people||[]).forEach(p => counts[p.id] = 0);
+  completed.forEach(c => { if (counts[c.personId] !== undefined) counts[c.personId]++; });
+
+  const canvas = document.getElementById('statsChart');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    if (window._statsChart) window._statsChart.destroy();
+    window._statsChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: (state.people||[]).map(p => p.name),
+        datasets: [{ data: (state.people||[]).map(p => counts[p.id]), backgroundColor: (state.people||[]).map(p => p.color||'#8b5cf6'), borderRadius: 6 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{stepSize:1} } } }
+    });
+  }
+
+  // 4. Person Activity Cards
+  const pCards = document.getElementById('statsPersonCards');
+  if (pCards) {
+    pCards.innerHTML = (state.people||[]).map(p => {
+      const banked = (state.bankedRewards||[]).filter(b => b.personId === p.id && !b.redeemed && !b.isPrizeRedemption);
+      const bankedMoney = banked.filter(b=>b.reward&&b.reward.type==='money').reduce((s,b)=>s+Number(b.reward.amount||0),0);
+      const tBalance = getPersonTicketBalance(p.id);
+
+      return `<div onclick="openStatsPersonDetail('${p.id}')" class="bg-white rounded-2xl shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50">
+        <div class="flex items-center gap-2.5">
+          <span class="person-dot" style="background:${p.color||'#8b5cf6'};width:12px;height:12px"></span>
+          <div>
+            <div class="font-bold text-sm">${escapeHtml(p.name)}</div>
+            <div class="text-[11px] text-gray-500">${counts[p.id]||0} chores completed</div>
+          </div>
+        </div>
+        <div class="text-right flex items-center gap-2">
+          <div class="text-xs font-mono font-bold text-purple-600">
+            ${bankedMoney>0?'$'+bankedMoney.toFixed(2):''}
+            ${tBalance>0?`<span class="text-amber-600 ml-1">🎟️ ${tBalance}</span>`:''}
+          </div>
+          <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  renderBankList();
+  updateRoleUI();
 }
 
-function addStageSubtaskRow(triggerEl, text, id) {
-  const stageEl = triggerEl.closest('[data-stageid]');
-  if (!stageEl) return;
-  const list = stageEl.querySelector('.stage-subtask-list');
+function openStatsPersonDetail(personId) {
+  const p = getPerson(personId);
+  if (!p) return;
+  const pSel = document.getElementById('statsPeriod');
+  const period = pSel ? pSel.value : 'month';
+  const { start, end } = periodRange(period);
+  const items = completedChoresInRange(start, end).filter(c => c.personId === personId)
+    .sort((a,b) => b.dateStr.localeCompare(a.dateStr));
+  document.getElementById('statsPersonModalTitle').innerHTML = `${personChip(personId)} <span class="text-gray-400 font-normal text-sm">· ${items.length} completed</span>`;
+  document.getElementById('statsPersonModalList').innerHTML = items.length
+    ? items.map(c => `<div class="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-semibold text-gray-800 truncate">${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}${escapeHtml(c.title)}</div>
+          <div class="text-[10px] text-gray-400 mt-0.5">${c.dateStr}</div>
+        </div>
+        <i class="fa-solid fa-circle-check text-emerald-500 text-sm flex-shrink-0 ml-2"></i>
+      </div>`).join('')
+    : '<div class="text-xs text-gray-400 text-center py-4">Nothing completed in this period yet.</div>';
+  openModal('statsPersonModal');
+}
+
+function renderBankList() {
+  const list = document.getElementById('bankList');
   if (!list) return;
-  const row = document.createElement('div');
-  row.className = 'flex items-center gap-1.5';
-  row.dataset.subid = id || uid('rst');
-  row.innerHTML = `<input type="text" value="${escapeHtml(text||'')}" placeholder="Step" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1 text-xs stage-subtask-text-input">
-    <button type="button" onclick="this.parentElement.remove()" class="w-6 h-6 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-[10px]"></i></button>`;
-  list.appendChild(row);
-}
-
-function readRotationStagesFromBuilder() {
-  const builder = document.getElementById('rotationStageBuilder');
-  if (!builder) return [];
-  return Array.from(builder.children).map(stageEl => {
-    const title = stageEl.querySelector('.rotation-stage-title').value.trim();
-    const subtasks = Array.from(stageEl.querySelectorAll('.stage-subtask-text-input')).map(inp => ({
-      id: inp.closest('[data-subid]').dataset.subid, text: inp.value.trim()
-    })).filter(s => s.text);
-    return { title, daysOfWeek: [0,1,2,3,4,5,6], subtasks };
-  }).filter(s => s.title);
-}
-
-function buildRecurDaysGrid(selected) {
-  const grid = document.getElementById('recurDaysGrid');
-  if (!grid) return;
-  grid.innerHTML = WEEKDAY_LABELS.map((l,i) => `<button type="button" data-day="${i}" onclick="toggleRecurDay(${i})" class="recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ${((selected||[]).includes(i))?'bg-purple-600 text-white border-purple-600':'bg-white text-gray-500 border-gray-200'}">${l}</button>`).join('');
-}
-
-function toggleRecurDay(i) {
-  const btn = document.querySelector(`.recur-day-btn[data-day="${i}"]`);
-  if (!btn) return;
-  const active = btn.classList.contains('bg-purple-600');
-  btn.className = 'recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ' + (!active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
-}
-function getSelectedRecurDays() { return Array.from(document.querySelectorAll('.recur-day-btn.bg-purple-600')).map(b => Number(b.dataset.day)); }
-
-function makeDraggableList(container) {
-  if (!container) return;
-  let draggedEl = null;
-
-  container.addEventListener('dragstart', (e) => {
-    const item = e.target.closest('.draggable-item');
-    if (!item) return;
-    draggedEl = item;
-    item.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-  });
-
-  container.addEventListener('dragend', (e) => {
-    const item = e.target.closest('.draggable-item');
-    if (item) item.classList.remove('dragging');
-    draggedEl = null;
-  });
-
-  container.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const afterElement = getDragAfterElement(container, e.clientY);
-    if (!draggedEl) return;
-    if (afterElement == null) {
-      container.appendChild(draggedEl);
-    } else {
-      container.insertBefore(draggedEl, afterElement);
-    }
-  });
-
-  let touchY = 0;
-  let activeTouchItem = null;
-
-  container.addEventListener('touchstart', (e) => {
-    const handle = e.target.closest('.drag-handle');
-    if (!handle) return;
-    activeTouchItem = handle.closest('.draggable-item');
-    if (activeTouchItem) {
-      activeTouchItem.classList.add('dragging');
-      touchY = e.touches[0].clientY;
-    }
-  }, { passive: false });
-
-  container.addEventListener('touchmove', (e) => {
-    if (!activeTouchItem) return;
-    e.preventDefault();
-    const currentY = e.touches[0].clientY;
-    const afterElement = getDragAfterElement(container, currentY);
-    if (afterElement == null) {
-      container.appendChild(activeTouchItem);
-    } else {
-      container.insertBefore(activeTouchItem, afterElement);
-    }
-  }, { passive: false });
-
-  container.addEventListener('touchend', () => {
-    if (activeTouchItem) {
-      activeTouchItem.classList.remove('dragging');
-      activeTouchItem = null;
-    }
-  });
-}
-
-function getDragAfterElement(container, y) {
-  const draggableElements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
-  return draggableElements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if (offset < 0 && offset > closest.offset) {
-      return { offset: offset, element: child };
-    } else {
-      return closest;
-    }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
-
-function addSubtaskRow(text, id) {
-  subtaskBuilderCount++;
-  const rowId = id || uid('st');
-  const div = document.createElement('div');
-  div.className = 'draggable-item flex items-center gap-1.5 bg-white p-1 rounded-lg border border-gray-100';
-  div.draggable = true;
-  div.dataset.subid = rowId;
-  div.innerHTML = `<span class="drag-handle text-gray-400 hover:text-purple-600"><i class="fa-solid fa-grip-lines-vertical text-xs"></i></span>
-    <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${subtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm subtask-text-input">
-    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xs"></i></button>`;
-  const container = document.getElementById('subtaskBuilder');
-  if (container) {
-    container.appendChild(div);
-    makeDraggableList(container);
-  }
-}
-
-function readSubtasksFromBuilder() {
-  const builder = document.getElementById('subtaskBuilder');
-  if (!builder) return [];
-  return Array.from(builder.children).map(row => ({
-    id: row.dataset.subid, text: row.querySelector('.subtask-text-input').value.trim()
-  })).filter(s => s.text);
-}
-
-function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
-  document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Item' : 'Add Item';
-  document.getElementById('choreId').value = choreId || '';
-  document.getElementById('subtaskBuilder').innerHTML = ''; subtaskBuilderCount = 0;
-  document.getElementById('rotationStageBuilder').innerHTML = ''; rotationStageCount = 0;
-  document.getElementById('chorePerson').innerHTML = personOptions(localDeviceProfileId);
-  document.getElementById('recurStart').value = presetDate || todayStr();
-  document.getElementById('recurEnd').value = '';
-  document.getElementById('recurInterval').value = 1;
-  document.getElementById('rotationStageWeeks').value = 1;
-  buildRecurDaysGrid([]);
-  document.getElementById('choreDeleteBtn').classList.add('hidden');
-  document.getElementById('rewardEnabled').checked = false;
-  setRewardType('tickets'); updateRewardUI();
-  setItemType('chore');
-
-  if (recurringId) {
-    const r = (state.recurring||[]).find(x => x.id === recurringId);
-    if (!r) return;
-    document.getElementById('choreId').value = 'REC:'+recurringId;
-    document.getElementById('choreTitle').value = r.title;
-    document.getElementById('chorePerson').value = r.personId;
-    setItemType(r.isTask ? 'task' : 'chore');
-    setChoreRepeatMode('recurring');
-    document.getElementById('recurFreq').value = r.frequency;
-    if (r.frequency === 'rotation') {
-      (r.rotation && r.rotation.stages || []).forEach(s => addRotationStageRow(s.title, s.subtasks));
-      document.getElementById('rotationStageWeeks').value = (r.rotation && r.rotation.stageWeeks) || 1;
-    }
-    updateRecurUI();
-    buildRecurDaysGrid(r.daysOfWeek || []);
-    document.getElementById('recurDayOfMonth').value = r.dayOfMonth || 1;
-    document.getElementById('recurInterval').value = r.interval || 1;
-    document.getElementById('recurStart').value = r.startDate;
-    document.getElementById('recurEnd').value = r.endDate || '';
-    document.getElementById('recurTime').value = r.time || '';
-    (r.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
-    if (r.reward && r.reward.enabled) {
-      document.getElementById('rewardEnabled').checked = true; updateRewardUI();
-      setRewardType(r.reward.type || 'tickets');
-      document.getElementById('rewardTickets').value = r.reward.tickets || 5;
-      document.getElementById('rewardAmount').value = r.reward.amount != null ? r.reward.amount : '';
-      document.getElementById('rewardDesc').value = r.reward.description || '';
-    }
-    document.getElementById('choreNotes').value = r.notes || '';
-    document.getElementById('choreDeleteBtn').classList.remove('hidden');
-  } else if (choreId) {
-    const c = (state.chores||[]).find(x => x.id === choreId);
-    if (!c) return;
-    document.getElementById('choreTitle').value = c.title;
-    document.getElementById('chorePerson').value = c.personId;
-    setItemType(c.isTask ? 'task' : 'chore');
-    setChoreRepeatMode('single');
-    document.getElementById('choreDate').value = c.date;
-    document.getElementById('choreTime').value = c.time || '';
-    (c.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
-    if (c.reward && c.reward.enabled) {
-      document.getElementById('rewardEnabled').checked = true; updateRewardUI();
-      setRewardType(c.reward.type || 'tickets');
-      document.getElementById('rewardTickets').value = c.reward.tickets || 5;
-      document.getElementById('rewardAmount').value = c.reward.amount != null ? c.reward.amount : '';
-      document.getElementById('rewardDesc').value = c.reward.description || '';
-    }
-    document.getElementById('choreNotes').value = r.notes || '';
-    document.getElementById('choreDeleteBtn').classList.remove('hidden');
-  } else {
-    document.getElementById('choreTitle').value = '';
-    document.getElementById('choreDate').value = presetDate || selectedDate || todayStr();
-    document.getElementById('choreTime').value = '';
-    document.getElementById('choreNotes').value = '';
-    document.getElementById('rewardTickets').value = 5;
-    document.getElementById('rewardAmount').value = '';
-    document.getElementById('rewardDesc').value = '';
-    setChoreRepeatMode('single');
-    if (isKidLog && localDeviceProfileId) document.getElementById('chorePerson').value = localDeviceProfileId;
-  }
-  openModal('choreModal');
-}
-
-function saveChore() {
-  const idRaw = document.getElementById('choreId').value;
-  const title = document.getElementById('choreTitle').value.trim();
-  if (!title) { toast('Give it a name', 'fa-triangle-exclamation'); return; }
-  const personId = document.getElementById('chorePerson').value;
-  const isTask = (currentItemType === 'task');
-  const subtasks = readSubtasksFromBuilder();
-  const rewardEnabled = !isTask && document.getElementById('rewardEnabled').checked;
+  const entries = (state.bankedRewards||[]).filter(b => (!b.redeemed && !b.isPrizeRedemption) || b.isPrizeRedemption);
+  if (!entries.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-1">No banked cash or prize claims yet.</div>'; return; }
   
-  const rawAmt = document.getElementById('rewardAmount').value;
-  const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
-  const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
-  const ticketsAmt = parseInt(document.getElementById('rewardTickets').value) || 5;
-
-  const reward = rewardEnabled ? {
-    enabled: true, 
-    type: rewardType,
-    tickets: rewardType === 'tickets' ? ticketsAmt : null,
-    amount: rewardType === 'money' ? parsedAmt : null,
-    description: rewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null,
-    banked: rewardType === 'tickets'
-  } : { enabled: false };
-  const notes = document.getElementById('choreNotes').value.trim();
-
-  state.recurring = state.recurring || [];
-  state.chores = state.chores || [];
-
-  if (choreRepeatMode === 'recurring') {
-    const isEditingRec = idRaw.startsWith('REC:');
-    const freq = document.getElementById('recurFreq').value;
-    const ruleData = {
-      title, personId, frequency: freq, isTask,
-      daysOfWeek: (freq === 'weekly' || freq === 'weekly_cumulative') ? getSelectedRecurDays() : [],
-      dayOfMonth: freq === 'monthly' ? Number(document.getElementById('recurDayOfMonth').value || 1) : null,
-      interval: (freq === 'daily' || freq === 'weekly' || freq === 'weekly_cumulative' || freq === 'monthly') ? Math.max(1, Number(document.getElementById('recurInterval').value || 1)) : 1,
-      rotation: freq === 'rotation' ? { stages: readRotationStagesFromBuilder(), stageWeeks: Math.max(1, Number(document.getElementById('rotationStageWeeks').value || 1)) } : null,
-      startDate: document.getElementById('recurStart').value || todayStr(),
-      endDate: document.getElementById('recurEnd').value || null,
-      time: document.getElementById('recurTime').value || null,
-      subtasks, reward, notes, active: true
-    };
-    if (freq === 'rotation' && (!ruleData.rotation.stages || ruleData.rotation.stages.length < 2)) {
-      toast('Add at least 2 shifts for a rotating chore', 'fa-triangle-exclamation'); return;
-    }
-    if (isEditingRec) {
-      const rid = idRaw.split(':')[1];
-      const r = state.recurring.find(x => x.id === rid);
-      if (r) Object.assign(r, ruleData);
-    } else {
-      state.recurring.push({ id: uid('rec'), ...ruleData });
-    }
-  } else {
-    const date = document.getElementById('choreDate').value || todayStr();
-    const time = document.getElementById('choreTime').value || null;
-    if (idRaw && !idRaw.startsWith('REC:')) {
-      const c = state.chores.find(x => x.id === idRaw);
-      if (c) Object.assign(c, { title, personId, date, time, subtasks, reward, notes, isTask });
-    } else {
-      state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false, isTask });
-    }
-  }
-  closeModal('choreModal');
-  saveState();
-  toast(isTask ? 'Personal task saved' : 'Chore saved', 'fa-check');
+  list.innerHTML = entries.slice(-10).reverse().map(b => {
+    const isRedeem = b.isPrizeRedemption;
+    return `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+      <div class="min-w-0 flex-1">
+        <div class="text-xs font-semibold truncate ${isRedeem?'text-amber-800':'text-gray-800'}">${escapeHtml(b.choreTitle)}</div>
+        <div class="flex items-center gap-1.5 mt-0.5">${personChip(b.personId)}<span class="text-[10px] text-gray-400">${b.date}</span></div>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        ${isRedeem 
+          ? `<span class="text-xs font-bold text-amber-600">-🎟️ ${b.ticketCost}</span>`
+          : `<span class="text-xs font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
+             <button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-1">Redeem</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
 }
 
-/* =========================== CLOUD & EXPORT =========================== */
+function redeemBank(id) {
+  const b = (state.bankedRewards||[]).find(x => x.id === id);
+  if (!b) return;
+  if (!confirm('Mark this reward as redeemed?')) return;
+  b.redeemed = true; b.redeemedAt = new Date().toISOString();
+  saveState(); renderStats();
+}
+
+/* =========================== HONEY-DO TAB =========================== */
+function renderHoneyDo() {
+  const list = document.getElementById('honeyDoList');
+  if (!list) return;
+  const items = [...(state.honeyDo||[])].sort((a,b) => (a.done - b.done) || ({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority]));
+  if (!items.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-4">Nothing on the list. Add a project!</div>'; return; }
+  list.innerHTML = items.map(h => `<div class="flex items-start gap-2.5 bg-gray-50 rounded-xl px-3 py-2.5">
+    <input type="checkbox" class="chk mt-0.5" ${h.done?'checked':''} onchange="toggleHoneyDone('${h.id}', this.checked)">
+    <div class="min-w-0 flex-1 cursor-pointer" onclick="openHoneyDoModal('${h.id}')">
+      <div class="text-sm font-semibold ${h.done?'line-through text-gray-400':'text-gray-800'}">${escapeHtml(h.title)}</div>
+      <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+        ${h.personId ? personChip(h.personId) : '<span class="text-[10px] text-gray-400">Whole family</span>'}
+        ${h.priority==='high'?'<span class="text-[10px] font-bold text-red-500">High priority</span>':''}
+      </div>
+    </div>
+  </div>`).join('');
+}
+function toggleHoneyDone(id, checked) {
+  const h = (state.honeyDo||[]).find(x => x.id === id);
+  if (h) { h.done = checked; h.doneAt = checked ? new Date().toISOString() : null; }
+  saveState(); renderHoneyDo();
+}
+function openHoneyDoModal(id) {
+  document.getElementById('honeyId').value = id || '';
+  document.getElementById('honeyPerson').innerHTML = '<option value="">Anyone / Whole family</option>' + personOptions(null);
+  document.getElementById('honeyDeleteBtn').classList.toggle('hidden', !id);
+  if (id) {
+    const h = (state.honeyDo||[]).find(x => x.id === id);
+    if (!h) return;
+    document.getElementById('honeyTitle').value = h.title;
+    document.getElementById('honeyPerson').value = h.personId || '';
+    document.getElementById('honeyPriority').value = h.priority || 'normal';
+    document.getElementById('honeyNotes').value = h.notes || '';
+  } else {
+    document.getElementById('honeyTitle').value = '';
+    document.getElementById('honeyPerson').value = '';
+    document.getElementById('honeyPriority').value = 'normal';
+    document.getElementById('honeyNotes').value = '';
+  }
+  openModal('honeyDoModal');
+}
+function saveHoneyDo() {
+  const id = document.getElementById('honeyId').value;
+  const title = document.getElementById('honeyTitle').value.trim();
+  if (!title) { toast('Give it a title', 'fa-triangle-exclamation'); return; }
+  const data = {
+    title, personId: document.getElementById('honeyPerson').value || null,
+    priority: document.getElementById('honeyPriority').value,
+    notes: document.getElementById('honeyNotes').value.trim()
+  };
+  state.honeyDo = state.honeyDo || [];
+  if (id) {
+    const item = state.honeyDo.find(x => x.id === id);
+    if (item) Object.assign(item, data);
+  } else {
+    state.honeyDo.push({ id: uid('hd'), done:false, createdAt: new Date().toISOString(), ...data });
+  }
+  closeModal('honeyDoModal');
+  saveState(); renderHoneyDo();
+}
+function deleteHoneyDo() {
+  const id = document.getElementById('honeyId').value;
+  if (!confirm('Delete this item?')) return;
+  state.honeyDo = (state.honeyDo||[]).filter(x => x.id !== id);
+  closeModal('honeyDoModal');
+  saveState(); renderHoneyDo();
+}
+
+/* =========================== YEARLY CHORE (HEADER) =========================== */
+function renderHeader() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthLbl = document.getElementById('headerMonthLabel');
+  if (monthLbl) monthLbl.textContent = monthNames[calMonth]+' '+calYear;
+  const [g1,g2] = MONTH_GRADIENTS[calMonth] || ['#8B5CF6','#EC4899'];
+  const banner = document.getElementById('yearlyChoreBanner');
+  if (banner) banner.style.background = `linear-gradient(135deg, ${g1}, ${g2})`;
+  const yc = (state.yearlyChores||[]).find(y => y.month === calMonth+1);
+  const ycTitle = document.getElementById('yearlyChoreTitle');
+  if (ycTitle) ycTitle.textContent = yc ? yc.title : '--';
+  const key = calYear+'-'+(calMonth+1);
+  const comp = (state.yearlyCompletions && state.yearlyCompletions[key]) || {};
+  const total = yc ? (yc.subtasks||[]).length : 0;
+  const done = yc ? (yc.subtasks||[]).filter(s => comp[s.id]).length : 0;
+  const ycProg = document.getElementById('yearlyChoreProgress');
+  if (ycProg) ycProg.textContent = total ? `${done}/${total}` : '';
+}
+
+function openYearlyChoreModal() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const editor = document.getElementById('yearlyChoreEditor');
+  if (!editor) return;
+  state.yearlyChores = state.yearlyChores || [];
+  editor.innerHTML = monthNames.map((m,i) => {
+    const yc = state.yearlyChores.find(y => y.month === i+1) || { id: uid('yc'), month: i+1, title: m+' Family Chore', subtasks: [] };
+    if (!state.yearlyChores.find(y => y.month === i+1)) state.yearlyChores.push(yc);
+    const isCurrent = i === calMonth;
+    const key = calYear+'-'+(i+1);
+    const comp = (state.yearlyCompletions && state.yearlyCompletions[key]) || {};
+    const [mg1,mg2] = MONTH_GRADIENTS[i] || ['#8B5CF6','#EC4899'];
+    return `<div class="rounded-xl border p-2.5" style="border-color:${mg1}55;${isCurrent?`background:linear-gradient(135deg,${mg1}14,${mg2}14)`:''}">
+      <div class="flex items-center justify-between gap-2 mb-1.5">
+        <div class="text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5" style="color:${mg1}"><span class="inline-block w-2.5 h-2.5 rounded-full" style="background:linear-gradient(135deg,${mg1},${mg2})"></span>${m}${isCurrent?' · Current':''}</div>
+      </div>
+      <input type="text" value="${escapeHtml(yc.title)}" onchange="updateYearlyTitle(${i+1}, this.value)" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-semibold mb-2">
+      <div id="ycSubs-${i+1}" class="space-y-1">
+        ${(yc.subtasks||[]).map(s => `<div class="subtask-row">
+          ${isCurrent?`<input type="checkbox" class="chk" ${comp[s.id]?'checked':''} onchange="toggleYearlySubtask(${i+1}, '${s.id}', this.checked)">`:'<span class="w-[18px] h-[18px] flex-shrink-0"></span>'}
+          <span class="text-sm flex-1 ${isCurrent&&comp[s.id]?'line-through text-gray-400':''}">${escapeHtml(s.text)}</span>
+          ${s.personId?personChip(s.personId):''}
+          <button onclick="removeYearlySubtask(${i+1}, '${s.id}')" class="text-gray-300"><i class="fa-solid fa-xmark text-xs"></i></button>
+        </div>`).join('')}
+      </div>
+      <div class="flex gap-1.5 mt-1.5">
+        <input type="text" id="ycNewSub-${i+1}" placeholder="Add step..." class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs">
+        <select id="ycNewSubPerson-${i+1}" class="border border-gray-200 rounded-lg px-1.5 py-1.5 text-xs">${personOptions(null,'Anyone')}</select>
+        <button onclick="addYearlySubtask(${i+1})" class="w-8 h-8 flex-shrink-0 rounded-lg bg-purple-100 text-purple-600"><i class="fa-solid fa-plus text-xs"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+  openModal('yearlyChoreModal');
+}
+function updateYearlyTitle(month, val) { const yc = (state.yearlyChores||[]).find(y=>y.month===month); if (yc) yc.title = val; saveState(); renderHeader(); }
+function addYearlySubtask(month) {
+  const input = document.getElementById('ycNewSub-'+month);
+  const text = input ? input.value.trim() : '';
+  if (!text) return;
+  const personId = document.getElementById('ycNewSubPerson-'+month).value || null;
+  const yc = (state.yearlyChores||[]).find(y => y.month === month);
+  if (yc) {
+    yc.subtasks = yc.subtasks || [];
+    yc.subtasks.push({ id: uid('ycs'), text, personId });
+  }
+  saveState(); openYearlyChoreModal();
+}
+function removeYearlySubtask(month, subId) {
+  const yc = (state.yearlyChores||[]).find(y => y.month === month);
+  if (yc) yc.subtasks = (yc.subtasks||[]).filter(s => s.id !== subId);
+  saveState(); openYearlyChoreModal();
+}
+function toggleYearlySubtask(month, subId, checked) {
+  const key = calYear+'-'+month;
+  state.yearlyCompletions = state.yearlyCompletions || {};
+  state.yearlyCompletions[key] = state.yearlyCompletions[key] || {};
+  state.yearlyCompletions[key][subId] = checked;
+  saveState(); renderHeader();
+}
+
+/* =========================== PROFILES & ROLES =========================== */
+function renderProfiles() {
+  const pList = document.getElementById('peopleList');
+  if (pList) {
+    pList.innerHTML = (state.people||[]).map(p => `
+      <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2.5 py-2">
+        <input type="color" value="${p.color||'#8b5cf6'}" onchange="updatePersonColor('${p.id}', this.value)" class="w-8 h-8 rounded-lg border-0 flex-shrink-0" style="background:${p.color||'#8b5cf6'}">
+        <input type="text" value="${escapeHtml(p.name)}" onchange="updatePersonName('${p.id}', this.value)" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm">
+        <select onchange="updatePersonRole('${p.id}', this.value)" class="text-xs font-bold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+          <option value="parent" ${p.role==='parent'?'selected':''}>Parent</option>
+          <option value="kid" ${p.role==='kid'?'selected':''}>Kid</option>
+        </select>
+        <button onclick="removePerson('${p.id}')" class="admin-only w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+      </div>
+    `).join('');
+  }
+
+  const mySel = document.getElementById('myProfileSelect');
+  if (mySel) mySel.innerHTML = '<option value="">-- select active profile --</option>' + personOptions(localDeviceProfileId);
+
+  const roleLabel = document.getElementById('roleLabelBadge');
+  if (roleLabel) {
+    const admin = isCurrentAdmin();
+    roleLabel.textContent = admin ? 'Admin (Parent)' : 'Member (Kid - View Only)';
+    roleLabel.className = `text-xs font-bold px-2 py-0.5 rounded-full ${admin ? 'bg-purple-600 text-white' : 'bg-gray-300 text-gray-700'}`;
+  }
+
+  const vapidInput = document.getElementById('fcmVapidKeyInput');
+  if (vapidInput) vapidInput.value = (state.settings && state.settings.vapidKey) || '';
+
+  const weekStartSel = document.getElementById('weekStartSelect');
+  if (weekStartSel) weekStartSel.value = (state.settings && state.settings.weekStart) || 'sunday';
+  const quotaInput = document.getElementById('weeklyQuotaInput');
+  if (quotaInput) quotaInput.value = (state.settings && state.settings.weeklyQuota != null) ? state.settings.weeklyQuota : 2;
+  const mQuotaInput = document.getElementById('monthlyQuotaInput');
+  if (mQuotaInput) mQuotaInput.value = (state.settings && state.settings.monthlyQuota != null) ? state.settings.monthlyQuota : 8;
+
+  const notifStatus = document.getElementById('notifPermStatus');
+  if (notifStatus) {
+    if ('Notification' in window) {
+      notifStatus.textContent = 'Notification permission: ' + Notification.permission;
+    } else {
+      notifStatus.textContent = 'Notifications not supported in this browser.';
+    }
+  }
+
+  const verDisplay = document.getElementById('appVersionDisplay');
+  if (verDisplay) verDisplay.textContent = APP_VERSION;
+  const verBadge = document.getElementById('appVersionBadge');
+  if (verBadge) verBadge.textContent = APP_VERSION;
+
+  updateRoleUI();
+}
+
+function addPersonRow() {
+  state.people = state.people || [];
+  const usedColors = state.people.map(p => p.color);
+  const nextColor = DEFAULT_COLORS.find(c => !usedColors.includes(c.hex)) || DEFAULT_COLORS[state.people.length % 5];
+  state.people.push({ id: uid('p'), name: 'New Person', color: nextColor.hex, role: 'kid' });
+  saveState(); renderProfiles();
+}
+function updatePersonName(id, val) { const p = getPerson(id); if (p) p.name = val; saveState(); renderProfiles(); }
+function updatePersonColor(id, val) { const p = getPerson(id); if (p) p.color = val; saveState(); renderProfiles(); }
+function updatePersonRole(id, val) { const p = getPerson(id); if (p) p.role = val; saveState(); renderProfiles(); }
+function removePerson(id) {
+  if (!confirm('Remove this person? Their assigned chores will stay but show as unassigned.')) return;
+  state.people = (state.people||[]).filter(p => p.id !== id);
+  saveState(); renderProfiles();
+}
+
+function setMyProfile(id) { 
+  localDeviceProfileId = id || null;
+  localStorage.setItem('chores_local_profile_id', localDeviceProfileId || '');
+  renderApp(); 
+  toast('Profile switched for this device', 'fa-check'); 
+  registerDeviceToken();
+}
+
+/* =========================== PUSH NOTIFICATIONS (FCM) =========================== */
+async function requestPushNotificationPermission() {
+  if (!('Notification' in window)) { toast('Notifications not supported here', 'fa-triangle-exclamation'); return; }
+  const perm = await Notification.requestPermission();
+  renderProfiles();
+  if (perm === 'granted') {
+    toast('Notifications permitted! Registering FCM token...', 'fa-bell');
+    await registerDeviceToken();
+  } else {
+    toast('Permission denied', 'fa-triangle-exclamation');
+  }
+}
+
+async function registerDeviceToken() {
+  if (!fcmMessaging || !localDeviceProfileId) return;
+  try {
+    const swReg = await navigator.serviceWorker.ready;
+    const vapidKey = state.settings && state.settings.vapidKey;
+    const token = await fcmMessaging.getToken({
+      vapidKey: vapidKey || undefined,
+      serviceWorkerRegistration: swReg
+    });
+    if (token) {
+      state.deviceTokens = state.deviceTokens || {};
+      state.deviceTokens[localDeviceProfileId] = token;
+      saveState();
+      toast('Device push token registered!', 'fa-shield-halved');
+    }
+  } catch (err) {
+    console.error('FCM Token registration error:', err);
+  }
+}
+
+/* =========================== POKES =========================== */
+function openPokeModal(presetTarget) {
+  document.getElementById('pokeTarget').innerHTML = personOptions(presetTarget);
+  renderPokeHistory();
+  openModal('pokeModal');
+}
+function sendPoke() {
+  const toId = document.getElementById('pokeTarget').value;
+  const message = document.getElementById('pokeMessage').value.trim() || 'Poke!';
+  const poke = { id: uid('poke'), fromPersonId: localDeviceProfileId, toPersonId: toId, message, ts: Date.now(), read: false };
+  state.pokes = state.pokes || [];
+  state.pokes.unshift(poke);
+  if (state.pokes.length > 100) state.pokes.length = 100;
+  saveState();
+  closeModal('pokeModal');
+  toast('Poke sent to '+((getPerson(toId)||{}).name||'them'), 'fa-bell');
+  maybeShowLocalNotification(poke);
+}
+function renderPokeHistory() {
+  const box = document.getElementById('pokeHistory');
+  if (!box) return;
+  const recent = (state.pokes||[]).slice(0, 3);
+  box.innerHTML = recent.length ? '<div class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Recent Pokes</div>' + recent.map(p => `<div class="text-xs text-gray-600 flex items-center gap-1.5">
+    <i class="fa-solid fa-bell text-purple-400 text-[10px]"></i>
+    <span>${personChip(p.fromPersonId)} → ${personChip(p.toPersonId)}</span>
+    <span class="text-gray-400 ml-auto">${new Date(p.ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</span>
+  </div>`).join('') : '';
+}
+function maybeShowLocalNotification(poke) {
+  if ('Notification' in window && Notification.permission === 'granted' && poke.toPersonId === localDeviceProfileId) {
+    new Notification('Poke from '+((getPerson(poke.fromPersonId)||{}).name||'Family'), { body: poke.message, icon: 'icon-192.png' });
+  }
+}
+let lastSeenPokeCount = 0;
+function checkForNewPokesTargetingMe() {
+  if (!localDeviceProfileId) return;
+  const mine = (state.pokes||[]).filter(p => p.toPersonId === localDeviceProfileId);
+  if (mine.length > lastSeenPokeCount) {
+    const newest = mine[0];
+    if (newest && Date.now() - newest.ts < 60000) maybeShowLocalNotification(newest);
+  }
+  lastSeenPokeCount = mine.length;
+}
+
+/* =========================== CLOUD SYNC =========================== */
+function parseConfigInput(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch(e) {
+    try {
+      return (new Function("return " + raw))();
+    } catch(err) {
+      return null;
+    }
+  }
+}
+
+function loadSyncConfigFromStorage() {
+  try { const raw = localStorage.getItem('chores_sync_config'); return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
+}
+function applySyncConfig(cfg) {
+  try {
+    if (typeof firebase === 'undefined') return false;
+    firebaseApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(cfg.fbConfig);
+    firestoreDb = firebase.firestore();
+    if (firebase.messaging && firebase.messaging.isSupported()) {
+      fcmMessaging = firebase.messaging();
+      fcmMessaging.onMessage((payload) => {
+        const title = payload.notification?.title || 'Family Chores';
+        const body = payload.notification?.body || '';
+        toast(title + ': ' + body, 'fa-bell');
+      });
+    }
+    return true;
+  } catch(e) { console.error('Sync config failed', e); return false; }
+}
+async function enableCloudSync() {
+  const raw = document.getElementById('syncConfigInput').value.trim();
+  if (!raw) { toast('Paste a Firebase config first', 'fa-triangle-exclamation'); return; }
+  
+  const fbConfig = parseConfigInput(raw);
+  if (!fbConfig) { toast("That JSON didn't parse — check formatting", 'fa-triangle-exclamation'); return; }
+  
+  const cfg = { fbConfig, docId: 'family-chores-shared' };
+  localStorage.setItem('chores_sync_config', JSON.stringify(cfg));
+  if (applySyncConfig(cfg)) {
+    document.getElementById('syncStatusLine').textContent = 'Connected. Pulling latest data...';
+    await pullFromCloud();
+    listenForCloudChanges();
+    registerDeviceToken();
+    toast('Cloud sync enabled', 'fa-cloud');
+  } else {
+    document.getElementById('syncStatusLine').textContent = 'Could not connect — check the config.';
+  }
+}
+async function pushToCloud() {
+  if (!firestoreDb) return;
+  try {
+    const doc = await firestoreDb.collection('chores_sync').doc('family-chores-shared').get();
+    let mergedTokens = { ...(state.deviceTokens || {}) };
+    if (doc.exists && doc.data().data) {
+      const remote = JSON.parse(doc.data().data);
+      mergedTokens = { ...(remote.deviceTokens || {}), ...mergedTokens };
+    }
+    state.deviceTokens = mergedTokens;
+
+    await firestoreDb.collection('chores_sync').doc('family-chores-shared').set({
+      data: JSON.stringify(state), updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) { console.error('push failed', e); }
+}
+async function pullFromCloud() {
+  if (!firestoreDb) return;
+  try {
+    const doc = await firestoreDb.collection('chores_sync').doc('family-chores-shared').get();
+    if (doc.exists && doc.data().data) {
+      const remote = JSON.parse(doc.data().data);
+      state = Object.assign(state, remote);
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
+      persist();
+      renderApp();
+      checkForNewPokesTargetingMe();
+    }
+  } catch(e) { console.error('pull failed', e); }
+}
+function listenForCloudChanges() {
+  if (!firestoreDb || unsubscribeSync) return;
+  unsubscribeSync = firestoreDb.collection('chores_sync').doc('family-chores-shared')
+    .onSnapshot(doc => {
+      if (doc.exists && doc.data().data) {
+        const remote = JSON.parse(doc.data().data);
+        state = Object.assign(state, remote);
+        if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
+        persist();
+        renderApp();
+        checkForNewPokesTargetingMe();
+      }
+    });
+}
+function manualSyncNow() { if (firestoreDb) { pullFromCloud(); toast('Synced', 'fa-rotate'); } else { toast('Enable cloud sync first', 'fa-triangle-exclamation'); } }
+function initSyncOnBoot() {
+  const cfg = loadSyncConfigFromStorage();
+  if (cfg && applySyncConfig(cfg)) {
+    const syncInp = document.getElementById('syncConfigInput');
+    if (syncInp) syncInp.value = JSON.stringify(cfg.fbConfig, null, 2);
+    pullFromCloud().then(() => {
+      listenForCloudChanges();
+      registerDeviceToken();
+    });
+  }
+}
+
+/* =========================== EXPORT / IMPORT =========================== */
 function exportDataJSON() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1810,11 +2291,13 @@ function importDataJSON(e) {
   reader.readAsText(file);
 }
 
+/* =========================== DARK MODE =========================== */
 function toggleDarkMode() {
   const isDark = document.documentElement.classList.toggle('dark');
   localStorage.setItem('chores_dark_mode', isDark ? '1' : '0');
 }
 
+/* =========================== MASTER RENDER =========================== */
 function renderApp() {
   renderHeader();
   if (calViewMode === 'month') {
