@@ -118,18 +118,6 @@
       <i class="fa-solid fa-chevron-right text-xs opacity-80"></i>
     </div>
   </div>
-
-  <!-- Parent Approvals Needed Banner -->
-  <div id="parentApprovalBanner" onclick="switchTab('log')" class="hidden cursor-pointer mt-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3.5 py-2 flex items-center justify-between shadow-sm animate-pulse">
-    <div class="flex items-center gap-2 min-w-0">
-      <i class="fa-solid fa-hourglass-half text-sm"></i>
-      <div id="parentApprovalBannerText" class="text-xs font-bold truncate">Chores pending parent approval</div>
-    </div>
-    <div class="text-right flex items-center gap-1.5 flex-shrink-0">
-      <span class="text-xs font-mono font-bold bg-white text-orange-600 rounded-full px-2 py-0.5" id="parentApprovalCountBadge">0</span>
-      <i class="fa-solid fa-chevron-right text-xs opacity-80"></i>
-    </div>
-  </div>
 </header>
 
 <main class="w-full max-w-xl mx-auto px-1 sm:px-2 pt-2">
@@ -175,19 +163,8 @@
     </div>
   </section>
 
-  <!-- TAB: Chore Log & Parent Approvals -->
+  <!-- TAB: Chore Log -->
   <section id="tab-log" class="hidden space-y-3">
-    <!-- Parent Review Queue -->
-    <div id="pendingReviewSection" class="hidden bg-amber-50 border border-amber-200 rounded-2xl shadow-sm p-3 space-y-2">
-      <div class="flex items-center justify-between">
-        <div class="font-bold text-sm text-amber-900 flex items-center gap-1.5">
-          <i class="fa-solid fa-user-clock text-amber-600"></i> Pending Parent Approval
-        </div>
-        <span class="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full" id="pendingCountBadge">0</span>
-      </div>
-      <div id="pendingReviewList" class="space-y-2"></div>
-    </div>
-
     <div class="bg-gradient-to-br from-white to-blue-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2 gap-2">
         <select id="logPersonFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1 bg-white">
@@ -210,9 +187,8 @@
         </select>
       </div>
 
-      <!-- Option for kids/anyone to propose or log an unlisted chore -->
-      <button onclick="openKidProposalModal()" class="w-full text-xs font-bold border-2 border-dashed border-purple-300 text-purple-700 bg-purple-50/50 hover:bg-purple-100 rounded-lg py-2.5 mb-2 flex items-center justify-center gap-1.5">
-        <i class="fa-solid fa-hand-holding-dollar text-purple-600"></i> Did something extra? Propose an unlisted chore & reward
+      <button onclick="openChoreModal(null, todayStr(), true)" class="w-full text-xs font-bold border-2 border-dashed border-blue-300 text-blue-600 rounded-lg py-2 mb-2">
+        <i class="fa-solid fa-bolt"></i> Log an extra chore I already did
       </button>
       <div id="logList" class="space-y-2"></div>
     </div>
@@ -226,7 +202,7 @@
         <div class="font-bold text-sm text-amber-900 flex items-center gap-1.5">
           <i class="fa-solid fa-ticket text-amber-500"></i> Ticket Wallets
         </div>
-        <span class="text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">Fixed Rate: $0.50 = 🎟️ 1</span>
+        <span class="text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">Carnival Counter</span>
       </div>
       <div id="statsTicketCards" class="grid grid-cols-2 gap-2"></div>
     </div>
@@ -244,10 +220,10 @@
       <div id="prizeBoothList" class="space-y-2"></div>
     </div>
 
-    <!-- 3. Banked Cash & Redemptions -->
+    <!-- 3. Banked Cash & Claims -->
     <div class="bg-white rounded-2xl shadow-sm p-3">
       <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-        <i class="fa-solid fa-piggy-bank text-amber-500"></i> Banked Cash & Prize History
+        <i class="fa-solid fa-piggy-bank text-amber-500"></i> Banked Cash & Redemptions
       </div>
       <div id="bankList" class="space-y-2"></div>
     </div>
@@ -326,7 +302,7 @@
 
 <!-- ============ MODALS ============ -->
 
-<!-- Day Chore Detail & Reward Payout Chooser Modal -->
+<!-- Day Chore Detail / Expand Modal -->
 <div id="choreDetailModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-start mb-2">
@@ -336,111 +312,14 @@
       </div>
       <button onclick="closeModal('choreDetailModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    
     <div id="cdRewardBox" class="rounded-xl p-2.5 mb-3 text-sm hidden"></div>
-    
-    <!-- Payout Currency Chooser (Cash vs Tickets) when completing -->
-    <div id="cdPayoutChooser" class="bg-purple-50/80 border border-purple-100 rounded-xl p-2.5 mb-3 hidden space-y-1.5">
-      <div class="text-xs font-bold text-purple-900">Choose Reward Payout:</div>
-      <div class="grid grid-cols-2 gap-2">
-        <button type="button" id="payoutChooseTicketsBtn" onclick="setCompletionPayoutPref('tickets')" class="py-2 px-2 rounded-lg text-xs font-bold border border-purple-300 bg-white text-purple-700 shadow-xs flex items-center justify-center gap-1">
-          🎟️ Tickets
-        </button>
-        <button type="button" id="payoutChooseCashBtn" onclick="setCompletionPayoutPref('cash')" class="py-2 px-2 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-600 flex items-center justify-center gap-1">
-          💵 Cash
-        </button>
-      </div>
-    </div>
-
     <div id="cdSubtasks" class="mb-3"></div>
     <div id="cdNotes" class="text-xs text-gray-500 mb-3 hidden"></div>
-    
     <div class="flex gap-2">
       <button id="cdCompleteBtn" onclick="toggleChoreComplete()" class="flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-emerald-600"><i class="fa-solid fa-check"></i> Mark Complete</button>
       <button id="cdPokeBtn" onclick="pokeFromChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-bell"></i></button>
       <button id="cdEditBtn" onclick="editCurrentChore()" class="admin-only rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
       <button id="cdDeleteBtn" onclick="deleteCurrentChore()" class="admin-only rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
-    </div>
-  </div>
-</div>
-
-<!-- Kid Proposal / Unlisted Chore Modal -->
-<div id="kidProposalModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
-    <div class="flex justify-between items-center mb-3">
-      <div class="text-lg font-bold flex items-center gap-1.5"><i class="fa-solid fa-bolt text-purple-600"></i> Propose Unlisted Chore</div>
-      <button onclick="closeModal('kidProposalModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="space-y-3">
-      <div>
-        <label class="text-xs font-bold text-gray-500">What extra chore did you do?</label>
-        <input id="propTitle" type="text" placeholder="e.g. Cleared all sticks from the backyard" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-      </div>
-      <div>
-        <label class="text-xs font-bold text-gray-500">Who completed it?</label>
-        <select id="propPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
-      </div>
-      <div>
-        <label class="text-xs font-bold text-gray-500">Proposed Reward</label>
-        <div class="flex gap-2 mt-1">
-          <div class="flex-1">
-            <span class="text-[10px] text-gray-400 font-bold block mb-0.5">Tickets:</span>
-            <input id="propTickets" type="number" min="1" value="2" oninput="syncPropFromTickets(this.value)" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-mono">
-          </div>
-          <div class="flex-1">
-            <span class="text-[10px] text-gray-400 font-bold block mb-0.5">Dollar Value ($):</span>
-            <input id="propAmount" type="text" value="1.00" oninput="syncPropFromCash(this.value)" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-mono">
-          </div>
-        </div>
-        <div class="text-[10px] text-purple-600 font-medium mt-1">Exchange Rate: $0.50 = 🎟️ 1 Ticket</div>
-      </div>
-      <div>
-        <label class="text-xs font-bold text-gray-500">Notes / Details</label>
-        <textarea id="propNotes" rows="2" placeholder="Tell parents what you did..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
-      </div>
-    </div>
-    <button onclick="submitKidProposal()" class="w-full bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm mt-4">
-      <i class="fa-solid fa-paper-plane mr-1"></i> Submit for Parent Approval
-    </button>
-  </div>
-</div>
-
-<!-- Parent Review & Approval Modal -->
-<div id="parentApprovalModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
-    <div class="flex justify-between items-center mb-3">
-      <div class="text-lg font-bold flex items-center gap-1.5"><i class="fa-solid fa-stamp text-amber-500"></i> Review Chore Proposal</div>
-      <button onclick="closeModal('parentApprovalModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <input type="hidden" id="reviewChoreId">
-    <div class="space-y-3">
-      <div>
-        <div id="reviewTitle" class="text-base font-bold text-gray-900"></div>
-        <div id="reviewPersonMeta" class="text-xs text-gray-500 mt-0.5"></div>
-      </div>
-      <div id="reviewNotesBox" class="bg-gray-50 p-2.5 rounded-lg text-xs text-gray-600 italic"></div>
-      
-      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
-        <label class="text-xs font-bold text-amber-900">Adjust Approved Reward Amount:</label>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <span class="text-[10px] text-gray-500 font-bold">Tickets:</span>
-            <input id="reviewTickets" type="number" min="0" oninput="syncReviewFromTickets(this.value)" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-mono bg-white">
-          </div>
-          <div>
-            <span class="text-[10px] text-gray-500 font-bold">Cash ($):</span>
-            <input id="reviewAmount" type="text" oninput="syncReviewFromCash(this.value)" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-mono bg-white">
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="flex gap-2 mt-4">
-      <button onclick="approveChoreProposal()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 font-bold text-sm">
-        <i class="fa-solid fa-check"></i> Approve & Award
-      </button>
-      <button onclick="rejectChoreProposal()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600 hover:bg-red-100">
-        <i class="fa-solid fa-trash"></i> Decline
-      </button>
     </div>
   </div>
 </div>
@@ -837,6 +716,7 @@
       <div id="claimDateHint" class="text-[10px] text-gray-400 mt-1"></div>
     </div>
 
+    <!-- Choice to bank reward at claim time -->
     <div id="claimBankChoiceWrapper" class="bg-purple-50/70 p-2.5 rounded-xl border border-purple-100 mb-3 hidden">
       <label class="flex items-center gap-2 text-xs font-bold text-purple-900 cursor-pointer">
         <input type="checkbox" id="claimBankedCheckbox" class="chk"> Bank this reward (deposit to ticket wallet or piggy bank)
@@ -977,7 +857,6 @@ let state = {
 };
 
 let localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || null;
-let currentCompletionPayoutPref = 'tickets'; // 'tickets' or 'cash'
 
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
@@ -1001,7 +880,7 @@ function uid(prefix) { return prefix+'-'+Date.now()+'-'+Math.floor(Math.random()
 
 /* =========================== ROLE HELPERS =========================== */
 function isCurrentAdmin() {
-  if (!localDeviceProfileId) return true;
+  if (!localDeviceProfileId) return true; // Default admin if not chosen
   const p = getPerson(localDeviceProfileId);
   return !p || p.role !== 'kid';
 }
@@ -1016,170 +895,6 @@ function updateRoleUI() {
     rBadge.textContent = admin ? 'Admin' : 'Member';
     rBadge.className = `text-[9px] font-bold px-1.5 py-0.2 rounded-md ${admin ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-700'}`;
   }
-}
-
-/* =========================== REWARD CONVERSION & DUAL LABELS ($0.50 = 1 TICKET) =========================== */
-function cashToTickets(cashAmt) {
-  const val = parseFloat(cashAmt) || 0;
-  return Math.round(val * 2); // $0.50 = 1 ticket, $1.00 = 2 tickets
-}
-
-function ticketsToCash(tktAmt) {
-  const val = parseInt(tktAmt) || 0;
-  return (val * 0.50).toFixed(2);
-}
-
-function rewardLabel(r) { 
-  if (!r || !r.enabled) return ''; 
-  if (r.type === 'tickets') {
-    const t = parseInt(r.tickets || r.amount || 0);
-    const cashEquivalent = (t * 0.50).toFixed(2);
-    return `🎟️ ${t} Ticket${t===1?'':'s'} ($${cashEquivalent})${r.banked ? ' (banked)' : ''}`;
-  }
-  if (r.type === 'money') {
-    const amt = parseFloat(r.amount) || 0;
-    const t = Math.round(amt * 2);
-    return `$${amt.toFixed(2)} (or 🎟️ ${t})${r.banked ? ' (banked)' : ''}`;
-  }
-  return (r.description || 'Reward') + (r.banked ? ' (banked)' : ''); 
-}
-
-/* =========================== KID PROPOSAL & PARENT APPROVAL FLOW =========================== */
-function openKidProposalModal() {
-  document.getElementById('propTitle').value = '';
-  document.getElementById('propNotes').value = '';
-  document.getElementById('propTickets').value = '2';
-  document.getElementById('propAmount').value = '1.00';
-  document.getElementById('propPerson').innerHTML = personOptions(localDeviceProfileId);
-  openModal('kidProposalModal');
-}
-
-function syncPropFromTickets(val) {
-  const t = parseInt(val) || 0;
-  document.getElementById('propAmount').value = (t * 0.50).toFixed(2);
-}
-
-function syncPropFromCash(val) {
-  const c = parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;
-  document.getElementById('propTickets').value = Math.round(c * 2);
-}
-
-function submitKidProposal() {
-  const title = document.getElementById('propTitle').value.trim();
-  const personId = document.getElementById('propPerson').value;
-  const tkt = parseInt(document.getElementById('propTickets').value) || 2;
-  const cash = parseFloat(document.getElementById('propAmount').value) || 1.00;
-  const notes = document.getElementById('propNotes').value.trim();
-
-  if (!title) {
-    toast('Please enter what chore you completed', 'fa-triangle-exclamation');
-    return;
-  }
-
-  state.chores = state.chores || [];
-  state.chores.push({
-    id: uid('prop'),
-    title: title,
-    personId: personId,
-    date: todayStr(),
-    time: null,
-    subtasks: [],
-    subtaskState: {},
-    reward: {
-      enabled: true,
-      type: 'tickets',
-      tickets: tkt,
-      amount: cash,
-      banked: true
-    },
-    notes: notes,
-    completed: true,
-    completedAt: new Date().toISOString(),
-    isKidProposal: true,
-    pendingApproval: true
-  });
-
-  closeModal('kidProposalModal');
-  saveState();
-  toast('Submitted! A parent will review and award your tickets.', 'fa-paper-plane');
-}
-
-function syncReviewFromTickets(val) {
-  const t = parseInt(val) || 0;
-  document.getElementById('reviewAmount').value = (t * 0.50).toFixed(2);
-}
-
-function syncReviewFromCash(val) {
-  const c = parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;
-  document.getElementById('reviewTickets').value = Math.round(c * 2);
-}
-
-function openParentApprovalModal(choreId) {
-  const chore = (state.chores || []).find(c => c.id === choreId);
-  if (!chore) return;
-
-  document.getElementById('reviewChoreId').value = choreId;
-  document.getElementById('reviewTitle').textContent = chore.title;
-  
-  const person = getPerson(chore.personId);
-  document.getElementById('reviewPersonMeta').innerHTML = `${personChip(chore.personId)} · Logged on ${chore.date}`;
-
-  const notesBox = document.getElementById('reviewNotesBox');
-  if (chore.notes) {
-    notesBox.textContent = `"${chore.notes}"`;
-    notesBox.classList.remove('hidden');
-  } else {
-    notesBox.classList.add('hidden');
-  }
-
-  const initialTickets = chore.reward ? (chore.reward.tickets || Math.round((chore.reward.amount || 0) * 2)) : 2;
-  document.getElementById('reviewTickets').value = initialTickets;
-  document.getElementById('reviewAmount').value = (initialTickets * 0.50).toFixed(2);
-
-  openModal('parentApprovalModal');
-}
-
-function approveChoreProposal() {
-  const choreId = document.getElementById('reviewChoreId').value;
-  const chore = (state.chores || []).find(c => c.id === choreId);
-  if (!chore) return;
-
-  const finalTickets = parseInt(document.getElementById('reviewTickets').value) || 0;
-  const finalCash = parseFloat(document.getElementById('reviewAmount').value) || 0;
-
-  chore.pendingApproval = false;
-  chore.reward = {
-    enabled: true,
-    type: 'tickets',
-    tickets: finalTickets,
-    amount: finalCash,
-    banked: true
-  };
-
-  // Award to bank wallet
-  state.bankedRewards = state.bankedRewards || [];
-  state.bankedRewards.push({
-    id: uid('bank'),
-    personId: chore.personId,
-    choreTitle: chore.title,
-    reward: { ...chore.reward },
-    date: todayStr(),
-    redeemed: false
-  });
-
-  closeModal('parentApprovalModal');
-  saveState();
-  const person = getPerson(chore.personId);
-  toast(`Approved! Awarded 🎟️ ${finalTickets} tickets to ${person ? person.name : 'them'}`, 'fa-circle-check');
-}
-
-function rejectChoreProposal() {
-  const choreId = document.getElementById('reviewChoreId').value;
-  if (!confirm('Decline and remove this proposal?')) return;
-  state.chores = (state.chores || []).filter(c => c.id !== choreId);
-  closeModal('parentApprovalModal');
-  saveState();
-  toast('Proposal declined and removed', 'fa-trash');
 }
 
 /* =========================== FORCE UPDATE ENGINE =========================== */
@@ -1396,20 +1111,1481 @@ function getSingleForDate(dateStr) {
   return (state.chores||[]).filter(c => c.date === dateStr).map(c => ({
     kind: 'single', id: c.id, dateStr, title: c.title, personId: c.personId,
     time: c.time, subtasks: c.subtasks || [], reward: c.reward, isTask: !!c.isTask,
-    completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid,
-    pendingApproval: !!c.pendingApproval, isKidProposal: !!c.isKidProposal
+    completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid
   }));
+}
+
+/* =========================== MARKETPLACE ENGINE =========================== */
+function marketClaimKey(marketId, scopeKey) { return marketId+'_'+scopeKey; }
+function getMarketClaim(marketId, scopeKey) { return state.marketClaims && state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
+function archiveMarketClaimIfCompleted(marketId, scopeKey) {
+  const claim = getMarketClaim(marketId, scopeKey);
+  if (!claim || !claim.completed) return;
+  const market = (state.marketChores||[]).find(m => m.id === marketId);
+  if (!market) return;
+  const dueDate = resolvedMarketDueDate(market, scopeKey, claim);
+  if (!dueDate) return;
+  state.marketCompletions = state.marketCompletions || [];
+  state.marketCompletions.push({ id: uid('mkc'), title: market.title, personId: claim.personId, dueDate, completedAt: claim.completedAt || new Date().toISOString() });
+}
+
+function activeMarketInstances(refDateStr) {
+  const ref = refDateStr || todayStr();
+  const weekStartStr = currentWeekStartStr(ref);
+  const monthKeyStr = ref.slice(0, 7);
+  const out = [];
+
+  (state.marketChores||[]).forEach(m => {
+    if (m.repeats === 'weekly') {
+      const scopeKey = weekStartStr;
+      const claim = getMarketClaim(m.id, scopeKey);
+      const wsD = parseLocalDate(weekStartStr);
+      let windowStart = null, windowEnd = null, dueDate = null;
+      if (m.scheduleType === 'flexible') {
+        const s = new Date(wsD); s.setDate(s.getDate() + (m.windowStartOffset||0));
+        const e = new Date(wsD); e.setDate(e.getDate() + (m.windowEndOffset!=null?m.windowEndOffset:6));
+        windowStart = formatLocalDate(s); windowEnd = formatLocalDate(e);
+        dueDate = claim ? claim.dueDate : null;
+      } else {
+        const dd = new Date(wsD); dd.setDate(dd.getDate() + (m.dueDayOffset||0));
+        dueDate = formatLocalDate(dd);
+      }
+      out.push({ market:m, scopeKey, claim, windowStart, windowEnd, dueDate });
+    } else if (m.repeats === 'monthly') {
+      const scopeKey = monthKeyStr;
+      const claim = getMarketClaim(m.id, scopeKey);
+      const [y, mo] = monthKeyStr.split('-').map(Number);
+      const lastDay = new Date(y, mo, 0).getDate();
+      let dueDate = null, windowStart = `${monthKeyStr}-01`, windowEnd = `${monthKeyStr}-${String(lastDay).padStart(2,'0')}`;
+      if (m.scheduleType === 'fixed') {
+        const dNum = Math.min(lastDay, Math.max(1, Number(m.dueDayOfMonth || 15)));
+        dueDate = `${monthKeyStr}-${String(dNum).padStart(2,'0')}`;
+      } else {
+        dueDate = claim ? claim.dueDate : null;
+      }
+      out.push({ market:m, scopeKey, claim, windowStart, windowEnd, dueDate });
+    } else {
+      const scopeKey = 'once';
+      const claim = getMarketClaim(m.id, scopeKey);
+      out.push({
+        market:m, scopeKey, claim,
+        windowStart: m.scheduleType==='flexible' ? m.windowStart : null,
+        windowEnd: m.scheduleType==='flexible' ? m.windowEnd : null,
+        dueDate: m.scheduleType==='fixed' ? m.dueDate : (claim ? claim.dueDate : null)
+      });
+    }
+  });
+  return out;
+}
+
+function getMarketForCalendarDate(dateStr) {
+  const items = [];
+  activeMarketInstances(dateStr).forEach(x => {
+    if (x.market.scheduleType === 'fixed') {
+      if (x.dueDate === dateStr) {
+        items.push({
+          kind:'market', id: x.market.id+'::'+x.scopeKey, marketId:x.market.id, scopeKey:x.scopeKey, dateStr,
+          title: x.market.title, personId: x.claim ? x.claim.personId : null, time: null,
+          subtasks: x.market.subtasks||[], reward: x.market.reward, isTask: false,
+          completed: !!(x.claim && x.claim.completed), subtaskState: (x.claim && x.claim.subtaskState) || {},
+          unclaimed: !x.claim
+        });
+      }
+    } else if (x.claim && x.claim.dueDate === dateStr) {
+      items.push({
+        kind:'market', id: x.market.id+'::'+x.scopeKey, marketId:x.market.id, scopeKey:x.scopeKey, dateStr,
+        title: x.market.title, personId: x.claim.personId, time: null,
+        subtasks: x.market.subtasks||[], reward: x.market.reward, isTask: false,
+        completed: !!x.claim.completed, subtaskState: x.claim.subtaskState || {}, unclaimed:false
+      });
+    }
+  });
+  return items;
+}
+
+function resolvedMarketDueDate(market, scopeKey, claim) {
+  if (market.scheduleType === 'fixed') {
+    if (market.repeats === 'weekly') {
+      const dd = parseLocalDate(scopeKey);
+      dd.setDate(dd.getDate() + (market.dueDayOffset||0));
+      return formatLocalDate(dd);
+    }
+    if (market.repeats === 'monthly') {
+      const [y, mo] = scopeKey.split('-').map(Number);
+      const lastDay = new Date(y, mo, 0).getDate();
+      const dNum = Math.min(lastDay, Math.max(1, Number(market.dueDayOfMonth || 15)));
+      return `${scopeKey}-${String(dNum).padStart(2,'0')}`;
+    }
+    return market.dueDate;
+  }
+  return claim ? claim.dueDate : null;
+}
+
+function allMarketClaimEntries() {
+  if (!state.marketClaims) return [];
+  return Object.keys(state.marketClaims).map(key => {
+    const idx = key.indexOf('_');
+    const marketId = key.slice(0, idx);
+    const scopeKey = key.slice(idx+1);
+    const market = (state.marketChores||[]).find(m => m.id === marketId);
+    if (!market) return null;
+    const claim = state.marketClaims[key];
+    return { market, scopeKey, claim, dueDate: resolvedMarketDueDate(market, scopeKey, claim) };
+  }).filter(Boolean);
+}
+
+function weeklyClaimCountForPerson(personId) {
+  const weekStartStr = currentWeekStartStr();
+  let n = 0;
+  (state.marketChores||[]).forEach(m => {
+    if (m.repeats !== 'weekly') return;
+    const claim = getMarketClaim(m.id, weekStartStr);
+    if (claim && claim.personId === personId) n++;
+  });
+  return n;
+}
+
+function monthlyClaimCountForPerson(personId) {
+  const monthKeyStr = todayStr().slice(0, 7);
+  let n = 0;
+  (state.marketChores||[]).forEach(m => {
+    if (m.repeats !== 'monthly') return;
+    const claim = getMarketClaim(m.id, monthKeyStr);
+    if (claim && claim.personId === personId) n++;
+  });
+  return n;
+}
+
+function getChoresForDate(dateStr) {
+  let items = [...getSingleForDate(dateStr), ...getRecurringForDate(dateStr), ...getMarketForCalendarDate(dateStr)];
+  
+  if (calendarFilter.size) {
+    items = items.filter(c => {
+      if (c.isTask) return calendarFilter.has(c.personId);
+      return calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__'));
+    });
+  } else {
+    items = items.filter(c => !c.isTask);
+  }
+  return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
+}
+
+/* =========================== CALENDAR =========================== */
+function setCalView(mode) {
+  calViewMode = mode;
+  localStorage.setItem('chores_cal_view_mode', mode);
+  
+  const mBtn = document.getElementById('calViewMonthBtn');
+  const wBtn = document.getElementById('calViewWeekBtn');
+  const mCont = document.getElementById('monthViewContainer');
+  const wCont = document.getElementById('weekViewContainer');
+
+  if (mode === 'month') {
+    mBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-purple-700 shadow-sm';
+    wBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg text-gray-500';
+    mCont.classList.remove('hidden');
+    wCont.classList.add('hidden');
+    renderCalendar();
+  } else {
+    wBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-purple-700 shadow-sm';
+    mBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg text-gray-500';
+    wCont.classList.remove('hidden');
+    mCont.classList.add('hidden');
+    renderWeekView();
+  }
+  renderSelectedDay();
+}
+
+function navigateCalendar(delta) {
+  if (calViewMode === 'month') {
+    changeMonth(delta);
+  } else {
+    currentWeekAnchor.setDate(currentWeekAnchor.getDate() + (delta * 7));
+    renderWeekView();
+  }
+}
+
+function changeMonth(delta) {
+  calMonth += delta;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+  renderHeader();
+}
+
+function renderCalendarFilterBar() {
+  const bar = document.getElementById('calendarFilterBar');
+  if (!bar) return;
+  const allActive = calendarFilter.size === 0;
+  let html = `<button onclick="setCalendarFilter(null)" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border ${allActive?'bg-purple-600 text-white border-purple-600':'bg-white text-gray-500 border-gray-200'}">Everyone</button>`;
+  html += (state.people||[]).map(p => {
+    const active = calendarFilter.has(p.id);
+    return `<button onclick="toggleCalendarFilterPerson('${p.id}')" class="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold border" style="${active?`background:${p.color||'#8b5cf6'};color:#fff;border-color:${p.color||'#8b5cf6'}`:`background:#fff;color:${p.color||'#8b5cf6'};border-color:${p.color||'#8b5cf6'}55`}">
+      <span class="person-dot" style="background:${active?'#fff':(p.color||'#8b5cf6')}"></span>${escapeHtml(p.name)}
+    </button>`;
+  }).join('');
+  html += `<button onclick="toggleCalendarFilterPerson('__unassigned__')" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border ${calendarFilter.has('__unassigned__')?'bg-gray-600 text-white border-gray-600':'bg-white text-gray-400 border-gray-200'}">Unassigned</button>`;
+  bar.innerHTML = html;
+}
+function setCalendarFilter(x) { 
+  calendarFilter = new Set(); 
+  if (calViewMode === 'month') { renderCalendar(); } 
+  else { renderWeekView(); }
+  renderSelectedDay();
+  renderCalendarFilterBar(); 
+}
+function toggleCalendarFilterPerson(id) {
+  if (calendarFilter.has(id)) calendarFilter.delete(id); else calendarFilter.add(id);
+  if (calViewMode === 'month') { renderCalendar(); } 
+  else { renderWeekView(); }
+  renderSelectedDay();
+  renderCalendarFilterBar();
+}
+
+function renderPersonBadgePills(chores, isMini) {
+  const group = {};
+  chores.forEach(c => {
+    const pid = c.personId || '__unassigned__';
+    if (!group[pid]) group[pid] = { total: 0, pending: 0, completed: 0 };
+    group[pid].total++;
+    if (c.completed) group[pid].completed++;
+    else group[pid].pending++;
+  });
+
+  const keys = Object.keys(group);
+  if (!keys.length) return '';
+
+  return keys.map(pid => {
+    const p = getPerson(pid);
+    const color = pid === '__unassigned__' ? '#9CA3AF' : (p ? (p.color || '#8B5CF6') : '#cbd5e1');
+    const { total, pending, completed } = group[pid];
+    const allDone = pending === 0 && total > 0;
+    const opacityStyle = allDone ? 'opacity: 0.35;' : 'opacity: 1;';
+    const displayVal = allDone ? '<i class="fa-solid fa-check text-[8px]"></i>' : pending;
+
+    if (isMini) {
+      return `<div class="flex items-center justify-center px-1 py-0.5 rounded-md text-[9px] font-bold text-white leading-none shadow-xs transition-all" style="background:${color};${opacityStyle}">
+        <span>${displayVal}</span>
+      </div>`;
+    }
+    return `<div class="w-full flex items-center justify-between px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white leading-tight shadow-xs transition-all" style="background:${color};${opacityStyle}">
+      <span class="truncate max-w-[28px]">${pid === '__unassigned__' ? '?' : (p ? p.name[0] : '?')}</span>
+      <span class="flex items-center">${displayVal}</span>
+    </div>`;
+  }).join('');
+}
+
+/* 1. MONTH VIEW */
+function renderCalendar() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const mainLabel = document.getElementById('calMainLabel');
+  if (mainLabel) mainLabel.textContent = monthNames[calMonth]+' '+calYear;
+  renderCalendarFilterBar();
+
+  const weekStart = getWeekStartSetting();
+  const labels = weekStart === 'monday' ? WEEKDAY_LABELS_MON : WEEKDAY_LABELS_SUN;
+  const headerEl = document.getElementById('calWeekdayHeader');
+  if (headerEl) headerEl.innerHTML = labels.map(l => `<div>${l}</div>`).join('');
+
+  const grid = document.getElementById('calendarGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const first = new Date(calYear, calMonth, 1);
+  const rawOffset = first.getDay();
+  const startOffset = weekStart === 'monday' ? ((rawOffset + 6) % 7) : rawOffset;
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  for (let i=0;i<startOffset;i++) grid.appendChild(document.createElement('div'));
+
+  for (let day=1; day<=daysInMonth; day++) {
+    const dateStr = calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const chores = getChoresForDate(dateStr);
+    const cell = document.createElement('div');
+    const isToday = dateStr === todayStr();
+    const isSelected = dateStr === selectedDate;
+    
+    cell.className = 'day-cell rounded-lg flex flex-col items-center justify-start p-1 cursor-pointer text-xs transition-all '
+      + (isSelected ? 'bg-purple-100 font-bold text-purple-700 shadow-inner' : isToday ? 'bg-purple-50 font-bold text-purple-600 border border-purple-200' : 'hover:bg-gray-50 text-gray-700 bg-white border border-gray-100');
+    
+    const badgePills = renderPersonBadgePills(chores, true);
+
+    cell.innerHTML = `
+      <div class="text-xs font-semibold mb-1">${day}</div>
+      <div class="w-full flex flex-wrap gap-0.5 justify-center items-center pb-0.5">
+        ${badgePills}
+      </div>`;
+    cell.onclick = () => { selectedDate = dateStr; currentWeekAnchor = parseLocalDate(dateStr); renderCalendar(); renderSelectedDay(); };
+    grid.appendChild(cell);
+  }
+}
+
+/* 2. HORIZONTAL 7-DAY SNAPSHOT (WEEK VIEW) */
+function renderWeekView() {
+  const weekStartMode = getWeekStartSetting();
+  const startD = startOfWeek(formatLocalDate(currentWeekAnchor), weekStartMode);
+  
+  const endD = new Date(startD);
+  endD.setDate(endD.getDate() + 6);
+
+  const mainLabel = document.getElementById('calMainLabel');
+  if (mainLabel) {
+    mainLabel.textContent = `${startD.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${endD.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+  }
+
+  const labels = weekStartMode === 'monday' ? WEEKDAY_LABELS_MON : WEEKDAY_LABELS_SUN;
+  const headerEl = document.getElementById('weekWeekdayHeader');
+  if (headerEl) headerEl.innerHTML = labels.map(l => `<div>${l}</div>`).join('');
+
+  const grid = document.getElementById('weekGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  for (let i = 0; i < 7; i++) {
+    const curD = new Date(startD);
+    curD.setDate(curD.getDate() + i);
+    const dateStr = formatLocalDate(curD);
+    const chores = getChoresForDate(dateStr);
+    const isToday = dateStr === todayStr();
+    const isSelected = dateStr === selectedDate;
+
+    const cell = document.createElement('div');
+    cell.className = `week-cell rounded-xl flex flex-col items-center justify-start p-1.5 cursor-pointer text-xs transition-all `
+      + (isSelected ? 'bg-purple-100 font-bold text-purple-700 shadow-inner border-2 border-purple-400' : isToday ? 'bg-purple-50 font-bold text-purple-600 border border-purple-200' : 'hover:bg-gray-50 text-gray-700 bg-white border border-gray-100 shadow-sm');
+
+    const badgePills = renderPersonBadgePills(chores, false);
+
+    cell.innerHTML = `
+      <div class="text-[10px] text-gray-400 font-semibold uppercase leading-none mb-1">${curD.toLocaleDateString('en-US',{weekday:'narrow'})}</div>
+      <div class="text-sm font-bold mb-1.5 leading-none ${isSelected?'text-purple-700':(isToday?'text-purple-600':'text-gray-800')}">${curD.getDate()}</div>
+      <div class="w-full space-y-1 flex flex-col items-center">
+        ${badgePills}
+      </div>
+    `;
+    cell.onclick = () => { selectedDate = dateStr; currentWeekAnchor = parseLocalDate(dateStr); renderWeekView(); renderSelectedDay(); };
+    grid.appendChild(cell);
+  }
+}
+
+function initCalendarSwipe() {
+  const el = document.getElementById('calendarCardWrapper');
+  if (!el) return;
+  let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
+
+  el.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  el.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  }, { passive: true });
+
+  function handleSwipe() {
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      navigateCalendar(diffX < 0 ? 1 : -1);
+    }
+  }
+}
+
+function renderSelectedDay() {
+  const d = parseLocalDate(selectedDate);
+  const label = selectedDate === todayStr() ? 'Today · ' : '';
+  const labelEl = document.getElementById('selectedDayLabel');
+  if (labelEl) labelEl.textContent = label + d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+  const list = document.getElementById('selectedDayList');
+  if (!list) return;
+  const chores = getChoresForDate(selectedDate);
+  if (!chores.length) { list.innerHTML = '<div class="text-xs text-gray-400 py-3 text-center">No items for this day 🎉</div>'; return; }
+  list.innerHTML = chores.map(choreRowHtml).join('');
+}
+
+function choreRowHtml(c) {
+  const p = getPerson(c.personId);
+  const subCount = (c.subtasks||[]).length;
+  const subDone = subCount ? (c.subtasks||[]).filter(s => c.subtaskState && c.subtaskState[s.id]).length : 0;
+  const isUnclaimed = c.kind === 'market' && c.unclaimed;
+  const borderColor = isUnclaimed ? '#9CA3AF' : (p ? (p.color || '#8b5cf6') : '#cbd5e1');
+  const clickable = c.id != null && c.dateStr != null;
+  return `<div ${clickable?`onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')"`:''} class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2 flex items-center justify-between ${clickable?'cursor-pointer':''}" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
+    <div class="min-w-0 flex-1">
+      <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">
+        ${c.isTask ? '<i class="fa-solid fa-user-check text-purple-400 text-[11px] mr-1.5" title="Personal Task"></i>' : ''}
+        ${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}
+        ${escapeHtml(c.title)}
+      </div>
+      <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+        ${isUnclaimed ? '<span class="person-chip bg-gray-200 text-gray-500">Unassigned · Up for grabs</span>' : personChip(c.personId, c.isTask)}
+        ${c.time ? `<span class="text-[10px] text-gray-400 font-mono">${formatTime(c.time)}</span>` : ''}
+        ${subCount ? `<span class="text-[10px] text-gray-400">${subDone}/${subCount} steps</span>` : ''}
+        ${c.reward && c.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(c.reward)}</span>` : ''}
+        ${c.dateStr ? `<span class="text-[10px] text-gray-400 font-mono">${c.dateStr}</span>` : ''}
+      </div>
+    </div>
+    <i class="fa-solid ${isUnclaimed?'fa-hand text-pink-400':(c.completed?'fa-circle-check text-emerald-500':'fa-chevron-right text-gray-300')} text-sm flex-shrink-0 ml-2"></i>
+  </div>`;
+}
+
+function formatTime(t) { if (!t) return ''; const [h,m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12 = h%12===0?12:h%12; return h12+':'+String(m).padStart(2,'0')+ap; }
+
+function rewardLabel(r) { 
+  if (!r || !r.enabled) return ''; 
+  if (r.type === 'tickets') {
+    const t = parseInt(r.tickets || r.amount || 0);
+    return `🎟️ ${t} Ticket${t===1?'':'s'}${r.banked ? ' (banked)' : ''}`;
+  }
+  if (r.type === 'money') {
+    const amt = parseFloat(r.amount);
+    return isNaN(amt) ? '' : '$' + amt.toFixed(2) + (r.banked ? ' (banked)' : '');
+  }
+  return (r.description || 'Reward') + (r.banked ? ' (banked)' : ''); 
+}
+
+function openDayList(dateStr) {
+  dayListDate = dateStr;
+  const d = parseLocalDate(dateStr);
+  const titleEl = document.getElementById('dayListTitle');
+  if (titleEl) titleEl.textContent = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+  const chores = getChoresForDate(dateStr);
+  const itemsEl = document.getElementById('dayListItems');
+  if (itemsEl) itemsEl.innerHTML = chores.length ? chores.map(choreRowHtml).join('') : '<div class="text-xs text-gray-400 py-3 text-center">No items this day 🎉</div>';
+  openModal('dayListModal');
+}
+
+/* =========================== CHORE DETAIL / EXPAND =========================== */
+function openChoreDetail(kind, id, dateStr) {
+  closeModal('dayListModal');
+  currentChoreDetail = { kind, id, dateStr };
+  let c, comp, isUnclaimed = false;
+  if (kind === 'single') {
+    c = (state.chores||[]).find(x => x.id === id);
+    comp = { completed: c ? c.completed : false, subtaskState: c ? (c.subtaskState||{}) : {} };
+  } else if (kind === 'recurring') {
+    c = (state.recurring||[]).find(x => x.id === id);
+    if (c) c = { ...c, title: ruleTitleForDate(c, dateStr), subtasks: ruleSubtasksForDate(c, dateStr) };
+    comp = (state.recurringCompletions && state.recurringCompletions[id+'_'+dateStr]) || {completed:false, subtaskState:{}};
+  } else if (kind === 'market') {
+    const [marketId, scopeKey] = id.split('::');
+    const m = (state.marketChores||[]).find(x => x.id === marketId);
+    const claim = getMarketClaim(marketId, scopeKey);
+    isUnclaimed = !claim;
+    c = m ? { title: m.title, personId: claim?claim.personId:null, time: null, reward: m.reward, notes: m.notes, subtasks: m.subtasks||[], isTask:false } : null;
+    comp = claim ? { completed: claim.completed, subtaskState: claim.subtaskState||{} } : { completed:false, subtaskState:{} };
+  }
+  if (!c) return;
+
+  document.getElementById('cdTitle').textContent = c.title;
+  document.getElementById('cdMeta').innerHTML = isUnclaimed
+    ? `<span class="person-chip bg-gray-200 text-gray-500">Unassigned</span> · <span class="text-pink-500 font-semibold">In the Marketplace</span>`
+    : `${personChip(c.personId, c.isTask)} ${c.time?('· '+formatTime(c.time)):''} ${c.isTask?'· <span class=\"text-purple-600 font-semibold\">Personal Task</span>':''}`;
+
+  const rBox = document.getElementById('cdRewardBox');
+  if (c.reward && c.reward.enabled && !c.isTask) {
+    rBox.classList.remove('hidden');
+    rBox.className = 'rounded-xl p-2.5 mb-3 text-sm bg-purple-50 text-purple-700 font-semibold';
+    rBox.innerHTML = `<i class="fa-solid fa-gift"></i> ${rewardLabel(c.reward)}`;
+  } else { rBox.classList.add('hidden'); }
+
+  const subs = c.subtasks || [];
+  const subBox = document.getElementById('cdSubtasks');
+  if (subs.length) {
+    subBox.innerHTML = subs.map(s => `<div class="subtask-row">
+      <input type="checkbox" class="chk" ${comp.subtaskState[s.id]?'checked':''} ${isUnclaimed?'disabled':''} onchange="toggleSubtask('${s.id}', this.checked)">
+      <span class="text-sm ${comp.subtaskState[s.id]?'line-through text-gray-400':'text-gray-700'}">${escapeHtml(s.text)}</span>
+    </div>`).join('');
+  } else { subBox.innerHTML = ''; }
+
+  const notesEl = document.getElementById('cdNotes');
+  if (c.notes) { notesEl.classList.remove('hidden'); notesEl.textContent = c.notes; } else { notesEl.classList.add('hidden'); }
+
+  const btn = document.getElementById('cdCompleteBtn');
+  if (isUnclaimed) {
+    btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-pink-500';
+    btn.innerHTML = '<i class="fa-solid fa-hand"></i> Claim It';
+  } else {
+    btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white ' + (comp.completed ? 'bg-gray-400' : 'bg-emerald-600');
+    btn.innerHTML = comp.completed ? '<i class="fa-solid fa-rotate-left"></i> Undo Complete' : '<i class="fa-solid fa-check"></i> Mark Complete';
+  }
+
+  const pokeBtn = document.getElementById('cdPokeBtn');
+  if (pokeBtn) pokeBtn.classList.toggle('hidden', !!c.isTask);
+
+  const editBtn = document.getElementById('cdEditBtn');
+  if (editBtn) editBtn.classList.toggle('hidden', kind === 'market');
+  const delBtn = document.getElementById('cdDeleteBtn');
+  if (delBtn) delBtn.innerHTML = (kind === 'market' && !isUnclaimed) ? '<i class="fa-solid fa-rotate-left"></i>' : '<i class="fa-solid fa-trash"></i>';
+
+  openModal('choreDetailModal');
+}
+
+function toggleSubtask(subId, checked) {
+  const { kind, id, dateStr } = currentChoreDetail;
+  if (kind === 'single') {
+    const c = (state.chores||[]).find(x => x.id === id);
+    if (c) {
+      c.subtaskState = c.subtaskState || {};
+      c.subtaskState[subId] = checked;
+    }
+  } else if (kind === 'recurring') {
+    const key = id+'_'+dateStr;
+    state.recurringCompletions = state.recurringCompletions || {};
+    state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
+    state.recurringCompletions[key].subtaskState[subId] = checked;
+  } else if (kind === 'market') {
+    const [marketId, scopeKey] = id.split('::');
+    const claim = getMarketClaim(marketId, scopeKey);
+    if (!claim) return;
+    claim.subtaskState = claim.subtaskState || {};
+    claim.subtaskState[subId] = checked;
+  }
+  persist();
+  openChoreDetail(kind, id, dateStr);
+  if (calViewMode === 'month') { renderCalendar(); }
+  else { renderWeekView(); }
+  renderSelectedDay();
+}
+
+function toggleChoreComplete() {
+  const { kind, id, dateStr } = currentChoreDetail;
+  const today = todayStr();
+  
+  if (kind === 'single') {
+    const c = (state.chores||[]).find(x => x.id === id);
+    if (c) {
+      c.completed = !c.completed;
+      if (c.completed) {
+        c.completedAt = new Date().toISOString();
+        if (c.date > today) {
+          if (confirm(`Completed early! Update due date from ${c.date} to today (${today})?`)) {
+            c.date = today;
+          }
+        }
+        handleRewardOnComplete(c);
+      }
+    }
+  } else if (kind === 'recurring') {
+    const key = id+'_'+dateStr;
+    state.recurringCompletions = state.recurringCompletions || {};
+    state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
+    state.recurringCompletions[key].completed = !state.recurringCompletions[key].completed;
+    if (state.recurringCompletions[key].completed) {
+      state.recurringCompletions[key].completedAt = new Date().toISOString();
+      const rule = (state.recurring||[]).find(r => r.id === id);
+      if (rule) handleRewardOnComplete(rule);
+    }
+  } else if (kind === 'market') {
+    const [marketId, scopeKey] = id.split('::');
+    const claim = getMarketClaim(marketId, scopeKey);
+    if (!claim) { closeModal('choreDetailModal'); openMarketClaimModal(marketId, scopeKey); return; }
+    claim.completed = !claim.completed;
+    if (claim.completed) {
+      claim.completedAt = new Date().toISOString();
+      if (claim.dueDate && claim.dueDate > today) {
+        if (confirm(`Completed ahead of time! Update logged date to today (${today}) for immediate stats?`)) {
+          claim.dueDate = today;
+        }
+      }
+      const m = (state.marketChores||[]).find(x => x.id === marketId);
+      if (m) handleRewardOnComplete({ ...m, personId: claim.personId, reward: { ...m.reward, banked: claim.banked } });
+    }
+  }
+  saveState();
+  openChoreDetail(kind, id, dateStr);
+}
+
+function handleRewardOnComplete(c) {
+  if (c.isTask || !c.reward || !c.reward.enabled) return;
+  const person = getPerson(c.personId);
+  const pName = person ? person.name : 'They';
+
+  if (c.reward.banked || c.reward.type === 'tickets') {
+    state.bankedRewards = state.bankedRewards || [];
+    state.bankedRewards.push({
+      id: uid('bank'), personId: c.personId, choreTitle: c.title,
+      reward: { ...c.reward }, date: todayStr(), redeemed: false
+    });
+    const icon = c.reward.type === 'tickets' ? 'fa-ticket' : 'fa-piggy-bank';
+    toast(`${pName} earned ${rewardLabel(c.reward)}!`, icon);
+  }
+}
+
+function editCurrentChore() {
+  if (currentChoreDetail.kind === 'single') openChoreModal(currentChoreDetail.id);
+  else if (currentChoreDetail.kind === 'recurring') openChoreModal(null, null, false, currentChoreDetail.id);
+  closeModal('choreDetailModal');
+}
+
+function deleteCurrentChore() {
+  const detail = currentChoreDetail;
+  const kind = detail ? detail.kind : 'single';
+  if (kind === 'market') {
+    const [marketId, scopeKey] = detail.id.split('::');
+    const claim = getMarketClaim(marketId, scopeKey);
+    if (!claim) { closeModal('choreDetailModal'); return; }
+    if (!confirm('Release this chore back to the marketplace?')) return;
+    archiveMarketClaimIfCompleted(marketId, scopeKey);
+    if (state.marketClaims) delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
+    closeModal('choreDetailModal');
+    saveState();
+    return;
+  }
+  const idToDelete = detail ? detail.id : document.getElementById('choreId').value;
+  if (!confirm('Delete this item?')) return;
+  if (kind === 'single') state.chores = (state.chores||[]).filter(c => c.id !== idToDelete);
+  else { state.recurring = (state.recurring||[]).filter(r => r.id !== idToDelete); }
+  closeModal('choreDetailModal'); closeModal('choreModal');
+  saveState();
+}
+
+function pokeFromChore() {
+  let personId = null;
+  if (currentChoreDetail) {
+    if (currentChoreDetail.kind === 'market') {
+      const [marketId, scopeKey] = currentChoreDetail.id.split('::');
+      const claim = getMarketClaim(marketId, scopeKey);
+      personId = claim ? claim.personId : null;
+    } else {
+      const p = (state.chores||[]).find(c=>c.id===currentChoreDetail.id) || (state.recurring||[]).find(r=>r.id===currentChoreDetail.id);
+      personId = p ? p.personId : null;
+    }
+  }
+  closeModal('choreDetailModal');
+  openPokeModal(personId);
+}
+
+/* =========================== ADD/EDIT ITEM & REWARDS =========================== */
+let choreRepeatMode = 'single';
+let rewardType = 'tickets';
+
+function setItemType(type) {
+  currentItemType = type;
+  const isChore = type === 'chore';
+  const cBtn = document.getElementById('itemTypeChoreBtn');
+  const tBtn = document.getElementById('itemTypeTaskBtn');
+  if (cBtn) cBtn.className = isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
+  if (tBtn) tBtn.className = !isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
+  
+  const titleLbl = document.getElementById('itemTitleLabel');
+  const personLbl = document.getElementById('itemPersonLabel');
+  const choreInp = document.getElementById('choreTitle');
+  if (titleLbl) titleLbl.textContent = isChore ? 'Chore Name' : 'Task Name';
+  if (personLbl) personLbl.textContent = isChore ? 'Assign To' : 'Whose Task';
+  if (choreInp) choreInp.placeholder = isChore ? 'Feed the dogs' : 'Balance checkbook';
+  
+  const rSec = document.getElementById('rewardSectionWrapper');
+  const rotOpt = document.getElementById('recurRotationOption');
+  if (rSec) rSec.classList.toggle('hidden', !isChore);
+  if (rotOpt) rotOpt.classList.toggle('hidden', !isChore);
+}
+
+function setChoreRepeatMode(mode) {
+  choreRepeatMode = mode;
+  const sBox = document.getElementById('singleDateBox');
+  const rBox = document.getElementById('recurBox');
+  if (sBox) sBox.classList.toggle('hidden', mode !== 'single');
+  if (rBox) rBox.classList.toggle('hidden', mode !== 'recurring');
+  ['repeatModeSingleBtn','repeatModeRecurBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='repeatModeSingleBtn' && mode==='single') || (bid==='repeatModeRecurBtn' && mode==='recurring');
+    el.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  });
+}
+
+function setRewardType(t) {
+  rewardType = t;
+  const tktEl = document.getElementById('rewardTickets');
+  const amtEl = document.getElementById('rewardAmount');
+  const descEl = document.getElementById('rewardDesc');
+  
+  if (tktEl) tktEl.classList.toggle('hidden', t !== 'tickets');
+  if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
+  if (descEl) descEl.classList.toggle('hidden', t !== 'other');
+  
+  ['rewardTypeTicketsBtn','rewardTypeMoneyBtn','rewardTypeOtherBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='rewardTypeTicketsBtn' && t==='tickets') 
+      || (bid==='rewardTypeMoneyBtn' && t==='money') 
+      || (bid==='rewardTypeOtherBtn' && t==='other');
+    el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  });
+}
+
+function updateRewardUI() { 
+  const chk = document.getElementById('rewardEnabled');
+  const box = document.getElementById('rewardBox');
+  if (chk && box) box.classList.toggle('hidden', !chk.checked); 
+}
+
+function updateRecurUI() {
+  const fEl = document.getElementById('recurFreq');
+  const f = fEl ? fEl.value : 'daily';
+  const wBox = document.getElementById('recurWeeklyBox');
+  const mBox = document.getElementById('recurMonthlyBox');
+  const rBox = document.getElementById('recurRotationBox');
+  const stSec = document.getElementById('subtaskSection');
+  const intBox = document.getElementById('recurIntervalBox');
+  if (wBox) wBox.classList.toggle('hidden', f !== 'weekly');
+  if (mBox) mBox.classList.toggle('hidden', f !== 'monthly');
+  if (rBox) rBox.classList.toggle('hidden', f !== 'rotation');
+  if (stSec) stSec.classList.toggle('hidden', f === 'rotation');
+  if (intBox) intBox.classList.toggle('hidden', f === 'yearly' || f === 'rotation');
+  const unitLabel = document.getElementById('recurIntervalUnitLabel');
+  if (unitLabel) unitLabel.textContent = f === 'daily' ? 'day(s)' : f === 'monthly' ? 'month(s)' : 'week(s)';
+  const bld = document.getElementById('rotationStageBuilder');
+  if (f === 'rotation' && bld && !bld.children.length) {
+    addRotationStageRow('Feed the dogs');
+    addRotationStageRow('Clean up after dinner');
+  }
+}
+
+function addRotationStageRow(title, subtasks) {
+  rotationStageCount++;
+  const rowId = uid('rs');
+  const div = document.createElement('div');
+  div.className = 'border border-gray-200 rounded-lg p-2 bg-white space-y-1.5';
+  div.dataset.stageid = rowId;
+  div.innerHTML = `<div class="flex items-center gap-1.5">
+      <i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
+      <input type="text" value="${escapeHtml(title||'')}" placeholder="Shift ${rotationStageCount} name" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm rotation-stage-title">
+      <button type="button" onclick="this.closest('[data-stageid]').remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>
+    </div>
+    <div class="pl-4">
+      <div class="text-[10px] font-bold text-gray-400 mb-1">Steps for this shift</div>
+      <div class="stage-subtask-list space-y-1"></div>
+      <button type="button" onclick="addStageSubtaskRow(this)" class="stage-add-btn text-[11px] font-bold text-purple-500 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
+    </div>`;
+  const container = document.getElementById('rotationStageBuilder');
+  if (container) {
+    container.appendChild(div);
+    (subtasks||[]).forEach(s => addStageSubtaskRow(div.querySelector('.stage-add-btn'), s.text, s.id));
+  }
+}
+
+function addStageSubtaskRow(triggerEl, text, id) {
+  const stageEl = triggerEl.closest('[data-stageid]');
+  if (!stageEl) return;
+  const list = stageEl.querySelector('.stage-subtask-list');
+  if (!list) return;
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-1.5';
+  row.dataset.subid = id || uid('rst');
+  row.innerHTML = `<input type="text" value="${escapeHtml(text||'')}" placeholder="Step" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1 text-xs stage-subtask-text-input">
+    <button type="button" onclick="this.parentElement.remove()" class="w-6 h-6 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-[10px]"></i></button>`;
+  list.appendChild(row);
+}
+
+function readRotationStagesFromBuilder() {
+  const builder = document.getElementById('rotationStageBuilder');
+  if (!builder) return [];
+  return Array.from(builder.children).map(stageEl => {
+    const title = stageEl.querySelector('.rotation-stage-title').value.trim();
+    const subtasks = Array.from(stageEl.querySelectorAll('.stage-subtask-text-input')).map(inp => ({
+      id: inp.closest('[data-subid]').dataset.subid, text: inp.value.trim()
+    })).filter(s => s.text);
+    return { title, daysOfWeek: [0,1,2,3,4,5,6], subtasks };
+  }).filter(s => s.title);
+}
+
+function buildRecurDaysGrid(selected) {
+  const grid = document.getElementById('recurDaysGrid');
+  if (!grid) return;
+  grid.innerHTML = WEEKDAY_LABELS.map((l,i) => `<button type="button" data-day="${i}" onclick="toggleRecurDay(${i})" class="recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ${((selected||[]).includes(i))?'bg-purple-600 text-white border-purple-600':'bg-white text-gray-500 border-gray-200'}">${l}</button>`).join('');
+}
+
+function toggleRecurDay(i) {
+  const btn = document.querySelector(`.recur-day-btn[data-day="${i}"]`);
+  if (!btn) return;
+  const active = btn.classList.contains('bg-purple-600');
+  btn.className = 'recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ' + (!active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+}
+function getSelectedRecurDays() { return Array.from(document.querySelectorAll('.recur-day-btn.bg-purple-600')).map(b => Number(b.dataset.day)); }
+
+/* Subtask Drag and Drop Setup */
+function makeDraggableList(container) {
+  if (!container) return;
+  let draggedEl = null;
+
+  container.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.draggable-item');
+    if (!item) return;
+    draggedEl = item;
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  container.addEventListener('dragend', (e) => {
+    const item = e.target.closest('.draggable-item');
+    if (item) item.classList.remove('dragging');
+    draggedEl = null;
+  });
+
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const afterElement = getDragAfterElement(container, e.clientY);
+    if (!draggedEl) return;
+    if (afterElement == null) {
+      container.appendChild(draggedEl);
+    } else {
+      container.insertBefore(draggedEl, afterElement);
+    }
+  });
+
+  let touchY = 0;
+  let activeTouchItem = null;
+
+  container.addEventListener('touchstart', (e) => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    activeTouchItem = handle.closest('.draggable-item');
+    if (activeTouchItem) {
+      activeTouchItem.classList.add('dragging');
+      touchY = e.touches[0].clientY;
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchmove', (e) => {
+    if (!activeTouchItem) return;
+    e.preventDefault();
+    const currentY = e.touches[0].clientY;
+    const afterElement = getDragAfterElement(container, currentY);
+    if (afterElement == null) {
+      container.appendChild(activeTouchItem);
+    } else {
+      container.insertBefore(activeTouchItem, afterElement);
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchend', () => {
+    if (activeTouchItem) {
+      activeTouchItem.classList.remove('dragging');
+      activeTouchItem = null;
+    }
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function addSubtaskRow(text, id) {
+  subtaskBuilderCount++;
+  const rowId = id || uid('st');
+  const div = document.createElement('div');
+  div.className = 'draggable-item flex items-center gap-1.5 bg-white p-1 rounded-lg border border-gray-100';
+  div.draggable = true;
+  div.dataset.subid = rowId;
+  div.innerHTML = `<span class="drag-handle text-gray-400 hover:text-purple-600"><i class="fa-solid fa-grip-lines-vertical text-xs"></i></span>
+    <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${subtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm subtask-text-input">
+    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+  const container = document.getElementById('subtaskBuilder');
+  if (container) {
+    container.appendChild(div);
+    makeDraggableList(container);
+  }
+}
+function readSubtasksFromBuilder() {
+  const builder = document.getElementById('subtaskBuilder');
+  if (!builder) return [];
+  return Array.from(builder.children).map(row => ({
+    id: row.dataset.subid, text: row.querySelector('.subtask-text-input').value.trim()
+  })).filter(s => s.text);
+}
+
+function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
+  document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Item' : 'Add Item';
+  document.getElementById('choreId').value = choreId || '';
+  document.getElementById('subtaskBuilder').innerHTML = ''; subtaskBuilderCount = 0;
+  document.getElementById('rotationStageBuilder').innerHTML = ''; rotationStageCount = 0;
+  document.getElementById('chorePerson').innerHTML = personOptions(localDeviceProfileId);
+  document.getElementById('recurStart').value = presetDate || todayStr();
+  document.getElementById('recurEnd').value = '';
+  document.getElementById('recurInterval').value = 1;
+  document.getElementById('rotationStageWeeks').value = 1;
+  buildRecurDaysGrid([]);
+  document.getElementById('choreDeleteBtn').classList.add('hidden');
+  document.getElementById('rewardEnabled').checked = false;
+  setRewardType('tickets'); updateRewardUI();
+  setItemType('chore');
+
+  if (recurringId) {
+    const r = (state.recurring||[]).find(x => x.id === recurringId);
+    if (!r) return;
+    document.getElementById('choreId').value = 'REC:'+recurringId;
+    document.getElementById('choreTitle').value = r.title;
+    document.getElementById('chorePerson').value = r.personId;
+    setItemType(r.isTask ? 'task' : 'chore');
+    setChoreRepeatMode('recurring');
+    document.getElementById('recurFreq').value = r.frequency;
+    if (r.frequency === 'rotation') {
+      (r.rotation && r.rotation.stages || []).forEach(s => addRotationStageRow(s.title, s.subtasks));
+      document.getElementById('rotationStageWeeks').value = (r.rotation && r.rotation.stageWeeks) || 1;
+    }
+    updateRecurUI();
+    buildRecurDaysGrid(r.daysOfWeek || []);
+    document.getElementById('recurDayOfMonth').value = r.dayOfMonth || 1;
+    document.getElementById('recurInterval').value = r.interval || 1;
+    document.getElementById('recurStart').value = r.startDate;
+    document.getElementById('recurEnd').value = r.endDate || '';
+    document.getElementById('recurTime').value = r.time || '';
+    (r.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
+    if (r.reward && r.reward.enabled) {
+      document.getElementById('rewardEnabled').checked = true; updateRewardUI();
+      setRewardType(r.reward.type || 'tickets');
+      document.getElementById('rewardTickets').value = r.reward.tickets || 5;
+      document.getElementById('rewardAmount').value = r.reward.amount != null ? r.reward.amount : '';
+      document.getElementById('rewardDesc').value = r.reward.description || '';
+    }
+    document.getElementById('choreNotes').value = r.notes || '';
+    document.getElementById('choreDeleteBtn').classList.remove('hidden');
+  } else if (choreId) {
+    const c = (state.chores||[]).find(x => x.id === choreId);
+    if (!c) return;
+    document.getElementById('choreTitle').value = c.title;
+    document.getElementById('chorePerson').value = c.personId;
+    setItemType(c.isTask ? 'task' : 'chore');
+    setChoreRepeatMode('single');
+    document.getElementById('choreDate').value = c.date;
+    document.getElementById('choreTime').value = c.time || '';
+    (c.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
+    if (c.reward && c.reward.enabled) {
+      document.getElementById('rewardEnabled').checked = true; updateRewardUI();
+      setRewardType(c.reward.type || 'tickets');
+      document.getElementById('rewardTickets').value = c.reward.tickets || 5;
+      document.getElementById('rewardAmount').value = c.reward.amount != null ? c.reward.amount : '';
+      document.getElementById('rewardDesc').value = c.reward.description || '';
+    }
+    document.getElementById('choreNotes').value = r.notes || '';
+    document.getElementById('choreDeleteBtn').classList.remove('hidden');
+  } else {
+    document.getElementById('choreTitle').value = '';
+    document.getElementById('choreDate').value = presetDate || selectedDate || todayStr();
+    document.getElementById('choreTime').value = '';
+    document.getElementById('choreNotes').value = '';
+    document.getElementById('rewardTickets').value = 5;
+    document.getElementById('rewardAmount').value = '';
+    document.getElementById('rewardDesc').value = '';
+    setChoreRepeatMode('single');
+    if (isKidLog && localDeviceProfileId) document.getElementById('chorePerson').value = localDeviceProfileId;
+  }
+  openModal('choreModal');
+}
+
+function saveChore() {
+  const idRaw = document.getElementById('choreId').value;
+  const title = document.getElementById('choreTitle').value.trim();
+  if (!title) { toast('Give it a name', 'fa-triangle-exclamation'); return; }
+  const personId = document.getElementById('chorePerson').value;
+  const isTask = (currentItemType === 'task');
+  const subtasks = readSubtasksFromBuilder();
+  const rewardEnabled = !isTask && document.getElementById('rewardEnabled').checked;
+  
+  const rawAmt = document.getElementById('rewardAmount').value;
+  const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
+  const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
+  const ticketsAmt = parseInt(document.getElementById('rewardTickets').value) || 5;
+
+  const reward = rewardEnabled ? {
+    enabled: true, 
+    type: rewardType,
+    tickets: rewardType === 'tickets' ? ticketsAmt : null,
+    amount: rewardType === 'money' ? parsedAmt : null,
+    description: rewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null,
+    banked: rewardType === 'tickets' // Tickets automatically bank
+  } : { enabled: false };
+  const notes = document.getElementById('choreNotes').value.trim();
+
+  state.recurring = state.recurring || [];
+  state.chores = state.chores || [];
+
+  if (choreRepeatMode === 'recurring') {
+    const isEditingRec = idRaw.startsWith('REC:');
+    const freq = document.getElementById('recurFreq').value;
+    const ruleData = {
+      title, personId, frequency: freq, isTask,
+      daysOfWeek: freq === 'weekly' ? getSelectedRecurDays() : [],
+      dayOfMonth: freq === 'monthly' ? Number(document.getElementById('recurDayOfMonth').value || 1) : null,
+      interval: (freq === 'daily' || freq === 'weekly' || freq === 'monthly') ? Math.max(1, Number(document.getElementById('recurInterval').value || 1)) : 1,
+      rotation: freq === 'rotation' ? { stages: readRotationStagesFromBuilder(), stageWeeks: Math.max(1, Number(document.getElementById('rotationStageWeeks').value || 1)) } : null,
+      startDate: document.getElementById('recurStart').value || todayStr(),
+      endDate: document.getElementById('recurEnd').value || null,
+      time: document.getElementById('recurTime').value || null,
+      subtasks, reward, notes, active: true
+    };
+    if (freq === 'rotation' && (!ruleData.rotation.stages || ruleData.rotation.stages.length < 2)) {
+      toast('Add at least 2 shifts for a rotating chore', 'fa-triangle-exclamation'); return;
+    }
+    if (isEditingRec) {
+      const rid = idRaw.split(':')[1];
+      const r = state.recurring.find(x => x.id === rid);
+      if (r) Object.assign(r, ruleData);
+    } else {
+      state.recurring.push({ id: uid('rec'), ...ruleData });
+    }
+  } else {
+    const date = document.getElementById('choreDate').value || todayStr();
+    const time = document.getElementById('choreTime').value || null;
+    if (idRaw && !idRaw.startsWith('REC:')) {
+      const c = state.chores.find(x => x.id === idRaw);
+      if (c) Object.assign(c, { title, personId, date, time, subtasks, reward, notes, isTask });
+    } else {
+      state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false, isTask });
+    }
+  }
+  closeModal('choreModal');
+  saveState();
+  toast(isTask ? 'Personal task saved' : 'Chore saved', 'fa-check');
+}
+
+/* =========================== MARKETPLACE MODAL =========================== */
+let marketRepeats = 'once';
+let marketSchedule = 'fixed';
+let marketRewardType = 'tickets';
+
+function offsetDayLabels() {
+  const base = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const shift = getWeekStartSetting() === 'monday' ? 1 : 0;
+  return Array.from({length:7}, (_,i) => base[(shift+i)%7]);
+}
+
+function setMarketRepeats(mode) {
+  marketRepeats = mode;
+  ['marketRepeatsOnceBtn','marketRepeatsWeeklyBtn','marketRepeatsMonthlyBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='marketRepeatsOnceBtn' && mode==='once') 
+      || (bid==='marketRepeatsWeeklyBtn' && mode==='weekly')
+      || (bid==='marketRepeatsMonthlyBtn' && mode==='monthly');
+    el.className = 'flex-1 rounded-lg py-2 text-[11px] font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
+  });
+
+  const helpEl = document.getElementById('marketRepeatsHelp');
+  if (helpEl) {
+    if (mode === 'once') helpEl.textContent = 'One-time: posted once, gone once claimed & done.';
+    else if (mode === 'weekly') helpEl.textContent = "Weekly Pool: reopens every week for someone new to claim — whoever claims it picks that week's date.";
+    else if (mode === 'monthly') helpEl.textContent = "Monthly Pool: reopens every month for someone new to claim — whoever claims it picks that month's date.";
+  }
+
+  const fixedBtn = document.getElementById('marketSchedFixedBtn');
+  if (fixedBtn) {
+    fixedBtn.disabled = (mode === 'weekly');
+    fixedBtn.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (mode === 'weekly' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white text-gray-500 border-gray-200');
+  }
+  if (mode === 'weekly') setMarketSchedule('flexible'); 
+  else updateMarketScheduleUI();
+}
+
+function setMarketSchedule(mode) {
+  marketSchedule = mode;
+  ['marketSchedFixedBtn','marketSchedFlexBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='marketSchedFixedBtn' && mode==='fixed') || (bid==='marketSchedFlexBtn' && mode==='flexible');
+    el.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
+  });
+  updateMarketScheduleUI();
+}
+
+function updateMarketScheduleUI() {
+  const fOnce = document.getElementById('marketFixedOnceBox');
+  const fWeek = document.getElementById('marketFixedWeeklyBox');
+  const fMonth = document.getElementById('marketFixedMonthlyBox');
+  const flOnce = document.getElementById('marketFlexOnceBox');
+  const flWeek = document.getElementById('marketFlexWeeklyBox');
+
+  if (fOnce) fOnce.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='once'));
+  if (fWeek) fWeek.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='weekly'));
+  if (fMonth) fMonth.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='monthly'));
+  if (flOnce) flOnce.classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='once'));
+  if (flWeek) flWeek.classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='weekly'));
+}
+
+function setMarketRewardType(t) {
+  marketRewardType = t;
+  const tktEl = document.getElementById('marketRewardTickets');
+  const amtEl = document.getElementById('marketRewardAmount');
+  const descEl = document.getElementById('marketRewardDesc');
+  
+  if (tktEl) tktEl.classList.toggle('hidden', t !== 'tickets');
+  if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
+  if (descEl) descEl.classList.toggle('hidden', t !== 'other');
+
+  ['marketRewardTypeTicketsBtn','marketRewardTypeMoneyBtn','marketRewardTypeOtherBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='marketRewardTypeTicketsBtn' && t==='tickets')
+      || (bid==='marketRewardTypeMoneyBtn' && t==='money')
+      || (bid==='marketRewardTypeOtherBtn' && t==='other');
+    el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  });
+}
+
+function addMarketSubtaskRow(text, id) {
+  marketSubtaskBuilderCount++;
+  const rowId = id || uid('mst');
+  const div = document.createElement('div');
+  div.className = 'draggable-item flex items-center gap-1.5 bg-white p-1 rounded-lg border border-gray-100';
+  div.draggable = true;
+  div.dataset.subid = rowId;
+  div.innerHTML = `<span class="drag-handle text-gray-400 hover:text-pink-600"><i class="fa-solid fa-grip-lines-vertical text-xs"></i></span>
+    <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${marketSubtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm market-subtask-text-input">
+    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+  const container = document.getElementById('marketSubtaskBuilder');
+  if (container) {
+    container.appendChild(div);
+    makeDraggableList(container);
+  }
+}
+
+function readMarketSubtasksFromBuilder() {
+  const builder = document.getElementById('marketSubtaskBuilder');
+  if (!builder) return [];
+  return Array.from(builder.children).map(row => ({
+    id: row.dataset.subid, text: row.querySelector('.market-subtask-text-input').value.trim()
+  })).filter(s => s.text);
+}
+
+function fillOffsetSelect(id, selected) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = offsetDayLabels().map((l,i) => `<option value="${i}" ${i===selected?'selected':''}>${l}</option>`).join('');
+}
+
+function openMarketModal(marketId) {
+  document.getElementById('marketModalTitle').textContent = marketId ? 'Edit Listing' : 'Post to Marketplace';
+  document.getElementById('marketId').value = marketId || '';
+  document.getElementById('marketSubtaskBuilder').innerHTML = ''; marketSubtaskBuilderCount = 0;
+  const daySel = document.getElementById('marketDueDayOfWeek');
+  if (daySel) daySel.innerHTML = offsetDayLabels().map((l,i)=>`<option value="${i}">${l}</option>`).join('');
+  fillOffsetSelect('marketWindowStartOffset', 0);
+  fillOffsetSelect('marketWindowEndOffset', 6);
+  document.getElementById('marketRewardEnabled').checked = false;
+  document.getElementById('marketRewardBox').classList.add('hidden');
+  setMarketRewardType('tickets');
+  document.getElementById('marketDeleteBtn').classList.toggle('hidden', !marketId);
+
+  if (marketId) {
+    const m = (state.marketChores||[]).find(x => x.id === marketId);
+    if (!m) return;
+    document.getElementById('marketTitle').value = m.title;
+    setMarketRepeats(m.repeats || 'once');
+    if (!(m.repeats === 'weekly' && m.scheduleType === 'fixed')) setMarketSchedule(m.scheduleType);
+    document.getElementById('marketDueDate').value = m.dueDate || '';
+    document.getElementById('marketDueDayOfWeek').value = m.dueDayOffset || 0;
+    document.getElementById('marketDueDayOfMonth').value = m.dueDayOfMonth || 15;
+    document.getElementById('marketWindowStart').value = m.windowStart || '';
+    document.getElementById('marketWindowEnd').value = m.windowEnd || '';
+    fillOffsetSelect('marketWindowStartOffset', m.windowStartOffset||0);
+    fillOffsetSelect('marketWindowEndOffset', m.windowEndOffset!=null?m.windowEndOffset:6);
+    (m.subtasks||[]).forEach(s => addMarketSubtaskRow(s.text, s.id));
+    if (m.reward && m.reward.enabled) {
+      document.getElementById('marketRewardEnabled').checked = true;
+      document.getElementById('marketRewardBox').classList.remove('hidden');
+      setMarketRewardType(m.reward.type || 'tickets');
+      document.getElementById('marketRewardTickets').value = m.reward.tickets || 5;
+      document.getElementById('marketRewardAmount').value = m.reward.amount != null ? m.reward.amount : '';
+      document.getElementById('marketRewardDesc').value = m.reward.description || '';
+    }
+    document.getElementById('marketNotes').value = m.notes || '';
+  } else {
+    document.getElementById('marketTitle').value = '';
+    document.getElementById('marketDueDate').value = todayStr();
+    document.getElementById('marketDueDayOfMonth').value = 15;
+    document.getElementById('marketWindowStart').value = todayStr();
+    document.getElementById('marketWindowEnd').value = todayStr();
+    document.getElementById('marketRewardTickets').value = 5;
+    document.getElementById('marketRewardAmount').value = '';
+    document.getElementById('marketRewardDesc').value = '';
+    document.getElementById('marketNotes').value = '';
+    setMarketRepeats('once'); setMarketSchedule('fixed');
+  }
+  openModal('marketModal');
+}
+
+function saveMarketChore() {
+  const id = document.getElementById('marketId').value;
+  const title = document.getElementById('marketTitle').value.trim();
+  if (!title) { toast('Give the chore a name', 'fa-triangle-exclamation'); return; }
+  const subtasks = readMarketSubtasksFromBuilder();
+  const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
+  
+  const rawAmt = document.getElementById('marketRewardAmount').value;
+  const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
+  const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
+  const ticketsAmt = parseInt(document.getElementById('marketRewardTickets').value) || 5;
+
+  const reward = rewardEnabled ? {
+    enabled: true, 
+    type: marketRewardType,
+    tickets: marketRewardType === 'tickets' ? ticketsAmt : null,
+    amount: marketRewardType === 'money' ? parsedAmt : null,
+    description: marketRewardType === 'other' ? document.getElementById('marketRewardDesc').value.trim() : null
+  } : { enabled: false };
+  const notes = document.getElementById('marketNotes').value.trim();
+
+  const data = { title, subtasks, reward, notes, repeats: marketRepeats, scheduleType: marketSchedule };
+  if (marketSchedule === 'fixed' && marketRepeats === 'once') data.dueDate = document.getElementById('marketDueDate').value || todayStr();
+  if (marketSchedule === 'fixed' && marketRepeats === 'weekly') data.dueDayOffset = Number(document.getElementById('marketDueDayOfWeek').value || 0);
+  if (marketSchedule === 'fixed' && marketRepeats === 'monthly') data.dueDayOfMonth = Number(document.getElementById('marketDueDayOfMonth').value || 15);
+  
+  if (marketSchedule === 'flexible' && marketRepeats === 'once') {
+    data.windowStart = document.getElementById('marketWindowStart').value || todayStr();
+    data.windowEnd = document.getElementById('marketWindowEnd').value || data.windowStart;
+    if (data.windowEnd < data.windowStart) { toast('Window end must be on or after the start date', 'fa-triangle-exclamation'); return; }
+  }
+  if (marketSchedule === 'flexible' && marketRepeats === 'weekly') {
+    data.windowStartOffset = Number(document.getElementById('marketWindowStartOffset').value || 0);
+    data.windowEndOffset = Number(document.getElementById('marketWindowEndOffset').value || 6);
+    if (data.windowEndOffset < data.windowStartOffset) {
+      const labels = offsetDayLabels();
+      toast(`${labels[data.windowEndOffset]} comes before ${labels[data.windowStartOffset]} in your week — pick a later end day`, 'fa-triangle-exclamation');
+      return;
+    }
+  }
+
+  state.marketChores = state.marketChores || [];
+  if (id) {
+    const m = state.marketChores.find(x => x.id === id);
+    if (m) Object.assign(m, data);
+  } else {
+    state.marketChores.push({ id: uid('mkt'), ...data });
+  }
+  closeModal('marketModal');
+  saveState(); renderMarketplace();
+  toast('Posted to the marketplace', 'fa-store');
+}
+
+function deleteMarketChore() {
+  const id = document.getElementById('marketId').value;
+  if (!id) return;
+  if (!confirm('Delete this listing? Any current claim will be removed too.')) return;
+  if (state.marketClaims) {
+    Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
+  }
+  state.marketChores = (state.marketChores||[]).filter(x => x.id !== id);
+  closeModal('marketModal');
+  saveState(); renderMarketplace();
+}
+
+function quickDeleteMarketChore(id) {
+  const m = (state.marketChores||[]).find(x => x.id === id);
+  if (!m) return;
+  if (!confirm(`Delete "${m.title}" from the marketplace? Any current claim will be removed too.`)) return;
+  if (state.marketClaims) {
+    Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
+  }
+  state.marketChores = (state.marketChores||[]).filter(x => x.id !== id);
+  saveState(); renderMarketplace();
+}
+
+/* =========================== MARKETPLACE CLAIM FLOW =========================== */
+function openMarketClaimModal(marketId, scopeKey) {
+  const m = (state.marketChores||[]).find(x => x.id === marketId);
+  if (!m) return;
+  document.getElementById('claimMarketId').value = marketId;
+  document.getElementById('claimScopeKey').value = scopeKey;
+  document.getElementById('claimChoreTitle').textContent = m.title;
+
+  const rewDisp = document.getElementById('claimRewardDisplay');
+  const bankChoiceWrapper = document.getElementById('claimBankChoiceWrapper');
+  const bankedCheckbox = document.getElementById('claimBankedCheckbox');
+
+  if (m.reward && m.reward.enabled) {
+    rewDisp.textContent = 'Reward: ' + rewardLabel(m.reward);
+    rewDisp.classList.remove('hidden');
+    bankChoiceWrapper.classList.remove('hidden');
+    bankedCheckbox.checked = m.reward.type === 'tickets'; // Automatically check for carnival tickets
+  } else {
+    rewDisp.classList.add('hidden');
+    bankChoiceWrapper.classList.add('hidden');
+    bankedCheckbox.checked = false;
+  }
+
+  document.getElementById('claimPerson').innerHTML = personOptions(localDeviceProfileId);
+  const dateBox = document.getElementById('claimDateBox');
+  if (m.scheduleType === 'flexible') {
+    dateBox.classList.remove('hidden');
+    const inst = activeMarketInstances(scopeKey==='once' ? todayStr() : (scopeKey.includes('-') && scopeKey.length===7 ? scopeKey+'-01' : scopeKey)).find(x => x.market.id === marketId);
+    const min = inst ? inst.windowStart : todayStr();
+    const max = inst ? inst.windowEnd : todayStr();
+    document.getElementById('claimDate').min = min;
+    document.getElementById('claimDate').max = max;
+    document.getElementById('claimDate').value = min;
+    document.getElementById('claimDateHint').textContent = `Open ${min} to ${max}`;
+  } else {
+    dateBox.classList.add('hidden');
+  }
+  openModal('marketClaimModal');
+}
+
+function confirmClaimMarket() {
+  const marketId = document.getElementById('claimMarketId').value;
+  const scopeKey = document.getElementById('claimScopeKey').value;
+  const personId = document.getElementById('claimPerson').value;
+  if (!personId) { toast('Pick who is claiming this', 'fa-triangle-exclamation'); return; }
+  const m = (state.marketChores||[]).find(x => x.id === marketId);
+  let dueDate = null;
+  if (m && m.scheduleType === 'flexible') {
+    dueDate = document.getElementById('claimDate').value;
+    if (!dueDate) { toast('Pick a due date', 'fa-triangle-exclamation'); return; }
+  }
+  const isBanked = document.getElementById('claimBankedCheckbox').checked;
+
+  state.marketClaims = state.marketClaims || {};
+  state.marketClaims[marketClaimKey(marketId, scopeKey)] = { 
+    personId, 
+    dueDate, 
+    banked: isBanked,
+    claimedAt: new Date().toISOString(), 
+    completed:false, 
+    subtaskState:{} 
+  };
+  closeModal('marketClaimModal');
+  saveState(); renderMarketplace();
+  toast((getPerson(personId)||{}).name+' claimed it!', 'fa-hand');
+}
+
+function unclaimMarket(marketId, scopeKey) {
+  if (!confirm('Release this chore back to the marketplace?')) return;
+  archiveMarketClaimIfCompleted(marketId, scopeKey);
+  if (state.marketClaims) delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
+  saveState(); renderMarketplace();
+}
+
+/* =========================== MARKETPLACE TAB RENDER =========================== */
+function marketScheduleLabel(x) {
+  if (x.market.scheduleType === 'fixed') {
+    if (x.market.repeats === 'weekly') return `Due every ${offsetDayLabels()[x.market.dueDayOffset||0]}`;
+    if (x.market.repeats === 'monthly') return `Due on day ${x.market.dueDayOfMonth || 15} each month`;
+    return `Due ${x.dueDate}`;
+  }
+  if (x.market.repeats === 'weekly') {
+    return `Open ${offsetDayLabels()[x.market.windowStartOffset||0]}–${offsetDayLabels()[x.market.windowEndOffset!=null?x.market.windowEndOffset:6]}, at their leisure`;
+  }
+  if (x.market.repeats === 'monthly') {
+    return `Open any day this month, at their leisure`;
+  }
+  return `Open ${x.windowStart} to ${x.windowEnd}, at their leisure`;
+}
+
+function marketListingCardHtml(x, claimedView) {
+  const claim = x.claim;
+  const p = claim ? getPerson(claim.personId) : null;
+  let poolBadge = '';
+  if (x.market.repeats === 'weekly') poolBadge = '<span class="text-[10px] font-bold text-pink-500 bg-pink-100 rounded-full px-1.5 py-0.5">Weekly Pool</span>';
+  else if (x.market.repeats === 'monthly') poolBadge = '<span class="text-[10px] font-bold text-purple-600 bg-purple-100 rounded-full px-1.5 py-0.5">Monthly Pool</span>';
+
+  return `<div class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 ${claimedView?'bg-gray-50':'bg-gradient-to-r from-amber-50 to-pink-50 border border-pink-100'}">
+    <div class="min-w-0 flex-1">
+      <div class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(x.market.title)}</div>
+      <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+        ${poolBadge}
+        <span class="text-[10px] text-gray-500">${marketScheduleLabel(x)}</span>
+        ${x.market.reward && x.market.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(x.market.reward)}</span>` : ''}
+        ${claimedView && p ? personChip(p.id) : ''}
+        ${claimedView && claim && claim.completed ? '<span class="text-[10px] font-bold text-emerald-500"><i class="fa-solid fa-circle-check"></i> Done</span>' : ''}
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5 flex-shrink-0">
+      ${claimedView
+        ? `<button onclick="unclaimMarket('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-gray-200 text-gray-600 rounded-lg px-2 py-1.5">Release</button>`
+        : `<button onclick="openMarketClaimModal('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-pink-500 text-white rounded-lg px-2.5 py-1.5"><i class="fa-solid fa-hand"></i> Claim</button>`}
+      ${!claimedView ? `<button onclick="openMarketModal('${x.market.id}')" class="admin-only w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-pen text-xs"></i></button>
+      <button onclick="quickDeleteMarketChore('${x.market.id}')" class="admin-only w-7 h-7 flex-shrink-0 rounded-lg bg-red-50 text-red-400"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderMarketplace() {
+  const instances = activeMarketInstances();
+  const open = instances.filter(x => !x.claim);
+  const claimed = instances.filter(x => x.claim);
+
+  const openList = document.getElementById('marketOpenList');
+  if (openList) {
+    openList.innerHTML = open.length
+      ? open.map(x => marketListingCardHtml(x, false)).join('')
+      : '<div class="text-xs text-gray-400 text-center py-3">Nothing up for grabs right now 🎉</div>';
+  }
+  const claimedList = document.getElementById('marketClaimedList');
+  if (claimedList) {
+    claimedList.innerHTML = claimed.length
+      ? claimed.map(x => marketListingCardHtml(x, true)).join('')
+      : '<div class="text-xs text-gray-400 text-center py-3">No claims yet in this active cycle.</div>';
+  }
+
+  const wQuota = Number((state.settings && state.settings.weeklyQuota) || 0);
+  const mQuota = Number((state.settings && state.settings.monthlyQuota) || 0);
+  const quotaCards = document.getElementById('marketQuotaCards');
+  if (quotaCards) {
+    quotaCards.innerHTML = (state.people||[]).map(p => {
+      const wn = weeklyClaimCountForPerson(p.id);
+      const mn = monthlyClaimCountForPerson(p.id);
+      const wMet = wQuota > 0 && wn >= wQuota;
+      const mMet = mQuota > 0 && mn >= mQuota;
+
+      return `<div class="rounded-xl px-2.5 py-2 flex flex-col justify-between" style="background:${p.color||'#8b5cf6'}15">
+        <div class="flex items-center gap-1.5 min-w-0 mb-1">
+          <span class="person-dot" style="background:${p.color||'#8b5cf6'}"></span>
+          <span class="text-xs font-bold truncate" style="color:${p.color||'#8b5cf6'}">${escapeHtml(p.name)}</span>
+        </div>
+        <div class="flex items-center justify-between text-[10px] font-mono font-bold text-gray-600 gap-1">
+          <span class="${wMet?'text-emerald-600 font-bold':''}">W: ${wn}${wQuota?'/'+wQuota:''}</span>
+          <span class="${mMet?'text-emerald-600 font-bold':''}">M: ${mn}${mQuota?'/'+mQuota:''}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const banner = document.getElementById('marketBannerCount');
+  if (banner) banner.textContent = open.length + (open.length===1?' open':' open');
+}
+
+/* =========================== SETTINGS & QUOTAS =========================== */
+function setWeeklyQuota(val) { 
+  state.settings = state.settings || {}; 
+  state.settings.weeklyQuota = Math.max(0, Number(val||0)); 
+  saveState(); 
+}
+
+function setMonthlyQuota(val) { 
+  state.settings = state.settings || {}; 
+  state.settings.monthlyQuota = Math.max(0, Number(val||0)); 
+  saveState(); 
+}
+
+function setWeekStart(val) { 
+  state.settings = state.settings || {}; 
+  state.settings.weekStart = val; 
+  saveState(); 
+  toast('Calendar updated', 'fa-calendar-days'); 
+}
+
+function saveVapidKey(val) {
+  state.settings = state.settings || {};
+  state.settings.vapidKey = val.trim();
+  saveState();
+  toast('VAPID key saved', 'fa-key');
 }
 
 /* =========================== CARNIVAL TICKET & PRIZE BOOTH SYSTEM =========================== */
 function getPersonTicketBalance(personId) {
   const earned = (state.bankedRewards || [])
-    .filter(b => b.personId === personId && b.reward && (b.reward.type === 'tickets' || b.payoutChoice === 'tickets'))
-    .reduce((sum, b) => {
-      if (b.reward && b.reward.type === 'tickets') return sum + parseInt(b.reward.tickets || b.reward.amount || 0);
-      if (b.reward && b.reward.type === 'money') return sum + cashToTickets(b.reward.amount);
-      return sum;
-    }, 0);
+    .filter(b => b.personId === personId && b.reward && b.reward.type === 'tickets')
+    .reduce((sum, b) => sum + parseInt(b.reward.tickets || b.reward.amount || 0), 0);
   
   const spent = (state.bankedRewards || [])
     .filter(b => b.personId === personId && b.isPrizeRedemption)
@@ -1466,6 +2642,7 @@ function deleteCarnivalPrize() {
   saveState();
 }
 
+/* Explicit Confirmation with Target Dropdown */
 function promptRedeemPrize(prizeId) {
   const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
   if (!prize) return;
@@ -1492,11 +2669,11 @@ function updateRedeemModalEligible() {
   const btn = document.getElementById('confirmRedeemBtn');
 
   if (balance >= prize.cost) {
-    statusNotice.innerHTML = `<span class="text-emerald-600 font-bold">Wallet: 🎟️ ${balance} tickets (Eligible!)</span>`;
+    statusNotice.innerHTML = `<span class="text-emerald-600">Wallet: 🎟️ ${balance} tickets (Eligible!)</span>`;
     btn.disabled = false;
     btn.className = 'w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2.5 font-bold text-sm';
   } else {
-    statusNotice.innerHTML = `<span class="text-red-500 font-bold">Wallet: 🎟️ ${balance} tickets (Need ${prize.cost - balance} more)</span>`;
+    statusNotice.innerHTML = `<span class="text-red-500">Wallet: 🎟️ ${balance} tickets (Need ${prize.cost - balance} more)</span>`;
     btn.disabled = true;
     btn.className = 'w-full bg-gray-300 text-gray-500 rounded-xl py-2.5 font-bold text-sm cursor-not-allowed';
   }
@@ -1531,7 +2708,7 @@ function confirmPrizeRedemption() {
   toast(`🎉 ${person.name} redeemed ${prize.name}!`, 'fa-gift');
 }
 
-/* =========================== CHORE LOG & APPROVAL RENDERING =========================== */
+/* =========================== CHORE LOG TAB =========================== */
 function renderLog() {
   const filterSel = document.getElementById('logPersonFilter');
   if (filterSel && filterSel.options.length <= 1) {
@@ -1541,48 +2718,11 @@ function renderLog() {
   const statusFilter = document.getElementById('logStatusFilter') ? document.getElementById('logStatusFilter').value : 'all';
   const rangeFilter = document.getElementById('logRangeFilter') ? document.getElementById('logRangeFilter').value : 'next7';
 
-  // 1. Pending Approvals Queue
-  const pendingSection = document.getElementById('pendingReviewSection');
-  const pendingList = document.getElementById('pendingReviewList');
-  const pendingItems = (state.chores || []).filter(c => c.pendingApproval);
-  
-  if (pendingSection && pendingList) {
-    const isParent = isCurrentAdmin();
-    if (pendingItems.length && isParent) {
-      pendingSection.classList.remove('hidden');
-      document.getElementById('pendingCountBadge').textContent = pendingItems.length;
-      pendingList.innerHTML = pendingItems.map(c => `
-        <div class="bg-white rounded-xl p-2.5 border border-amber-300 shadow-xs flex items-center justify-between">
-          <div class="min-w-0 flex-1">
-            <div class="text-xs font-bold text-gray-900 truncate">${escapeHtml(c.title)}</div>
-            <div class="flex items-center gap-1 mt-0.5">${personChip(c.personId)} · <span class="text-[10px] font-bold text-purple-700">${rewardLabel(c.reward)}</span></div>
-          </div>
-          <button onclick="openParentApprovalModal('${c.id}')" class="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2.5 py-1.5 flex items-center gap-1 shadow-xs">
-            <i class="fa-solid fa-stamp"></i> Review
-          </button>
-        </div>
-      `).join('');
-    } else {
-      pendingSection.classList.add('hidden');
-    }
-  }
-
-  // Update Header Banner
-  const appBanner = document.getElementById('parentApprovalBanner');
-  if (appBanner) {
-    if (pendingItems.length && isCurrentAdmin()) {
-      appBanner.classList.remove('hidden');
-      document.getElementById('parentApprovalCountBadge').textContent = pendingItems.length;
-    } else {
-      appBanner.classList.add('hidden');
-    }
-  }
-
-  // 2. Full Items List
   const items = [];
   const today = todayStr();
 
-  (state.chores || []).filter(c => !c.isTask && !c.pendingApproval).forEach(c => {
+  // 1. Single Chores
+  (state.chores || []).filter(c => !c.isTask).forEach(c => {
     items.push({
       kind: 'single',
       id: c.id,
@@ -1596,6 +2736,7 @@ function renderLog() {
     });
   });
   
+  // 2. Recurring Chores across 45-day window
   for (let i = -45; i <= 45; i++) {
     const curDate = new Date();
     curDate.setDate(curDate.getDate() + i);
@@ -1605,6 +2746,7 @@ function renderLog() {
     });
   }
 
+  // 3. Market Chores
   activeMarketInstances().forEach(x => {
     if (x.claim) {
       items.push({
@@ -1626,9 +2768,16 @@ function renderLog() {
   });
 
   let filtered = items;
-  if (personFilter !== 'all') filtered = filtered.filter(i => i.personId === personFilter);
-  if (statusFilter === 'completed') filtered = filtered.filter(i => i.completed);
-  else if (statusFilter === 'pending') filtered = filtered.filter(i => !i.completed);
+
+  if (personFilter !== 'all') {
+    filtered = filtered.filter(i => i.personId === personFilter);
+  }
+
+  if (statusFilter === 'completed') {
+    filtered = filtered.filter(i => i.completed);
+  } else if (statusFilter === 'pending') {
+    filtered = filtered.filter(i => !i.completed);
+  }
 
   if (rangeFilter === 'past7') {
     const p7 = new Date(); p7.setDate(p7.getDate() - 7);
@@ -1656,7 +2805,7 @@ function renderLog() {
   }
 }
 
-/* =========================== STATS & PRIZE BOOTH TAB =========================== */
+/* =========================== STATS TAB RENDERING =========================== */
 function periodRange(period) {
   const now = new Date();
   let start, end = new Date(now);
@@ -1669,7 +2818,7 @@ function periodRange(period) {
 
 function completedChoresInRange(start, end) {
   const results = [];
-  (state.chores||[]).filter(c => !c.isTask && !c.pendingApproval).forEach(c => {
+  (state.chores||[]).filter(c => !c.isTask).forEach(c => {
     if (c.completed) {
       const compDate = (c.completedAt ? c.completedAt.slice(0,10) : c.date);
       if (compDate >= start && compDate <= end) {
@@ -1712,17 +2861,13 @@ function renderStats() {
   if (tktCards) {
     tktCards.innerHTML = (state.people || []).map(p => {
       const balance = getPersonTicketBalance(p.id);
-      const cashVal = (balance * 0.50).toFixed(2);
       return `<div class="rounded-xl px-2.5 py-2 flex items-center justify-between bg-white border border-amber-100 shadow-xs">
         <div class="flex items-center gap-1.5 min-w-0">
           <span class="person-dot" style="background:${p.color||'#8b5cf6'}"></span>
           <span class="text-xs font-bold truncate" style="color:${p.color||'#8b5cf6'}">${escapeHtml(p.name)}</span>
         </div>
-        <div class="text-right">
-          <div class="text-xs font-mono font-extrabold text-amber-600 flex items-center justify-end gap-1">
-            <span>🎟️</span><span>${balance}</span>
-          </div>
-          <div class="text-[9px] text-gray-400 font-mono">($${cashVal})</div>
+        <div class="text-xs font-mono font-extrabold text-amber-600 flex items-center gap-1">
+          <span>🎟️</span><span>${balance}</span>
         </div>
       </div>`;
     }).join('');
@@ -1738,7 +2883,6 @@ function renderStats() {
           <div class="text-xs font-bold text-gray-800 truncate">${escapeHtml(prz.name)}</div>
           <div class="text-[10px] font-bold text-amber-600 flex items-center gap-1 mt-0.5">
             <span>🎟️ ${prz.cost} Tickets</span>
-            <span class="text-gray-400 font-normal">($${(prz.cost * 0.50).toFixed(2)})</span>
           </div>
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
