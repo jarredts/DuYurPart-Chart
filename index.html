@@ -171,6 +171,7 @@
             <i class="fa-solid fa-wand-magic-sparkles"></i> Log Unlisted Chore
           </button>
           <button onclick="openChoreModal(null, selectedDate)" class="admin-only text-xs font-bold text-purple-600 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+          <button onclick="openPersonalTaskModal(selectedDate)" class="kid-only text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 px-2 py-1 rounded-lg flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add Task</button>
         </div>
       </div>
       <div id="selectedDayList" class="space-y-2"></div>
@@ -185,6 +186,7 @@
           <option value="all">Everyone</option>
         </select>
         <button onclick="openChoreModal()" class="admin-only text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+        <button onclick="openPersonalTaskModal(todayStr())" class="kid-only text-xs font-bold bg-purple-600 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add Task</button>
       </div>
       
       <div class="grid grid-cols-2 gap-2 mb-2">
@@ -505,7 +507,7 @@
       <button onclick="closeModal('choreModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
-    <div class="flex gap-2 bg-gray-100 p-1 rounded-xl mb-3">
+    <div class="flex gap-2 bg-gray-100 p-1 rounded-xl mb-3 admin-only">
       <button type="button" id="itemTypeChoreBtn" onclick="setItemType('chore')" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700">Family Chore</button>
       <button type="button" id="itemTypeTaskBtn" onclick="setItemType('task')" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500">Personal Task</button>
     </div>
@@ -521,7 +523,7 @@
         <select id="chorePerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
       </div>
 
-      <div class="flex gap-2">
+      <div class="flex gap-2 admin-only" id="repeatModeToggleWrapper">
         <button type="button" onclick="setChoreRepeatMode('single')" id="repeatModeSingleBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Single</button>
         <button type="button" onclick="setChoreRepeatMode('recurring')" id="repeatModeRecurBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Recurring</button>
       </div>
@@ -600,7 +602,7 @@
         <button type="button" onclick="addSubtaskRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add step / category</button>
       </div>
 
-      <div id="rewardSectionWrapper" class="bg-purple-50 rounded-lg p-2.5">
+      <div id="rewardSectionWrapper" class="bg-purple-50 rounded-lg p-2.5 admin-only">
         <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
           <input type="checkbox" id="rewardEnabled" onchange="updateRewardUI()" class="chk"> Assign a Reward
         </label>
@@ -1123,6 +1125,9 @@ function updateRoleUI() {
   document.querySelectorAll('.admin-only').forEach(el => {
     el.classList.toggle('hidden', !admin);
   });
+  document.querySelectorAll('.kid-only').forEach(el => {
+    el.classList.toggle('hidden', admin);
+  });
   const rBadge = document.getElementById('roleBadge');
   if (rBadge) {
     rBadge.textContent = admin ? 'Admin' : 'Member';
@@ -1547,7 +1552,12 @@ function getChoresForDate(dateStr) {
       return calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__'));
     });
   } else {
-    items = items.filter(c => !c.isTask);
+    items = items.filter(c => {
+      if (c.isTask) {
+        return c.personId === localDeviceProfileId || isCurrentAdmin();
+      }
+      return true;
+    });
   }
   return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
@@ -2618,6 +2628,16 @@ function setRewardType(t) {
   });
 }
 
+function openPersonalTaskModal(presetDate) {
+  openChoreModal(null, presetDate);
+  setItemType('task');
+  setChoreRepeatMode('single');
+  document.getElementById('chorePerson').value = localDeviceProfileId || (state.people[0] ? state.people[0].id : '');
+  document.getElementById('repeatModeToggleWrapper').classList.add('hidden');
+  document.getElementById('rewardSectionWrapper').classList.add('hidden');
+  document.getElementById('choreModalTitle').textContent = 'Add Personal Task';
+}
+
 function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Item' : 'Add Item';
   document.getElementById('choreId').value = choreId || '';
@@ -2634,6 +2654,9 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   setRewardType('tickets');
   updateRewardUI();
   setItemType('chore');
+
+  document.getElementById('repeatModeToggleWrapper').classList.remove('hidden');
+  document.getElementById('rewardSectionWrapper').classList.remove('hidden');
 
   if (recurringId) {
     const r = (state.recurring||[]).find(x => x.id === recurringId);
@@ -2688,6 +2711,14 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     document.getElementById('rewardAmount').value = '0.50';
     setChoreRepeatMode('single');
   }
+
+  if (!isCurrentAdmin()) {
+    setItemType('task');
+    document.getElementById('chorePerson').value = localDeviceProfileId;
+    document.getElementById('repeatModeToggleWrapper').classList.add('hidden');
+    document.getElementById('rewardSectionWrapper').classList.add('hidden');
+  }
+
   openModal('choreModal');
 }
 
@@ -2696,7 +2727,7 @@ function saveChore() {
   const title = document.getElementById('choreTitle').value.trim();
   if (!title) { toast('Give it a name', 'fa-triangle-exclamation'); return; }
   const personId = document.getElementById('chorePerson').value;
-  const isTask = (currentItemType === 'task');
+  const isTask = !isCurrentAdmin() ? true : (currentItemType === 'task');
   const subtasks = readSubtasksFromBuilder();
   const rewardEnabled = !isTask && document.getElementById('rewardEnabled').checked;
 
@@ -2712,7 +2743,7 @@ function saveChore() {
   state.recurring = state.recurring || [];
   state.chores = state.chores || [];
 
-  if (choreRepeatMode === 'recurring') {
+  if (choreRepeatMode === 'recurring' && isCurrentAdmin()) {
     const isEditingRec = idRaw.startsWith('REC:');
     const freq = document.getElementById('recurFreq').value;
     const ruleData = {
@@ -3266,14 +3297,18 @@ function renderLog() {
   const items = [];
   const today = todayStr();
 
-  (state.chores || []).filter(c => !c.isTask && !c.deleted).forEach(c => {
-    items.push({ kind: 'single', id: c.id, dateStr: c.date || today, title: c.title, personId: c.personId, time: c.time, completed: !!c.completed, subtasks: c.subtasks || [], reward: c.reward });
+  (state.chores || []).filter(c => !c.deleted).forEach(c => {
+    if (c.isTask && !isCurrentAdmin() && c.personId !== localDeviceProfileId) return;
+    items.push({ kind: 'single', id: c.id, dateStr: c.date || today, title: c.title, personId: c.personId, time: c.time, completed: !!c.completed, subtasks: c.subtasks || [], reward: c.reward, isTask: c.isTask });
   });
   
   for (let i = -45; i <= 45; i++) {
     const curDate = new Date(); curDate.setDate(curDate.getDate() + i);
     const ds = formatLocalDate(curDate);
-    getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => items.push(o));
+    getRecurringForDate(ds).forEach(o => {
+      if (o.isTask && !isCurrentAdmin() && o.personId !== localDeviceProfileId) return;
+      items.push(o);
+    });
   }
 
   let filtered = items;
@@ -3301,8 +3336,9 @@ function periodRange(period) {
 
 function completedChoresInRange(start, end) {
   const results = [];
-  (state.chores||[]).filter(c => !c.isTask).forEach(c => {
+  (state.chores||[]).forEach(c => {
     if (c.completed) {
+      if (c.isTask && !isCurrentAdmin() && c.personId !== localDeviceProfileId) return;
       const compDate = (c.completedAt ? c.completedAt.slice(0,10) : c.date);
       if (compDate >= start && compDate <= end) results.push({ ...c, dateStr: compDate });
     }
@@ -3314,7 +3350,12 @@ function completedChoresInRange(start, end) {
 
   for (let d = parseLocalDate(start); d <= parseLocalDate(end); d.setDate(d.getDate()+1)) {
     const ds = formatLocalDate(d);
-    getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => { if (o.completed) results.push(o); });
+    getRecurringForDate(ds).forEach(o => { 
+      if (o.completed) {
+        if (o.isTask && !isCurrentAdmin() && o.personId !== localDeviceProfileId) return;
+        results.push(o);
+      }
+    });
   }
 
   allMarketClaimEntries().forEach(x => {
@@ -3868,7 +3909,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
       reg.update().catch(() => {});
-    }).catch(err => console.error('SW registration registration failed', err));
+    }).catch(err => console.error('SW registration failed', err));
   });
 }
 </script>
