@@ -149,14 +149,14 @@
       <!-- Filter controls for Chore Log -->
       <div class="grid grid-cols-2 gap-2 mb-2">
         <select id="logStatusFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
-          <option value="all">All Statuses</option>
-          <option value="completed">Completed Only</option>
-          <option value="pending">Pending Only</option>
+          <option value="all">All</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
         </select>
         <select id="logRangeFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
           <option value="all">All Time</option>
           <option value="past7">Past 7 Days</option>
-          <option value="next7">Next 7 Days</option>
+          <option value="next7" selected>Next 7 Days</option>
           <option value="thisMonth">This Month</option>
         </select>
       </div>
@@ -333,9 +333,343 @@
 
         <div id="recurRotationBox" class="hidden">
           <label class="text-xs font-bold text-gray-500">Rotating shifts</label>
+        <div id="rotationStageBuilder" class="space-y-1.5 mt-1"></div>
+          <button type="button" onclick="addRotationStageRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add shift</button>
+          <div class="mt-2">
+            <label class="text-xs font-bold text-gray-500">Weeks per shift</label>
+            <input id="rotationStageWeeks" type="number" min="1" max="12" value="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-bold text-gray-500">Starts</label>
+            <input id="recurStart" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-500">Time</label>
+            <input id="recurTime" type="time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">Ends <span class="font-normal">(optional)</span></label>
+          <input id="recurEnd" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        </div>
+      </div>
+
+      <div id="subtaskSection">
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
+        </div>
+        <div id="subtaskBuilder" class="space-y-1.5 mt-1"></div>
+        <button type="button" onclick="addSubtaskRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
+      </div>
+
+      <div id="rewardSectionWrapper" class="bg-purple-50 rounded-lg p-2.5">
+        <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
+          <input type="checkbox" id="rewardEnabled" onchange="updateRewardUI()" class="chk"> Assign a Reward
+        </label>
+        <div id="rewardBox" class="hidden mt-2 space-y-2">
+          <div class="flex gap-2">
+            <button type="button" onclick="setRewardType('money')" id="rewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
+            <button type="button" onclick="setRewardType('other')" id="rewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
+          </div>
+          <input id="rewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <input id="rewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
+          <label class="flex items-center gap-2 text-xs font-semibold text-gray-600">
+            <input type="checkbox" id="rewardBanked" class="chk"> Bank it (extra, above normal allowance)
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-gray-500">Notes</label>
+        <textarea id="choreNotes" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveChore()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
+      <button id="choreDeleteBtn" onclick="deleteCurrentChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day List Modal -->
+<div id="dayListModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-2">
+      <div id="dayListTitle" class="text-lg font-bold"></div>
+      <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="dayListItems" class="space-y-2 mb-3"></div>
+    <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Item This Day</button>
+  </div>
+</div>
+
+<!-- Profiles / Settings Modal -->
+<div id="profilesModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div>
+        <div class="text-lg font-bold">Profiles & Settings</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.1.2</div>
+      </div>
+      <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="font-bold text-sm mb-2">Family Members</div>
+    <div id="peopleList" class="space-y-2 mb-2"></div>
+    <button onclick="addPersonRow()" class="text-xs font-bold text-purple-600 mb-4"><i class="fa-solid fa-plus"></i> Add person</button>
+
+    <div class="font-bold text-sm mb-2">This Device & Push Notifications</div>
+    <div class="mb-4 space-y-2">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Whose phone is this?</label>
+        <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
+        <div class="text-[10px] text-gray-400 mt-0.5">Saved locally on this device only.</div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-gray-500">Firebase VAPID Public Key</label>
+        <input id="fcmVapidKeyInput" type="text" placeholder="Paste FCM Web Push Certificate Key here" onchange="saveVapidKey(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mt-1">
+      </div>
+      
+      <button onclick="requestPushNotificationPermission()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 text-white shadow-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-bell"></i> Enable Phone Push Notifications
+      </button>
+      <div id="notifPermStatus" class="text-[10px] text-gray-500"></div>
+    </div>
+
+    <div class="font-bold text-sm mb-2">Calendar</div>
+    <div class="mb-4">
+      <label class="text-xs font-bold text-gray-500">Week starts on</label>
+      <select id="weekStartSelect" onchange="setWeekStart(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-2">
+        <option value="sunday">Sunday</option>
+        <option value="monday">Monday</option>
+      </select>
+      <label class="text-xs font-bold text-gray-500">Weekly marketplace quota</label>
+      <input id="weeklyQuotaInput" type="number" min="0" max="14" onchange="setWeeklyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+    </div>
+
+    <div class="font-bold text-sm mb-2">Dark Mode</div>
+    <button onclick="toggleDarkMode()" class="w-full mb-4 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Toggle Dark Mode</button>
+
+    <!-- App Update Center -->
+    <div class="font-bold text-sm mb-2">App Updates</div>
+    <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
+      <div class="flex justify-between items-center">
+        <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.1.2</span>
+      </div>
+      <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
+      </button>
+      <div class="text-[10px] text-gray-400 leading-tight">Pulls the newest app version directly from the web server without needing to uninstall.</div>
+    </div>
+
+    <div class="font-bold text-sm mb-2">Cloud Sync</div>
+    <div class="text-[11px] text-gray-500 mb-2">Sync across devices using Firebase Firestore.</div>
+    <textarea id="syncConfigInput" rows="4" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
+    <div class="flex gap-2 mb-2">
+      <button onclick="enableCloudSync()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-purple-600 text-white">Enable Sync</button>
+      <button onclick="manualSyncNow()" class="rounded-lg py-2 px-3 text-xs font-bold bg-gray-100 text-gray-700"><i class="fa-solid fa-rotate"></i></button>
+    </div>
+    <div id="syncStatusLine" class="text-[11px] text-gray-500 mb-4"></div>
+
+    <div class="font-bold text-sm mb-2">Data</div>
+    <div class="flex gap-2">
+      <button onclick="exportDataJSON()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Export</button>
+      <label class="flex-1 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700 text-center cursor-pointer">
+        Import <input type="file" accept="application/json" onchange="importDataJSON(event)" class="hidden">
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- Yearly Chore Modal -->
+<div id="yearlyChoreModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold">12 Yearly Chores</div>
+      <button onclick="closeModal('yearlyChoreModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="yearlyChoreEditor" class="space-y-3"></div>
+  </div>
+</div>
+
+<!-- Honey-Do Add/Edit Modal -->
+<div id="honeyDoModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold">Honey-Do Item</div>
+      <button onclick="closeModal('honeyDoModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="honeyId">
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Task</label>
+        <input id="honeyTitle" type="text" placeholder="Reseal the deck" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500">Assign To</label>
+        <select id="honeyPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"><option value="">Anyone / Whole family</option></select>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500">Priority</label>
+        <select id="honeyPriority" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          <option value="normal">Normal</option>
+          <option value="high">High</option>
+          <option value="low">Whenever</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500">Notes</label>
+        <textarea id="honeyNotes" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveHoneyDo()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
+      <button id="honeyDeleteBtn" onclick="deleteHoneyDo()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Market Listing Add/Edit Modal -->
+<div id="marketModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div id="marketModalTitle" class="text-lg font-bold">Post to Marketplace</div>
+      <button onclick="closeModal('marketModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="marketId">
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Chore Name</label>
+        <input id="marketTitle" type="text" placeholder="Clean downstairs bathroom" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" onclick="setMarketRepeats('once')" id="marketRepeatsOnceBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">One-time</button>
+        <button type="button" onclick="setMarketRepeats('weekly')" id="marketRepeatsWeeklyBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Weekly Pool</button>
+      </div>
+      <div class="text-[10px] text-gray-400" id="marketRepeatsHelp">One-time: posted once, gone once claimed & done.</div>
+
+      <div class="flex gap-2">
+        <button type="button" onclick="setMarketSchedule('fixed')" id="marketSchedFixedBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Specific Due Date</button>
+        <button type="button" onclick="setMarketSchedule('flexible')" id="marketSchedFlexBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Flexible Window</button>
+      </div>
+
+      <div id="marketFixedOnceBox" class="hidden">
+        <label class="text-xs font-bold text-gray-500">Due Date</label>
+        <input id="marketDueDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      </div>
+      <div id="marketFixedWeeklyBox" class="hidden">
+        <label class="text-xs font-bold text-gray-500">Due Day (every week)</label>
+        <select id="marketDueDayOfWeek" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
+      </div>
+      <div id="marketFlexOnceBox" class="hidden grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs font-bold text-gray-500">Window Start</label>
+          <input id="marketWindowStart" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">Window End</label>
+          <input id="marketWindowEnd" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        </div>
+      </div>
+      <div id="marketFlexWeeklyBox" class="hidden">
+        <label class="text-xs font-bold text-gray-500">Open Window (within each week)</label>
+        <div class="grid grid-cols-2 gap-2 mt-1">
+          <select id="marketWindowStartOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
+          <select id="marketWindowEndOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
+        </div>
+        <div id="marketSubtaskBuilder" class="space-y-1.5 mt-1"></div>
+        <button type="button" onclick="addMarketSubtaskRow()" class="text-xs font-bold text-pink-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
+      </div>
+
+      <div class="bg-purple-50 rounded-lg p-2.5">
+        <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
+          <input type="checkbox" id="marketRewardEnabled" onchange="document.getElementById('marketRewardBox').classList.toggle('hidden', !this.checked)" class="chk"> Assign a Reward
+        </label>
+        <div id="marketRewardBox" class="hidden mt-2 space-y-2">
+          <div class="flex gap-2">
+            <button type="button" onclick="setMarketRewardType('money')" id="marketRewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
+            <button type="button" onclick="setMarketRewardType('other')" id="marketRewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
+          </div>
+          <input id="marketRewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <input id="marketRewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-gray-500">Notes</label>
+        <textarea id="marketNotes" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveMarketChore()" class="flex-1 bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm">Save Listing</button>
+      <button id="marketDeleteBtn" onclick="deleteMarketChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Market Claim Modal -->
+<div id="marketClaimModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold">Claim This Chore</div>
+      <button onclick="closeModal('marketClaimModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="claimMarketId"><input type="hidden" id="claimScopeKey">
+    <div id="claimChoreTitle" class="text-sm font-bold text-gray-800 mb-3"></div>
+    <label class="text-xs font-bold text-gray-500">Who's claiming it?</label>
+    <select id="claimPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3"></select>
+    <div id="claimDateBox" class="hidden mb-3">
+      <label class="text-xs font-bold text-gray-500">Pick a due date</label>
+      <input id="claimDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+      <div id="claimDateHint" class="text-[10px] text-gray-400 mt-1"></div>
+    </div>
+    <button onclick="confirmClaimMarket()" class="w-full bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm"><i class="fa-solid fa-hand"></i> Claim It</button>
+  </div>
+</div>
+
+<!-- Stats Person Detail Modal -->
+<div id="statsPersonModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[80vh] overflow-y-auto fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div id="statsPersonModalTitle" class="text-lg font-bold"></div>
+    <button onclick="closeModal('statsPersonModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="statsPersonModalList" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- Poke Modal -->
+<div id="pokeModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold">Send a Poke</div>
+      <button onclick="closeModal('pokeModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <label class="text-xs font-bold text-gray-500">To</label>
+    <select id="pokeTarget" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3"></select>
+    <label class="text-xs font-bold text-gray-500">Message</label>
+    <input id="pokeMessage" type="text" value="Hey! Don't forget your chores 👀" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3">
+    <button onclick="sendPoke()" class="w-full bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm"><i class="fa-solid fa-bell"></i> Send Poke</button>
+    <div id="pokeHistory" class="mt-4 space-y-1.5"></div>
+  </div>
+</div>
+
+<div id="toastBox" class="fixed top-3 left-1/2 -translate-x-1/2 z-[60] space-y-2 w-full max-w-xs px-3"></div>
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.1.1";
+const APP_VERSION = "v6.1.2";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -401,7 +735,7 @@ let firestoreDb = null, firebaseApp = null, fcmMessaging = null, unsubscribeSync
 
 function todayStr() { return formatLocalDate(new Date()); }
 function formatLocalDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function parseLocalDate(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); }
+function parseLocalDate(s) { const [y,m,d] = (s||todayStr()).split('-').map(Number); return new Date(y,m-1,d); }
 function uid(prefix) { return prefix+'-'+Date.now()+'-'+Math.floor(Math.random()*10000); }
 
 /* =========================== FORCE UPDATE ENGINE =========================== */
@@ -449,6 +783,11 @@ async function loadState() {
     if (raw) {
       const loaded = JSON.parse(raw);
       state = Object.assign(state, loaded);
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' };
+      if (!Array.isArray(state.people)) state.people = [];
+      if (!Array.isArray(state.chores)) state.chores = [];
+      if (!Array.isArray(state.recurring)) state.recurring = [];
+      if (!Array.isArray(state.yearlyChores)) state.yearlyChores = [];
     } else {
       seedDefaultData();
     }
@@ -464,6 +803,7 @@ function seedDefaultData() {
 /* =========================== TOAST =========================== */
 function toast(msg, icon) {
   const box = document.getElementById('toastBox');
+  if (!box) return;
   const el = document.createElement('div');
   el.className = 'bg-gray-900 text-white text-xs font-semibold rounded-xl px-3.5 py-2.5 shadow-lg fade-in flex items-center gap-2';
   el.innerHTML = `${icon?`<i class="fa-solid ${icon}"></i>`:''}<span>${escapeHtml(msg)}</span>`;
@@ -473,16 +813,25 @@ function toast(msg, icon) {
 function escapeHtml(s) { const d=document.createElement('div'); d.innerText = s==null?'':s; return d.innerHTML; }
 
 /* =========================== MODALS / TABS =========================== */
-function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function openModal(id) { 
+  const el = document.getElementById(id); 
+  if (el) el.classList.remove('hidden'); 
+}
+function closeModal(id) { 
+  const el = document.getElementById(id); 
+  if (el) el.classList.add('hidden'); 
+}
 
 function switchTab(tab) {
   ['calendar','market','log','stats','honeydo'].forEach(t => {
-    document.getElementById('tab-'+t).classList.toggle('hidden', t !== tab);
+    const tabEl = document.getElementById('tab-'+t);
+    if (tabEl) tabEl.classList.toggle('hidden', t !== tab);
     const nav = document.getElementById('nav-'+t);
     const color = NAV_COLORS[t] || 'purple';
-    if (t === tab) { nav.className = `flex flex-col items-center gap-1 text-${color}-600 font-bold bg-${color}-50 rounded-2xl px-2.5 py-1.5 -my-1`; }
-    else { nav.className = 'flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1'; }
+    if (nav) {
+      if (t === tab) { nav.className = `flex flex-col items-center gap-1 text-${color}-600 font-bold bg-${color}-50 rounded-2xl px-2.5 py-1.5 -my-1`; }
+      else { nav.className = 'flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1'; }
+    }
   });
   if (tab === 'market') renderMarketplace();
   if (tab === 'log') renderLog();
@@ -492,15 +841,15 @@ function switchTab(tab) {
 }
 
 /* =========================== PEOPLE HELPERS =========================== */
-function getPerson(id) { return state.people.find(p => p.id === id); }
+function getPerson(id) { return (state.people||[]).find(p => p.id === id); }
 function personChip(id, isTask) {
   const p = getPerson(id);
   if (!p) return '<span class="person-chip bg-gray-100 text-gray-400">Unassigned</span>';
-  return `<span class="person-chip" style="background:${p.color}22;color:${p.color}"><span class="person-dot" style="background:${p.color}"></span>${escapeHtml(p.name)}${isTask?' · Task':''}</span>`;
+  return `<span class="person-chip" style="background:${p.color||'#8B5CF6'}22;color:${p.color||'#8B5CF6'}"><span class="person-dot" style="background:${p.color||'#8B5CF6'}"></span>${escapeHtml(p.name)}${isTask?' · Task':''}</span>`;
 }
 function personOptions(selectedId, includeBlankLabel) {
   let html = includeBlankLabel ? `<option value="">${escapeHtml(includeBlankLabel)}</option>` : '';
-  html += state.people.map(p => `<option value="${p.id}" ${p.id===selectedId?'selected':''}>${escapeHtml(p.name)}</option>`).join('');
+  html += (state.people||[]).map(p => `<option value="${p.id}" ${p.id===selectedId?'selected':''}>${escapeHtml(p.name)}</option>`).join('');
   return html;
 }
 
@@ -577,9 +926,9 @@ function ruleSubtasksForDate(rule, dateStr) {
   return stages[stageIdx].subtasks || [];
 }
 function getRecurringForDate(dateStr) {
-  return state.recurring.filter(r => ruleFiresOnDate(r, dateStr)).map(r => {
+  return (state.recurring||[]).filter(r => ruleFiresOnDate(r, dateStr)).map(r => {
     const key = r.id+'_'+dateStr;
-    const comp = state.recurringCompletions[key] || {};
+    const comp = (state.recurringCompletions && state.recurringCompletions[key]) || {};
     return {
       kind: 'recurring', id: r.id, dateStr, title: ruleTitleForDate(r, dateStr), personId: r.personId,
       time: r.time, subtasks: ruleSubtasksForDate(r, dateStr), reward: r.reward, isTask: !!r.isTask,
@@ -588,7 +937,7 @@ function getRecurringForDate(dateStr) {
   });
 }
 function getSingleForDate(dateStr) {
-  return state.chores.filter(c => c.date === dateStr).map(c => ({
+  return (state.chores||[]).filter(c => c.date === dateStr).map(c => ({
     kind: 'single', id: c.id, dateStr, title: c.title, personId: c.personId,
     time: c.time, subtasks: c.subtasks || [], reward: c.reward, isTask: !!c.isTask,
     completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid
@@ -597,14 +946,15 @@ function getSingleForDate(dateStr) {
 
 /* =========================== MARKETPLACE ENGINE =========================== */
 function marketClaimKey(marketId, scopeKey) { return marketId+'_'+scopeKey; }
-function getMarketClaim(marketId, scopeKey) { return state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
+function getMarketClaim(marketId, scopeKey) { return state.marketClaims && state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
 function archiveMarketClaimIfCompleted(marketId, scopeKey) {
   const claim = getMarketClaim(marketId, scopeKey);
   if (!claim || !claim.completed) return;
-  const market = state.marketChores.find(m => m.id === marketId);
+  const market = (state.marketChores||[]).find(m => m.id === marketId);
   if (!market) return;
   const dueDate = resolvedMarketDueDate(market, scopeKey, claim);
   if (!dueDate) return;
+  state.marketCompletions = state.marketCompletions || [];
   state.marketCompletions.push({ id: uid('mkc'), title: market.title, personId: claim.personId, dueDate, completedAt: claim.completedAt || new Date().toISOString() });
 }
 
@@ -612,7 +962,7 @@ function activeMarketInstances(refDateStr) {
   const ref = refDateStr || todayStr();
   const weekStartStr = currentWeekStartStr(ref);
   const out = [];
-  state.marketChores.forEach(m => {
+  (state.marketChores||[]).forEach(m => {
     if (m.repeats === 'weekly') {
       const scopeKey = weekStartStr;
       const claim = getMarketClaim(m.id, scopeKey);
@@ -677,11 +1027,12 @@ function resolvedMarketDueDate(market, scopeKey, claim) {
   return claim ? claim.dueDate : null;
 }
 function allMarketClaimEntries() {
+  if (!state.marketClaims) return [];
   return Object.keys(state.marketClaims).map(key => {
     const idx = key.indexOf('_');
     const marketId = key.slice(0, idx);
     const scopeKey = key.slice(idx+1);
-    const market = state.marketChores.find(m => m.id === marketId);
+    const market = (state.marketChores||[]).find(m => m.id === marketId);
     if (!market) return null;
     const claim = state.marketClaims[key];
     return { market, scopeKey, claim, dueDate: resolvedMarketDueDate(market, scopeKey, claim) };
@@ -690,7 +1041,7 @@ function allMarketClaimEntries() {
 function weeklyClaimCountForPerson(personId) {
   const weekStartStr = currentWeekStartStr();
   let n = 0;
-  state.marketChores.forEach(m => {
+  (state.marketChores||[]).forEach(m => {
     if (m.repeats !== 'weekly') return;
     const claim = getMarketClaim(m.id, weekStartStr);
     if (claim && claim.personId === personId) n++;
@@ -726,10 +1077,10 @@ function renderCalendarFilterBar() {
   if (!bar) return;
   const allActive = calendarFilter.size === 0;
   let html = `<button onclick="setCalendarFilter(null)" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border ${allActive?'bg-purple-600 text-white border-purple-600':'bg-white text-gray-500 border-gray-200'}">Everyone</button>`;
-  html += state.people.map(p => {
+  html += (state.people||[]).map(p => {
     const active = calendarFilter.has(p.id);
-    return `<button onclick="toggleCalendarFilterPerson('${p.id}')" class="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold border" style="${active?`background:${p.color};color:#fff;border-color:${p.color}`:`background:#fff;color:${p.color};border-color:${p.color}55`}">
-      <span class="person-dot" style="background:${active?'#fff':p.color}"></span>${escapeHtml(p.name)}
+    return `<button onclick="toggleCalendarFilterPerson('${p.id}')" class="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold border" style="${active?`background:${p.color||'#8b5cf6'};color:#fff;border-color:${p.color||'#8b5cf6'}`:`background:#fff;color:${p.color||'#8b5cf6'};border-color:${p.color||'#8b5cf6'}55`}">
+      <span class="person-dot" style="background:${active?'#fff':(p.color||'#8b5cf6')}"></span>${escapeHtml(p.name)}
     </button>`;
   }).join('');
   html += `<button onclick="toggleCalendarFilterPerson('__unassigned__')" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border ${calendarFilter.has('__unassigned__')?'bg-gray-600 text-white border-gray-600':'bg-white text-gray-400 border-gray-200'}">Unassigned</button>`;
@@ -743,7 +1094,8 @@ function toggleCalendarFilterPerson(id) {
 
 function renderCalendar() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('calMonthLabel').textContent = monthNames[calMonth]+' '+calYear;
+  const monthLabel = document.getElementById('calMonthLabel');
+  if (monthLabel) monthLabel.textContent = monthNames[calMonth]+' '+calYear;
   renderCalendarFilterBar();
 
   const weekStart = getWeekStartSetting();
@@ -752,6 +1104,7 @@ function renderCalendar() {
   if (headerEl) headerEl.innerHTML = labels.map(l => `<div>${l}</div>`).join('');
 
   const grid = document.getElementById('calendarGrid');
+  if (!grid) return;
   grid.innerHTML = '';
   const first = new Date(calYear, calMonth, 1);
   const rawOffset = first.getDay();
@@ -791,8 +1144,10 @@ function renderCalendar() {
 function renderSelectedDay() {
   const d = parseLocalDate(selectedDate);
   const label = selectedDate === todayStr() ? 'Today · ' : '';
-  document.getElementById('selectedDayLabel').textContent = label + d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+  const labelEl = document.getElementById('selectedDayLabel');
+  if (labelEl) labelEl.textContent = label + d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
   const list = document.getElementById('selectedDayList');
+  if (!list) return;
   const chores = getChoresForDate(selectedDate);
   if (!chores.length) { list.innerHTML = '<div class="text-xs text-gray-400 py-3 text-center">No items for this day 🎉</div>'; return; }
   list.innerHTML = chores.map(choreRowHtml).join('');
@@ -803,7 +1158,7 @@ function choreRowHtml(c) {
   const subCount = (c.subtasks||[]).length;
   const subDone = subCount ? (c.subtasks||[]).filter(s => c.subtaskState && c.subtaskState[s.id]).length : 0;
   const isUnclaimed = c.kind === 'market' && c.unclaimed;
-  const borderColor = isUnclaimed ? '#9CA3AF' : (p?p.color:'#cbd5e1');
+  const borderColor = isUnclaimed ? '#9CA3AF' : (p ? (p.color || '#8b5cf6') : '#cbd5e1');
   const clickable = c.id != null && c.dateStr != null;
   return `<div ${clickable?`onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')"`:''} class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2.5 flex items-center justify-between ${clickable?'cursor-pointer':''}" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
     <div class="min-w-0 flex-1">
@@ -829,9 +1184,11 @@ function rewardLabel(r) { if (!r || !r.enabled) return ''; if (r.type==='money')
 function openDayList(dateStr) {
   dayListDate = dateStr;
   const d = parseLocalDate(dateStr);
-  document.getElementById('dayListTitle').textContent = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+  const titleEl = document.getElementById('dayListTitle');
+  if (titleEl) titleEl.textContent = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
   const chores = getChoresForDate(dateStr);
-  document.getElementById('dayListItems').innerHTML = chores.length ? chores.map(choreRowHtml).join('') : '<div class="text-xs text-gray-400 py-3 text-center">No items this day 🎉</div>';
+  const itemsEl = document.getElementById('dayListItems');
+  if (itemsEl) itemsEl.innerHTML = chores.length ? chores.map(choreRowHtml).join('') : '<div class="text-xs text-gray-400 py-3 text-center">No items this day 🎉</div>';
   openModal('dayListModal');
 }
 
@@ -841,18 +1198,18 @@ function openChoreDetail(kind, id, dateStr) {
   currentChoreDetail = { kind, id, dateStr };
   let c, comp, isUnclaimed = false;
   if (kind === 'single') {
-    c = state.chores.find(x => x.id === id);
-    comp = { completed: c.completed, subtaskState: c.subtaskState||{} };
+    c = (state.chores||[]).find(x => x.id === id);
+    comp = { completed: c ? c.completed : false, subtaskState: c ? (c.subtaskState||{}) : {} };
   } else if (kind === 'recurring') {
-    c = state.recurring.find(x => x.id === id);
-    c = { ...c, title: ruleTitleForDate(c, dateStr), subtasks: ruleSubtasksForDate(c, dateStr) };
-    comp = state.recurringCompletions[id+'_'+dateStr] || {completed:false, subtaskState:{}};
+    c = (state.recurring||[]).find(x => x.id === id);
+    if (c) c = { ...c, title: ruleTitleForDate(c, dateStr), subtasks: ruleSubtasksForDate(c, dateStr) };
+    comp = (state.recurringCompletions && state.recurringCompletions[id+'_'+dateStr]) || {completed:false, subtaskState:{}};
   } else if (kind === 'market') {
     const [marketId, scopeKey] = id.split('::');
-    const m = state.marketChores.find(x => x.id === marketId);
+    const m = (state.marketChores||[]).find(x => x.id === marketId);
     const claim = getMarketClaim(marketId, scopeKey);
     isUnclaimed = !claim;
-    c = { title: m.title, personId: claim?claim.personId:null, time: null, reward: m.reward, notes: m.notes, subtasks: m.subtasks||[], isTask:false };
+    c = m ? { title: m.title, personId: claim?claim.personId:null, time: null, reward: m.reward, notes: m.notes, subtasks: m.subtasks||[], isTask:false } : null;
     comp = claim ? { completed: claim.completed, subtaskState: claim.subtaskState||{} } : { completed:false, subtaskState:{} };
   }
   if (!c) return;
@@ -904,11 +1261,14 @@ function openChoreDetail(kind, id, dateStr) {
 function toggleSubtask(subId, checked) {
   const { kind, id, dateStr } = currentChoreDetail;
   if (kind === 'single') {
-    const c = state.chores.find(x => x.id === id);
-    c.subtaskState = c.subtaskState || {};
-    c.subtaskState[subId] = checked;
+    const c = (state.chores||[]).find(x => x.id === id);
+    if (c) {
+      c.subtaskState = c.subtaskState || {};
+      c.subtaskState[subId] = checked;
+    }
   } else if (kind === 'recurring') {
     const key = id+'_'+dateStr;
+    state.recurringCompletions = state.recurringCompletions || {};
     state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
     state.recurringCompletions[key].subtaskState[subId] = checked;
   } else if (kind === 'market') {
@@ -928,24 +1288,27 @@ function toggleChoreComplete() {
   const today = todayStr();
   
   if (kind === 'single') {
-    const c = state.chores.find(x => x.id === id);
-    c.completed = !c.completed;
-    if (c.completed) {
-      c.completedAt = new Date().toISOString();
-      if (c.date > today) {
-        if (confirm(`Completed early! Update due date from ${c.date} to today (${today})?`)) {
-          c.date = today;
+    const c = (state.chores||[]).find(x => x.id === id);
+    if (c) {
+      c.completed = !c.completed;
+      if (c.completed) {
+        c.completedAt = new Date().toISOString();
+        if (c.date > today) {
+          if (confirm(`Completed early! Update due date from ${c.date} to today (${today})?`)) {
+            c.date = today;
+          }
         }
+        handleRewardOnComplete(c);
       }
-      handleRewardOnComplete(c);
     }
   } else if (kind === 'recurring') {
     const key = id+'_'+dateStr;
+    state.recurringCompletions = state.recurringCompletions || {};
     state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
     state.recurringCompletions[key].completed = !state.recurringCompletions[key].completed;
     if (state.recurringCompletions[key].completed) {
       state.recurringCompletions[key].completedAt = new Date().toISOString();
-      const rule = state.recurring.find(r => r.id === id);
+      const rule = (state.recurring||[]).find(r => r.id === id);
       if (rule) handleRewardOnComplete(rule);
     }
   } else if (kind === 'market') {
@@ -960,7 +1323,7 @@ function toggleChoreComplete() {
           claim.dueDate = today;
         }
       }
-      const m = state.marketChores.find(x => x.id === marketId);
+      const m = (state.marketChores||[]).find(x => x.id === marketId);
       if (m) handleRewardOnComplete({ ...m, personId: claim.personId });
     }
   }
@@ -971,6 +1334,7 @@ function toggleChoreComplete() {
 function handleRewardOnComplete(c) {
   if (c.isTask) return;
   if (c.reward && c.reward.enabled && c.reward.banked) {
+    state.bankedRewards = state.bankedRewards || [];
     state.bankedRewards.push({
       id: uid('bank'), personId: c.personId, choreTitle: c.title,
       reward: { ...c.reward }, date: todayStr(), redeemed: false
@@ -993,15 +1357,15 @@ function deleteCurrentChore() {
     if (!claim) { closeModal('choreDetailModal'); return; }
     if (!confirm('Release this chore back to the marketplace?')) return;
     archiveMarketClaimIfCompleted(marketId, scopeKey);
-    delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
+    if (state.marketClaims) delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
     closeModal('choreDetailModal');
     saveState();
     return;
   }
   const idToDelete = detail ? detail.id : document.getElementById('choreId').value;
   if (!confirm('Delete this item?')) return;
-  if (kind === 'single') state.chores = state.chores.filter(c => c.id !== idToDelete);
-  else { state.recurring = state.recurring.filter(r => r.id !== idToDelete); }
+  if (kind === 'single') state.chores = (state.chores||[]).filter(c => c.id !== idToDelete);
+  else { state.recurring = (state.recurring||[]).filter(r => r.id !== idToDelete); }
   closeModal('choreDetailModal'); closeModal('choreModal');
   saveState();
 }
@@ -1013,7 +1377,7 @@ function pokeFromChore() {
       const claim = getMarketClaim(marketId, scopeKey);
       personId = claim ? claim.personId : null;
     } else {
-      const p = state.chores.find(c=>c.id===currentChoreDetail.id) || state.recurring.find(r=>r.id===currentChoreDetail.id);
+      const p = (state.chores||[]).find(c=>c.id===currentChoreDetail.id) || (state.recurring||[]).find(r=>r.id===currentChoreDetail.id);
       personId = p ? p.personId : null;
     }
   }
@@ -1028,47 +1392,72 @@ let rewardType = 'money';
 function setItemType(type) {
   currentItemType = type;
   const isChore = type === 'chore';
-  document.getElementById('itemTypeChoreBtn').className = isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
-  document.getElementById('itemTypeTaskBtn').className = !isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
+  const cBtn = document.getElementById('itemTypeChoreBtn');
+  const tBtn = document.getElementById('itemTypeTaskBtn');
+  if (cBtn) cBtn.className = isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
+  if (tBtn) tBtn.className = !isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
   
-  document.getElementById('itemTitleLabel').textContent = isChore ? 'Chore Name' : 'Task Name';
-  document.getElementById('itemPersonLabel').textContent = isChore ? 'Assign To' : 'Whose Task';
-  document.getElementById('choreTitle').placeholder = isChore ? 'Feed the dogs' : 'Balance checkbook';
+  const titleLbl = document.getElementById('itemTitleLabel');
+  const personLbl = document.getElementById('itemPersonLabel');
+  const choreInp = document.getElementById('choreTitle');
+  if (titleLbl) titleLbl.textContent = isChore ? 'Chore Name' : 'Task Name';
+  if (personLbl) personLbl.textContent = isChore ? 'Assign To' : 'Whose Task';
+  if (choreInp) choreInp.placeholder = isChore ? 'Feed the dogs' : 'Balance checkbook';
   
-  document.getElementById('rewardSectionWrapper').classList.toggle('hidden', !isChore);
-  document.getElementById('recurRotationOption').classList.toggle('hidden', !isChore);
+  const rSec = document.getElementById('rewardSectionWrapper');
+  const rotOpt = document.getElementById('recurRotationOption');
+  if (rSec) rSec.classList.toggle('hidden', !isChore);
+  if (rotOpt) rotOpt.classList.toggle('hidden', !isChore);
 }
 
 function setChoreRepeatMode(mode) {
   choreRepeatMode = mode;
-  document.getElementById('singleDateBox').classList.toggle('hidden', mode !== 'single');
-  document.getElementById('recurBox').classList.toggle('hidden', mode !== 'recurring');
+  const sBox = document.getElementById('singleDateBox');
+  const rBox = document.getElementById('recurBox');
+  if (sBox) sBox.classList.toggle('hidden', mode !== 'single');
+  if (rBox) rBox.classList.toggle('hidden', mode !== 'recurring');
   ['repeatModeSingleBtn','repeatModeRecurBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
     const active = (bid==='repeatModeSingleBtn' && mode==='single') || (bid==='repeatModeRecurBtn' && mode==='recurring');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+    el.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
   });
 }
 function setRewardType(t) {
   rewardType = t;
-  document.getElementById('rewardAmount').classList.toggle('hidden', t !== 'money');
-  document.getElementById('rewardDesc').classList.toggle('hidden', t !== 'other');
+  const amtEl = document.getElementById('rewardAmount');
+  const descEl = document.getElementById('rewardDesc');
+  if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
+  if (descEl) descEl.classList.toggle('hidden', t !== 'other');
   ['rewardTypeMoneyBtn','rewardTypeOtherBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
     const active = (bid==='rewardTypeMoneyBtn' && t==='money') || (bid==='rewardTypeOtherBtn' && t==='other');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+    el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
   });
 }
-function updateRewardUI() { document.getElementById('rewardBox').classList.toggle('hidden', !document.getElementById('rewardEnabled').checked); }
+function updateRewardUI() { 
+  const chk = document.getElementById('rewardEnabled');
+  const box = document.getElementById('rewardBox');
+  if (chk && box) box.classList.toggle('hidden', !chk.checked); 
+}
 function updateRecurUI() {
-  const f = document.getElementById('recurFreq').value;
-  document.getElementById('recurWeeklyBox').classList.toggle('hidden', f !== 'weekly');
-  document.getElementById('recurMonthlyBox').classList.toggle('hidden', f !== 'monthly');
-  document.getElementById('recurRotationBox').classList.toggle('hidden', f !== 'rotation');
-  document.getElementById('subtaskSection').classList.toggle('hidden', f === 'rotation');
-  const intervalBox = document.getElementById('recurIntervalBox');
-  intervalBox.classList.toggle('hidden', f === 'yearly' || f === 'rotation');
+  const fEl = document.getElementById('recurFreq');
+  const f = fEl ? fEl.value : 'daily';
+  const wBox = document.getElementById('recurWeeklyBox');
+  const mBox = document.getElementById('recurMonthlyBox');
+  const rBox = document.getElementById('recurRotationBox');
+  const stSec = document.getElementById('subtaskSection');
+  const intBox = document.getElementById('recurIntervalBox');
+  if (wBox) wBox.classList.toggle('hidden', f !== 'weekly');
+  if (mBox) mBox.classList.toggle('hidden', f !== 'monthly');
+  if (rBox) rBox.classList.toggle('hidden', f !== 'rotation');
+  if (stSec) stSec.classList.toggle('hidden', f === 'rotation');
+  if (intBox) intBox.classList.toggle('hidden', f === 'yearly' || f === 'rotation');
   const unitLabel = document.getElementById('recurIntervalUnitLabel');
-  unitLabel.textContent = f === 'daily' ? 'day(s)' : f === 'monthly' ? 'month(s)' : 'week(s)';
-  if (f === 'rotation' && !document.getElementById('rotationStageBuilder').children.length) {
+  if (unitLabel) unitLabel.textContent = f === 'daily' ? 'day(s)' : f === 'monthly' ? 'month(s)' : 'week(s)';
+  const bld = document.getElementById('rotationStageBuilder');
+  if (f === 'rotation' && bld && !bld.children.length) {
     addRotationStageRow('Feed the dogs');
     addRotationStageRow('Clean up after dinner');
   }
@@ -1089,22 +1478,28 @@ function addRotationStageRow(title, subtasks) {
       <div class="stage-subtask-list space-y-1"></div>
       <button type="button" onclick="addStageSubtaskRow(this)" class="stage-add-btn text-[11px] font-bold text-purple-500 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
     </div>`;
-  document.getElementById('rotationStageBuilder').appendChild(div);
-  (subtasks||[]).forEach(s => addStageSubtaskRow(div.querySelector('.stage-add-btn'), s.text, s.id));
+  const container = document.getElementById('rotationStageBuilder');
+  if (container) {
+    container.appendChild(div);
+    (subtasks||[]).forEach(s => addStageSubtaskRow(div.querySelector('.stage-add-btn'), s.text, s.id));
+  }
 }
 function addStageSubtaskRow(triggerEl, text, id) {
   const stageEl = triggerEl.closest('[data-stageid]');
+  if (!stageEl) return;
   const list = stageEl.querySelector('.stage-subtask-list');
-  const rowId = id || uid('rst');
+  if (!list) return;
   const row = document.createElement('div');
   row.className = 'flex items-center gap-1.5';
-  row.dataset.subid = rowId;
+  row.dataset.subid = id || uid('rst');
   row.innerHTML = `<input type="text" value="${escapeHtml(text||'')}" placeholder="Step" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1 text-xs stage-subtask-text-input">
     <button type="button" onclick="this.parentElement.remove()" class="w-6 h-6 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-[10px]"></i></button>`;
   list.appendChild(row);
 }
 function readRotationStagesFromBuilder() {
-  return Array.from(document.getElementById('rotationStageBuilder').children).map(stageEl => {
+  const builder = document.getElementById('rotationStageBuilder');
+  if (!builder) return [];
+  return Array.from(builder.children).map(stageEl => {
     const title = stageEl.querySelector('.rotation-stage-title').value.trim();
     const subtasks = Array.from(stageEl.querySelectorAll('.stage-subtask-text-input')).map(inp => ({
       id: inp.closest('[data-subid]').dataset.subid, text: inp.value.trim()
@@ -1114,10 +1509,12 @@ function readRotationStagesFromBuilder() {
 }
 function buildRecurDaysGrid(selected) {
   const grid = document.getElementById('recurDaysGrid');
+  if (!grid) return;
   grid.innerHTML = WEEKDAY_LABELS.map((l,i) => `<button type="button" data-day="${i}" onclick="toggleRecurDay(${i})" class="recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ${((selected||[]).includes(i))?'bg-purple-600 text-white border-purple-600':'bg-white text-gray-500 border-gray-200'}">${l}</button>`).join('');
 }
 function toggleRecurDay(i) {
   const btn = document.querySelector(`.recur-day-btn[data-day="${i}"]`);
+  if (!btn) return;
   const active = btn.classList.contains('bg-purple-600');
   btn.className = 'recur-day-btn rounded-md py-1.5 text-[10px] font-bold border ' + (!active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
 }
@@ -1132,10 +1529,13 @@ function addSubtaskRow(text, id) {
   div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
     <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${subtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm subtask-text-input">
     <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
-  document.getElementById('subtaskBuilder').appendChild(div);
+  const container = document.getElementById('subtaskBuilder');
+  if (container) container.appendChild(div);
 }
 function readSubtasksFromBuilder() {
-  return Array.from(document.getElementById('subtaskBuilder').children).map(row => ({
+  const builder = document.getElementById('subtaskBuilder');
+  if (!builder) return [];
+  return Array.from(builder.children).map(row => ({
     id: row.dataset.subid, text: row.querySelector('.subtask-text-input').value.trim()
   })).filter(s => s.text);
 }
@@ -1157,7 +1557,8 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   setItemType('chore');
 
   if (recurringId) {
-    const r = state.recurring.find(x => x.id === recurringId);
+    const r = (state.recurring||[]).find(x => x.id === recurringId);
+    if (!r) return;
     document.getElementById('choreId').value = 'REC:'+recurringId;
     document.getElementById('choreTitle').value = r.title;
     document.getElementById('chorePerson').value = r.personId;
@@ -1186,7 +1587,8 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     document.getElementById('choreNotes').value = r.notes || '';
     document.getElementById('choreDeleteBtn').classList.remove('hidden');
   } else if (choreId) {
-    const c = state.chores.find(x => x.id === choreId);
+    const c = (state.chores||[]).find(x => x.id === choreId);
+    if (!c) return;
     document.getElementById('choreTitle').value = c.title;
     document.getElementById('chorePerson').value = c.personId;
     setItemType(c.isTask ? 'task' : 'chore');
@@ -1233,6 +1635,9 @@ function saveChore() {
   } : { enabled: false };
   const notes = document.getElementById('choreNotes').value.trim();
 
+  state.recurring = state.recurring || [];
+  state.chores = state.chores || [];
+
   if (choreRepeatMode === 'recurring') {
     const isEditingRec = idRaw.startsWith('REC:');
     const freq = document.getElementById('recurFreq').value;
@@ -1253,7 +1658,7 @@ function saveChore() {
     if (isEditingRec) {
       const rid = idRaw.split(':')[1];
       const r = state.recurring.find(x => x.id === rid);
-      Object.assign(r, ruleData);
+      if (r) Object.assign(r, ruleData);
     } else {
       state.recurring.push({ id: uid('rec'), ...ruleData });
     }
@@ -1262,7 +1667,7 @@ function saveChore() {
     const time = document.getElementById('choreTime').value || null;
     if (idRaw && !idRaw.startsWith('REC:')) {
       const c = state.chores.find(x => x.id === idRaw);
-      Object.assign(c, { title, personId, date, time, subtasks, reward, notes, isTask });
+      if (c) Object.assign(c, { title, personId, date, time, subtasks, reward, notes, isTask });
     } else {
       state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false, isTask });
     }
@@ -1286,38 +1691,53 @@ function offsetDayLabels() {
 function setMarketRepeats(mode) {
   marketRepeats = mode;
   ['marketRepeatsOnceBtn','marketRepeatsWeeklyBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
     const active = (bid==='marketRepeatsOnceBtn' && mode==='once') || (bid==='marketRepeatsWeeklyBtn' && mode==='weekly');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
+    el.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
   });
-  document.getElementById('marketRepeatsHelp').textContent = mode === 'once'
+  const helpEl = document.getElementById('marketRepeatsHelp');
+  if (helpEl) helpEl.textContent = mode === 'once'
     ? 'One-time: posted once, gone once claimed & done.'
     : "Weekly Pool: reopens every week for someone new to claim — whoever claims it picks that week's date, so it never gets stuck.";
   const fixedBtn = document.getElementById('marketSchedFixedBtn');
-  fixedBtn.disabled = (mode === 'weekly');
-  fixedBtn.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (mode === 'weekly' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white text-gray-500 border-gray-200');
+  if (fixedBtn) {
+    fixedBtn.disabled = (mode === 'weekly');
+    fixedBtn.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (mode === 'weekly' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white text-gray-500 border-gray-200');
+  }
   if (mode === 'weekly') setMarketSchedule('flexible'); else updateMarketScheduleUI();
 }
 function setMarketSchedule(mode) {
   marketSchedule = mode;
   ['marketSchedFixedBtn','marketSchedFlexBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
     const active = (bid==='marketSchedFixedBtn' && mode==='fixed') || (bid==='marketSchedFlexBtn' && mode==='flexible');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
+    el.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
   });
   updateMarketScheduleUI();
 }
 function updateMarketScheduleUI() {
-  document.getElementById('marketFixedOnceBox').classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='once'));
-  document.getElementById('marketFixedWeeklyBox').classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='weekly'));
-  document.getElementById('marketFlexOnceBox').classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='once'));
-  document.getElementById('marketFlexWeeklyBox').classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='weekly'));
+  const fOnce = document.getElementById('marketFixedOnceBox');
+  const fWeek = document.getElementById('marketFixedWeeklyBox');
+  const flOnce = document.getElementById('marketFlexOnceBox');
+  const flWeek = document.getElementById('marketFlexWeeklyBox');
+  if (fOnce) fOnce.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='once'));
+  if (fWeek) fWeek.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='weekly'));
+  if (flOnce) flOnce.classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='once'));
+  if (flWeek) flWeek.classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='weekly'));
 }
 function setMarketRewardType(t) {
   marketRewardType = t;
-  document.getElementById('marketRewardAmount').classList.toggle('hidden', t !== 'money');
-  document.getElementById('marketRewardDesc').classList.toggle('hidden', t !== 'other');
+  const amtEl = document.getElementById('marketRewardAmount');
+  const descEl = document.getElementById('marketRewardDesc');
+  if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
+  if (descEl) descEl.classList.toggle('hidden', t !== 'other');
   ['marketRewardTypeMoneyBtn','marketRewardTypeOtherBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
     const active = (bid==='marketRewardTypeMoneyBtn' && t==='money') || (bid==='marketRewardTypeOtherBtn' && t==='other');
-    document.getElementById(bid).className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+    el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
   });
 }
 function addMarketSubtaskRow(text, id) {
@@ -1329,22 +1749,28 @@ function addMarketSubtaskRow(text, id) {
   div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
     <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${marketSubtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm market-subtask-text-input">
     <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
-  document.getElementById('marketSubtaskBuilder').appendChild(div);
+  const container = document.getElementById('marketSubtaskBuilder');
+  if (container) container.appendChild(div);
 }
 function readMarketSubtasksFromBuilder() {
-  return Array.from(document.getElementById('marketSubtaskBuilder').children).map(row => ({
+  const builder = document.getElementById('marketSubtaskBuilder');
+  if (!builder) return [];
+  return Array.from(builder.children).map(row => ({
     id: row.dataset.subid, text: row.querySelector('.market-subtask-text-input').value.trim()
   })).filter(s => s.text);
 }
 function fillOffsetSelect(id, selected) {
-  document.getElementById(id).innerHTML = offsetDayLabels().map((l,i) => `<option value="${i}" ${i===selected?'selected':''}>${l}</option>`).join('');
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = offsetDayLabels().map((l,i) => `<option value="${i}" ${i===selected?'selected':''}>${l}</option>`).join('');
 }
 
 function openMarketModal(marketId) {
   document.getElementById('marketModalTitle').textContent = marketId ? 'Edit Listing' : 'Post to Marketplace';
   document.getElementById('marketId').value = marketId || '';
   document.getElementById('marketSubtaskBuilder').innerHTML = ''; marketSubtaskBuilderCount = 0;
-  document.getElementById('marketDueDayOfWeek').innerHTML = offsetDayLabels().map((l,i)=>`<option value="${i}">${l}</option>`).join('');
+  const daySel = document.getElementById('marketDueDayOfWeek');
+  if (daySel) daySel.innerHTML = offsetDayLabels().map((l,i)=>`<option value="${i}">${l}</option>`).join('');
   fillOffsetSelect('marketWindowStartOffset', 0);
   fillOffsetSelect('marketWindowEndOffset', 6);
   document.getElementById('marketRewardEnabled').checked = false;
@@ -1353,7 +1779,8 @@ function openMarketModal(marketId) {
   document.getElementById('marketDeleteBtn').classList.toggle('hidden', !marketId);
 
   if (marketId) {
-    const m = state.marketChores.find(x => x.id === marketId);
+    const m = (state.marketChores||[]).find(x => x.id === marketId);
+    if (!m) return;
     document.getElementById('marketTitle').value = m.title;
     setMarketRepeats(m.repeats);
     if (!(m.repeats === 'weekly' && m.scheduleType === 'fixed')) setMarketSchedule(m.scheduleType);
@@ -1392,7 +1819,7 @@ function saveMarketChore() {
   const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
   const reward = rewardEnabled ? {
     enabled: true, type: marketRewardType,
-    amount: marketRewardType === 'money' ? Number(document.getElementById('rewardAmount').value || 0) : null,
+    amount: marketRewardType === 'money' ? Number(document.getElementById('marketRewardAmount').value || 0) : null,
     description: marketRewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null
   } : { enabled:false };
   const notes = document.getElementById('marketNotes').value.trim();
@@ -1415,9 +1842,10 @@ function saveMarketChore() {
     }
   }
 
+  state.marketChores = state.marketChores || [];
   if (id) {
     const m = state.marketChores.find(x => x.id === id);
-    Object.assign(m, data);
+    if (m) Object.assign(m, data);
   } else {
     state.marketChores.push({ id: uid('mkt'), ...data });
   }
@@ -1429,23 +1857,27 @@ function deleteMarketChore() {
   const id = document.getElementById('marketId').value;
   if (!id) return;
   if (!confirm('Delete this listing? Any current claim will be removed too.')) return;
-  Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
-  state.marketChores = state.marketChores.filter(x => x.id !== id);
+  if (state.marketClaims) {
+    Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
+  }
+  state.marketChores = (state.marketChores||[]).filter(x => x.id !== id);
   closeModal('marketModal');
   saveState(); renderMarketplace();
 }
 function quickDeleteMarketChore(id) {
-  const m = state.marketChores.find(x => x.id === id);
+  const m = (state.marketChores||[]).find(x => x.id === id);
   if (!m) return;
   if (!confirm(`Delete "${m.title}" from the marketplace? Any current claim will be removed too.`)) return;
-  Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
-  state.marketChores = state.marketChores.filter(x => x.id !== id);
+  if (state.marketClaims) {
+    Object.keys(state.marketClaims).forEach(k => { if (k.startsWith(id+'_')) { const scopeKey = k.slice(id.length+1); archiveMarketClaimIfCompleted(id, scopeKey); delete state.marketClaims[k]; } });
+  }
+  state.marketChores = (state.marketChores||[]).filter(x => x.id !== id);
   saveState(); renderMarketplace();
 }
 
 /* =========================== MARKETPLACE CLAIM FLOW =========================== */
 function openMarketClaimModal(marketId, scopeKey) {
-  const m = state.marketChores.find(x => x.id === marketId);
+  const m = (state.marketChores||[]).find(x => x.id === marketId);
   if (!m) return;
   document.getElementById('claimMarketId').value = marketId;
   document.getElementById('claimScopeKey').value = scopeKey;
@@ -1471,12 +1903,13 @@ function confirmClaimMarket() {
   const scopeKey = document.getElementById('claimScopeKey').value;
   const personId = document.getElementById('claimPerson').value;
   if (!personId) { toast('Pick who is claiming this', 'fa-triangle-exclamation'); return; }
-  const m = state.marketChores.find(x => x.id === marketId);
+  const m = (state.marketChores||[]).find(x => x.id === marketId);
   let dueDate = null;
-  if (m.scheduleType === 'flexible') {
+  if (m && m.scheduleType === 'flexible') {
     dueDate = document.getElementById('claimDate').value;
     if (!dueDate) { toast('Pick a due date', 'fa-triangle-exclamation'); return; }
   }
+  state.marketClaims = state.marketClaims || {};
   state.marketClaims[marketClaimKey(marketId, scopeKey)] = { personId, dueDate, claimedAt: new Date().toISOString(), completed:false, subtaskState:{} };
   closeModal('marketClaimModal');
   saveState(); renderMarketplace();
@@ -1485,7 +1918,7 @@ function confirmClaimMarket() {
 function unclaimMarket(marketId, scopeKey) {
   if (!confirm('Release this chore back to the marketplace?')) return;
   archiveMarketClaimIfCompleted(marketId, scopeKey);
-  delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
+  if (state.marketClaims) delete state.marketClaims[marketClaimKey(marketId, scopeKey)];
   saveState(); renderMarketplace();
 }
 
@@ -1526,28 +1959,37 @@ function renderMarketplace() {
   const open = instances.filter(x => !x.claim);
   const claimed = instances.filter(x => x.claim);
 
-  document.getElementById('marketOpenList').innerHTML = open.length
-    ? open.map(x => marketListingCardHtml(x, false)).join('')
-    : '<div class="text-xs text-gray-400 text-center py-3">Nothing up for grabs right now 🎉</div>';
-  document.getElementById('marketClaimedList').innerHTML = claimed.length
-    ? claimed.map(x => marketListingCardHtml(x, true)).join('')
-    : '<div class="text-xs text-gray-400 text-center py-3">No claims yet this week.</div>';
+  const openList = document.getElementById('marketOpenList');
+  if (openList) {
+    openList.innerHTML = open.length
+      ? open.map(x => marketListingCardHtml(x, false)).join('')
+      : '<div class="text-xs text-gray-400 text-center py-3">Nothing up for grabs right now 🎉</div>';
+  }
+  const claimedList = document.getElementById('marketClaimedList');
+  if (claimedList) {
+    claimedList.innerHTML = claimed.length
+      ? claimed.map(x => marketListingCardHtml(x, true)).join('')
+      : '<div class="text-xs text-gray-400 text-center py-3">No claims yet this week.</div>';
+  }
 
-  const quota = Number(state.settings.weeklyQuota || 0);
-  document.getElementById('marketQuotaCards').innerHTML = state.people.map(p => {
-    const n = weeklyClaimCountForPerson(p.id);
-    const met = quota > 0 && n >= quota;
-    return `<div class="rounded-xl px-3 py-2 flex items-center justify-between" style="background:${p.color}15">
-      <div class="flex items-center gap-1.5 min-w-0"><span class="person-dot" style="background:${p.color}"></span><span class="text-xs font-bold truncate" style="color:${p.color}">${escapeHtml(p.name)}</span></div>
-      <span class="text-xs font-mono font-bold ${met?'text-emerald-500':'text-gray-500'}">${n}${quota?'/'+quota:''}${met?' ✓':''}</span>
-    </div>`;
-  }).join('');
+  const quota = Number((state.settings && state.settings.weeklyQuota) || 0);
+  const quotaCards = document.getElementById('marketQuotaCards');
+  if (quotaCards) {
+    quotaCards.innerHTML = (state.people||[]).map(p => {
+      const n = weeklyClaimCountForPerson(p.id);
+      const met = quota > 0 && n >= quota;
+      return `<div class="rounded-xl px-3 py-2 flex items-center justify-between" style="background:${p.color||'#8b5cf6'}15">
+        <div class="flex items-center gap-1.5 min-w-0"><span class="person-dot" style="background:${p.color||'#8b5cf6'}"></span><span class="text-xs font-bold truncate" style="color:${p.color||'#8b5cf6'}">${escapeHtml(p.name)}</span></div>
+        <span class="text-xs font-mono font-bold ${met?'text-emerald-500':'text-gray-500'}">${n}${quota?'/'+quota:''}${met?' ✓':''}</span>
+      </div>`;
+    }).join('');
+  }
 
   const banner = document.getElementById('marketBannerCount');
   if (banner) banner.textContent = open.length + (open.length===1?' open':' open');
 }
 
-/* =========================== CHORE LOG TAB (FIXED & SAFE) =========================== */
+/* =========================== CHORE LOG TAB =========================== */
 function renderLog() {
   const filterSel = document.getElementById('logPersonFilter');
   if (filterSel && filterSel.options.length <= 1) {
@@ -1555,16 +1997,17 @@ function renderLog() {
   }
   const personFilter = filterSel ? filterSel.value : 'all';
   const statusFilter = document.getElementById('logStatusFilter') ? document.getElementById('logStatusFilter').value : 'all';
-  const rangeFilter = document.getElementById('logRangeFilter') ? document.getElementById('logRangeFilter').value : 'all';
+  const rangeFilter = document.getElementById('logRangeFilter') ? document.getElementById('logRangeFilter').value : 'next7';
 
   const items = [];
+  const today = todayStr();
 
   // 1. Single Chores
   (state.chores || []).filter(c => !c.isTask).forEach(c => {
     items.push({
       kind: 'single',
       id: c.id,
-      dateStr: c.date || todayStr(),
+      dateStr: c.date || today,
       title: c.title,
       personId: c.personId,
       time: c.time,
@@ -1574,8 +2017,7 @@ function renderLog() {
     });
   });
   
-  // 2. Recurring Chores (Iterate safely across 45-day window)
-  const today = todayStr();
+  // 2. Recurring Chores across 45-day window
   for (let i = -45; i <= 45; i++) {
     const curDate = new Date();
     curDate.setDate(curDate.getDate() + i);
@@ -1632,8 +2074,11 @@ function renderLog() {
     filtered = filtered.filter(i => (i.dateStr || today).startsWith(mStr));
   }
 
-  // Sort newest first
-  filtered.sort((a, b) => (b.dateStr || '').localeCompare(a.dateStr || ''));
+  // Sort: Upcoming/pending first, then date
+  filtered.sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return (a.dateStr || '').localeCompare(b.dateStr || '');
+  });
 
   const list = document.getElementById('logList');
   if (list) {
@@ -1656,7 +2101,7 @@ function periodRange(period) {
 
 function completedChoresInRange(start, end) {
   const results = [];
-  state.chores.filter(c => !c.isTask).forEach(c => {
+  (state.chores||[]).filter(c => !c.isTask).forEach(c => {
     if (c.completed) {
       const compDate = (c.completedAt ? c.completedAt.slice(0,10) : c.date);
       if (compDate >= start && compDate <= end) {
@@ -1671,7 +2116,7 @@ function completedChoresInRange(start, end) {
   }
 
   allMarketClaimEntries().forEach(x => {
-    if (x.claim.completed) {
+    if (x.claim && x.claim.completed) {
       const compDate = (x.claim.completedAt ? x.claim.completedAt.slice(0,10) : x.dueDate);
       if (compDate && compDate >= start && compDate <= end) {
         results.push({ kind:'market', dateStr:compDate, title:x.market.title, personId:x.claim.personId, completed:true, subtasks:[] });
@@ -1679,7 +2124,7 @@ function completedChoresInRange(start, end) {
     }
   });
 
-  state.marketCompletions.forEach(m => {
+  (state.marketCompletions||[]).forEach(m => {
     const compDate = (m.completedAt ? m.completedAt.slice(0,10) : m.dueDate);
     if (compDate >= start && compDate <= end) {
       results.push({ kind:'market', dateStr:compDate, title:m.title, personId:m.personId, completed:true, subtasks:[] });
@@ -1689,42 +2134,49 @@ function completedChoresInRange(start, end) {
 }
 
 function renderStats() {
-  const period = document.getElementById('statsPeriod').value;
+  const pSel = document.getElementById('statsPeriod');
+  const period = pSel ? pSel.value : 'month';
   const { start, end } = periodRange(period);
   const completed = completedChoresInRange(start, end);
 
   const counts = {};
-  state.people.forEach(p => counts[p.id] = 0);
+  (state.people||[]).forEach(p => counts[p.id] = 0);
   completed.forEach(c => { if (counts[c.personId] !== undefined) counts[c.personId]++; });
 
-  const ctx = document.getElementById('statsChart').getContext('2d');
-  if (window._statsChart) window._statsChart.destroy();
-  window._statsChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: state.people.map(p => p.name),
-      datasets: [{ data: state.people.map(p => counts[p.id]), backgroundColor: state.people.map(p => p.color), borderRadius: 6 }]
-    },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{stepSize:1} } } }
-  });
+  const canvas = document.getElementById('statsChart');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    if (window._statsChart) window._statsChart.destroy();
+    window._statsChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: (state.people||[]).map(p => p.name),
+        datasets: [{ data: (state.people||[]).map(p => counts[p.id]), backgroundColor: (state.people||[]).map(p => p.color||'#8b5cf6'), borderRadius: 6 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{stepSize:1} } } }
+    });
+  }
 
-  document.getElementById('statsPersonCards').innerHTML = state.people.map(p => {
-    const banked = state.bankedRewards.filter(b => b.personId === p.id && !b.redeemed);
-    const bankedMoney = banked.filter(b=>b.reward.type==='money').reduce((s,b)=>s+Number(b.reward.amount||0),0);
-    return `<div onclick="openStatsPersonDetail('${p.id}')" class="bg-white rounded-2xl shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50">
-      <div class="flex items-center gap-2.5">
-        <span class="person-dot" style="background:${p.color};width:12px;height:12px"></span>
-        <div>
-          <div class="font-bold text-sm">${escapeHtml(p.name)}</div>
-          <div class="text-[11px] text-gray-500">${counts[p.id]||0} chores completed</div>
+  const pCards = document.getElementById('statsPersonCards');
+  if (pCards) {
+    pCards.innerHTML = (state.people||[]).map(p => {
+      const banked = (state.bankedRewards||[]).filter(b => b.personId === p.id && !b.redeemed);
+      const bankedMoney = banked.filter(b=>b.reward&&b.reward.type==='money').reduce((s,b)=>s+Number(b.reward.amount||0),0);
+      return `<div onclick="openStatsPersonDetail('${p.id}')" class="bg-white rounded-2xl shadow-sm p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50">
+        <div class="flex items-center gap-2.5">
+          <span class="person-dot" style="background:${p.color||'#8b5cf6'};width:12px;height:12px"></span>
+          <div>
+            <div class="font-bold text-sm">${escapeHtml(p.name)}</div>
+            <div class="text-[11px] text-gray-500">${counts[p.id]||0} chores completed</div>
+          </div>
         </div>
-      </div>
-      <div class="text-right flex items-center gap-2">
-        <div class="text-sm font-mono font-bold text-purple-600">${bankedMoney>0?'$'+bankedMoney.toFixed(2):(banked.length?banked.length+' banked':'')}</div>
-        <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
-      </div>
-    </div>`;
-  }).join('');
+        <div class="text-right flex items-center gap-2">
+          <div class="text-sm font-mono font-bold text-purple-600">${bankedMoney>0?'$'+bankedMoney.toFixed(2):(banked.length?banked.length+' banked':'')}</div>
+          <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+        </div>
+      </div>`;
+    }).join('');
+  }
 
   renderBankList();
 }
@@ -1732,7 +2184,8 @@ function renderStats() {
 function openStatsPersonDetail(personId) {
   const p = getPerson(personId);
   if (!p) return;
-  const period = document.getElementById('statsPeriod').value;
+  const pSel = document.getElementById('statsPeriod');
+  const period = pSel ? pSel.value : 'month';
   const { start, end } = periodRange(period);
   const items = completedChoresInRange(start, end).filter(c => c.personId === personId)
     .sort((a,b) => b.dateStr.localeCompare(a.dateStr));
@@ -1751,7 +2204,8 @@ function openStatsPersonDetail(personId) {
 
 function renderBankList() {
   const list = document.getElementById('bankList');
-  const unredeemed = state.bankedRewards.filter(b => !b.redeemed);
+  if (!list) return;
+  const unredeemed = (state.bankedRewards||[]).filter(b => !b.redeemed);
   if (!unredeemed.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-2">Nothing banked yet.</div>'; return; }
   list.innerHTML = unredeemed.map(b => `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
     <div class="min-w-0 flex-1">
@@ -1765,7 +2219,7 @@ function renderBankList() {
   </div>`).join('');
 }
 function redeemBank(id) {
-  const b = state.bankedRewards.find(x => x.id === id);
+  const b = (state.bankedRewards||[]).find(x => x.id === id);
   if (!b) return;
   if (!confirm('Mark this reward as redeemed?')) return;
   b.redeemed = true; b.redeemedAt = new Date().toISOString();
@@ -1775,7 +2229,8 @@ function redeemBank(id) {
 /* =========================== HONEY-DO TAB =========================== */
 function renderHoneyDo() {
   const list = document.getElementById('honeyDoList');
-  const items = [...state.honeyDo].sort((a,b) => (a.done - b.done) || ({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority]));
+  if (!list) return;
+  const items = [...(state.honeyDo||[])].sort((a,b) => (a.done - b.done) || ({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority]));
   if (!items.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-4">Nothing on the list. Add a project!</div>'; return; }
   list.innerHTML = items.map(h => `<div class="flex items-start gap-2.5 bg-gray-50 rounded-xl px-3 py-2.5">
     <input type="checkbox" class="chk mt-0.5" ${h.done?'checked':''} onchange="toggleHoneyDone('${h.id}', this.checked)">
@@ -1789,8 +2244,8 @@ function renderHoneyDo() {
   </div>`).join('');
 }
 function toggleHoneyDone(id, checked) {
-  const h = state.honeyDo.find(x => x.id === id);
-  h.done = checked; h.doneAt = checked ? new Date().toISOString() : null;
+  const h = (state.honeyDo||[]).find(x => x.id === id);
+  if (h) { h.done = checked; h.doneAt = checked ? new Date().toISOString() : null; }
   saveState(); renderHoneyDo();
 }
 function openHoneyDoModal(id) {
@@ -1798,7 +2253,8 @@ function openHoneyDoModal(id) {
   document.getElementById('honeyPerson').innerHTML = '<option value="">Anyone / Whole family</option>' + personOptions(null);
   document.getElementById('honeyDeleteBtn').classList.toggle('hidden', !id);
   if (id) {
-    const h = state.honeyDo.find(x => x.id === id);
+    const h = (state.honeyDo||[]).find(x => x.id === id);
+    if (!h) return;
     document.getElementById('honeyTitle').value = h.title;
     document.getElementById('honeyPerson').value = h.personId || '';
     document.getElementById('honeyPriority').value = h.priority || 'normal';
@@ -1820,15 +2276,20 @@ function saveHoneyDo() {
     priority: document.getElementById('honeyPriority').value,
     notes: document.getElementById('honeyNotes').value.trim()
   };
-  if (id) Object.assign(state.honeyDo.find(x => x.id === id), data);
-  else state.honeyDo.push({ id: uid('hd'), done:false, createdAt: new Date().toISOString(), ...data });
+  state.honeyDo = state.honeyDo || [];
+  if (id) {
+    const item = state.honeyDo.find(x => x.id === id);
+    if (item) Object.assign(item, data);
+  } else {
+    state.honeyDo.push({ id: uid('hd'), done:false, createdAt: new Date().toISOString(), ...data });
+  }
   closeModal('honeyDoModal');
   saveState(); renderHoneyDo();
 }
 function deleteHoneyDo() {
   const id = document.getElementById('honeyId').value;
   if (!confirm('Delete this item?')) return;
-  state.honeyDo = state.honeyDo.filter(x => x.id !== id);
+  state.honeyDo = (state.honeyDo||[]).filter(x => x.id !== id);
   closeModal('honeyDoModal');
   saveState(); renderHoneyDo();
 }
@@ -1836,29 +2297,34 @@ function deleteHoneyDo() {
 /* =========================== YEARLY CHORE (HEADER) =========================== */
 function renderHeader() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('headerMonthLabel').textContent = monthNames[calMonth]+' '+calYear;
-  const [g1,g2] = MONTH_GRADIENTS[calMonth];
+  const monthLbl = document.getElementById('headerMonthLabel');
+  if (monthLbl) monthLbl.textContent = monthNames[calMonth]+' '+calYear;
+  const [g1,g2] = MONTH_GRADIENTS[calMonth] || ['#8B5CF6','#EC4899'];
   const banner = document.getElementById('yearlyChoreBanner');
   if (banner) banner.style.background = `linear-gradient(135deg, ${g1}, ${g2})`;
-  const yc = state.yearlyChores.find(y => y.month === calMonth+1);
-  document.getElementById('yearlyChoreTitle').textContent = yc ? yc.title : '--';
+  const yc = (state.yearlyChores||[]).find(y => y.month === calMonth+1);
+  const ycTitle = document.getElementById('yearlyChoreTitle');
+  if (ycTitle) ycTitle.textContent = yc ? yc.title : '--';
   const key = calYear+'-'+(calMonth+1);
-  const comp = state.yearlyCompletions[key] || {};
+  const comp = (state.yearlyCompletions && state.yearlyCompletions[key]) || {};
   const total = yc ? (yc.subtasks||[]).length : 0;
   const done = yc ? (yc.subtasks||[]).filter(s => comp[s.id]).length : 0;
-  document.getElementById('yearlyChoreProgress').textContent = total ? `${done}/${total}` : '';
+  const ycProg = document.getElementById('yearlyChoreProgress');
+  if (ycProg) ycProg.textContent = total ? `${done}/${total}` : '';
 }
 
 function openYearlyChoreModal() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const editor = document.getElementById('yearlyChoreEditor');
+  if (!editor) return;
+  state.yearlyChores = state.yearlyChores || [];
   editor.innerHTML = monthNames.map((m,i) => {
     const yc = state.yearlyChores.find(y => y.month === i+1) || { id: uid('yc'), month: i+1, title: m+' Family Chore', subtasks: [] };
     if (!state.yearlyChores.find(y => y.month === i+1)) state.yearlyChores.push(yc);
     const isCurrent = i === calMonth;
     const key = calYear+'-'+(i+1);
-    const comp = state.yearlyCompletions[key] || {};
-    const [mg1,mg2] = MONTH_GRADIENTS[i];
+    const comp = (state.yearlyCompletions && state.yearlyCompletions[key]) || {};
+    const [mg1,mg2] = MONTH_GRADIENTS[i] || ['#8B5CF6','#EC4899'];
     return `<div class="rounded-xl border p-2.5" style="border-color:${mg1}55;${isCurrent?`background:linear-gradient(135deg,${mg1}14,${mg2}14)`:''}">
       <div class="flex items-center justify-between gap-2 mb-1.5">
         <div class="text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5" style="color:${mg1}"><span class="inline-block w-2.5 h-2.5 rounded-full" style="background:linear-gradient(135deg,${mg1},${mg2})"></span>${m}${isCurrent?' · Current':''}</div>
@@ -1881,24 +2347,27 @@ function openYearlyChoreModal() {
   }).join('');
   openModal('yearlyChoreModal');
 }
-function updateYearlyTitle(month, val) { const yc = state.yearlyChores.find(y=>y.month===month); yc.title = val; saveState(); renderHeader(); }
+function updateYearlyTitle(month, val) { const yc = (state.yearlyChores||[]).find(y=>y.month===month); if (yc) yc.title = val; saveState(); renderHeader(); }
 function addYearlySubtask(month) {
   const input = document.getElementById('ycNewSub-'+month);
-  const text = input.value.trim();
+  const text = input ? input.value.trim() : '';
   if (!text) return;
   const personId = document.getElementById('ycNewSubPerson-'+month).value || null;
-  const yc = state.yearlyChores.find(y => y.month === month);
-  yc.subtasks = yc.subtasks || [];
-  yc.subtasks.push({ id: uid('ycs'), text, personId });
+  const yc = (state.yearlyChores||[]).find(y => y.month === month);
+  if (yc) {
+    yc.subtasks = yc.subtasks || [];
+    yc.subtasks.push({ id: uid('ycs'), text, personId });
+  }
   saveState(); openYearlyChoreModal();
 }
 function removeYearlySubtask(month, subId) {
-  const yc = state.yearlyChores.find(y => y.month === month);
-  yc.subtasks = (yc.subtasks||[]).filter(s => s.id !== subId);
+  const yc = (state.yearlyChores||[]).find(y => y.month === month);
+  if (yc) yc.subtasks = (yc.subtasks||[]).filter(s => s.id !== subId);
   saveState(); openYearlyChoreModal();
 }
 function toggleYearlySubtask(month, subId, checked) {
   const key = calYear+'-'+month;
+  state.yearlyCompletions = state.yearlyCompletions || {};
   state.yearlyCompletions[key] = state.yearlyCompletions[key] || {};
   state.yearlyCompletions[key][subId] = checked;
   saveState(); renderHeader();
@@ -1906,28 +2375,33 @@ function toggleYearlySubtask(month, subId, checked) {
 
 /* =========================== PROFILES / SETTINGS =========================== */
 function renderProfiles() {
-  document.getElementById('peopleList').innerHTML = state.people.map(p => `<div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2.5 py-2">
-    <input type="color" value="${p.color}" onchange="updatePersonColor('${p.id}', this.value)" class="w-8 h-8 rounded-lg border-0 flex-shrink-0" style="background:${p.color}">
-    <input type="text" value="${escapeHtml(p.name)}" onchange="updatePersonName('${p.id}', this.value)" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm">
-    <button onclick="removePerson('${p.id}')" class="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
-  </div>`).join('');
+  const pList = document.getElementById('peopleList');
+  if (pList) {
+    pList.innerHTML = (state.people||[]).map(p => `<div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2.5 py-2">
+      <input type="color" value="${p.color||'#8b5cf6'}" onchange="updatePersonColor('${p.id}', this.value)" class="w-8 h-8 rounded-lg border-0 flex-shrink-0" style="background:${p.color||'#8b5cf6'}">
+      <input type="text" value="${escapeHtml(p.name)}" onchange="updatePersonName('${p.id}', this.value)" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm">
+      <button onclick="removePerson('${p.id}')" class="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+    </div>`).join('');
+  }
 
   const mySel = document.getElementById('myProfileSelect');
-  mySel.innerHTML = '<option value="">-- select --</option>' + personOptions(localDeviceProfileId);
+  if (mySel) mySel.innerHTML = '<option value="">-- select --</option>' + personOptions(localDeviceProfileId);
 
   const vapidInput = document.getElementById('fcmVapidKeyInput');
-  if (vapidInput) vapidInput.value = state.settings.vapidKey || '';
+  if (vapidInput) vapidInput.value = (state.settings && state.settings.vapidKey) || '';
 
   const weekStartSel = document.getElementById('weekStartSelect');
-  if (weekStartSel) weekStartSel.value = state.settings.weekStart || 'sunday';
+  if (weekStartSel) weekStartSel.value = (state.settings && state.settings.weekStart) || 'sunday';
   const quotaInput = document.getElementById('weeklyQuotaInput');
-  if (quotaInput) quotaInput.value = state.settings.weeklyQuota != null ? state.settings.weeklyQuota : 2;
+  if (quotaInput) quotaInput.value = (state.settings && state.settings.weeklyQuota != null) ? state.settings.weeklyQuota : 2;
 
   const notifStatus = document.getElementById('notifPermStatus');
-  if ('Notification' in window) {
-    notifStatus.textContent = 'Notification permission: ' + Notification.permission;
-  } else {
-    notifStatus.textContent = 'Notifications not supported in this browser.';
+  if (notifStatus) {
+    if ('Notification' in window) {
+      notifStatus.textContent = 'Notification permission: ' + Notification.permission;
+    } else {
+      notifStatus.textContent = 'Notifications not supported in this browser.';
+    }
   }
 
   const verDisplay = document.getElementById('appVersionDisplay');
@@ -1937,16 +2411,17 @@ function renderProfiles() {
 }
 
 function addPersonRow() {
+  state.people = state.people || [];
   const usedColors = state.people.map(p => p.color);
   const nextColor = DEFAULT_COLORS.find(c => !usedColors.includes(c.hex)) || DEFAULT_COLORS[state.people.length % 5];
   state.people.push({ id: uid('p'), name: 'New Person', color: nextColor.hex });
   saveState(); renderProfiles();
 }
-function updatePersonName(id, val) { getPerson(id).name = val; saveState(); renderProfiles(); }
-function updatePersonColor(id, val) { getPerson(id).color = val; saveState(); renderProfiles(); }
+function updatePersonName(id, val) { const p = getPerson(id); if (p) p.name = val; saveState(); renderProfiles(); }
+function updatePersonColor(id, val) { const p = getPerson(id); if (p) p.color = val; saveState(); renderProfiles(); }
 function removePerson(id) {
   if (!confirm('Remove this person? Their assigned chores will stay but show as unassigned.')) return;
-  state.people = state.people.filter(p => p.id !== id);
+  state.people = (state.people||[]).filter(p => p.id !== id);
   saveState(); renderProfiles();
 }
 
@@ -1959,12 +2434,13 @@ function setMyProfile(id) {
 }
 
 function saveVapidKey(val) {
+  state.settings = state.settings || {};
   state.settings.vapidKey = val.trim();
   saveState();
   toast('VAPID key saved', 'fa-key');
 }
-function setWeekStart(val) { state.settings.weekStart = val; saveState(); toast('Calendar updated', 'fa-calendar-days'); }
-function setWeeklyQuota(val) { state.settings.weeklyQuota = Math.max(0, Number(val||0)); saveState(); }
+function setWeekStart(val) { state.settings = state.settings || {}; state.settings.weekStart = val; saveState(); toast('Calendar updated', 'fa-calendar-days'); }
+function setWeeklyQuota(val) { state.settings = state.settings || {}; state.settings.weeklyQuota = Math.max(0, Number(val||0)); saveState(); }
 
 /* =========================== PUSH NOTIFICATIONS (FCM) =========================== */
 async function requestPushNotificationPermission() {
@@ -1983,7 +2459,7 @@ async function registerDeviceToken() {
   if (!fcmMessaging || !localDeviceProfileId) return;
   try {
     const swReg = await navigator.serviceWorker.ready;
-    const vapidKey = state.settings.vapidKey;
+    const vapidKey = state.settings && state.settings.vapidKey;
     const token = await fcmMessaging.getToken({
       vapidKey: vapidKey || undefined,
       serviceWorkerRegistration: swReg
@@ -2009,6 +2485,7 @@ function sendPoke() {
   const toId = document.getElementById('pokeTarget').value;
   const message = document.getElementById('pokeMessage').value.trim() || 'Poke!';
   const poke = { id: uid('poke'), fromPersonId: localDeviceProfileId, toPersonId: toId, message, ts: Date.now(), read: false };
+  state.pokes = state.pokes || [];
   state.pokes.unshift(poke);
   if (state.pokes.length > 100) state.pokes.length = 100;
   saveState();
@@ -2018,7 +2495,8 @@ function sendPoke() {
 }
 function renderPokeHistory() {
   const box = document.getElementById('pokeHistory');
-  const recent = state.pokes.slice(0, 3);
+  if (!box) return;
+  const recent = (state.pokes||[]).slice(0, 3);
   box.innerHTML = recent.length ? '<div class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Recent Pokes</div>' + recent.map(p => `<div class="text-xs text-gray-600 flex items-center gap-1.5">
     <i class="fa-solid fa-bell text-purple-400 text-[10px]"></i>
     <span>${personChip(p.fromPersonId)} → ${personChip(p.toPersonId)}</span>
@@ -2033,7 +2511,7 @@ function maybeShowLocalNotification(poke) {
 let lastSeenPokeCount = 0;
 function checkForNewPokesTargetingMe() {
   if (!localDeviceProfileId) return;
-  const mine = state.pokes.filter(p => p.toPersonId === localDeviceProfileId);
+  const mine = (state.pokes||[]).filter(p => p.toPersonId === localDeviceProfileId);
   if (mine.length > lastSeenPokeCount) {
     const newest = mine[0];
     if (newest && Date.now() - newest.ts < 60000) maybeShowLocalNotification(newest);
@@ -2115,6 +2593,7 @@ async function pullFromCloud() {
     if (doc.exists && doc.data().data) {
       const remote = JSON.parse(doc.data().data);
       state = Object.assign(state, remote);
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' };
       persist();
       renderApp();
       checkForNewPokesTargetingMe();
@@ -2128,6 +2607,7 @@ function listenForCloudChanges() {
       if (doc.exists && doc.data().data) {
         const remote = JSON.parse(doc.data().data);
         state = Object.assign(state, remote);
+        if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' };
         persist();
         renderApp();
         checkForNewPokesTargetingMe();
@@ -2138,7 +2618,8 @@ function manualSyncNow() { if (firestoreDb) { pullFromCloud(); toast('Synced', '
 function initSyncOnBoot() {
   const cfg = loadSyncConfigFromStorage();
   if (cfg && applySyncConfig(cfg)) {
-    document.getElementById('syncConfigInput').value = JSON.stringify(cfg.fbConfig, null, 2);
+    const syncInp = document.getElementById('syncConfigInput');
+    if (syncInp) syncInp.value = JSON.stringify(cfg.fbConfig, null, 2);
     pullFromCloud().then(() => {
       listenForCloudChanges();
       registerDeviceToken();
@@ -2163,6 +2644,7 @@ function importDataJSON(e) {
       const imported = JSON.parse(evt.target.result);
       if (!confirm('This will replace all current data with the imported file. Continue?')) return;
       state = Object.assign(state, imported);
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' };
       saveState(); renderProfiles();
       toast('Data imported', 'fa-check');
     } catch(err) { toast('Could not read that file', 'fa-triangle-exclamation'); }
@@ -2201,27 +2683,4 @@ function renderMarketplaceBannerOnly() {
 
 /* =========================== BOOT =========================== */
 window.onload = async function() {
-  await loadState();
-  renderApp();
-  initSyncOnBoot();
-  const lastTab = localStorage.getItem('chores_last_tab');
-  if (lastTab) switchTab(lastTab);
-  setInterval(checkForNewPokesTargetingMe, 15000);
-};
-
-if ('serviceWorker' in navigator) {
-  let refreshingOnce = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshingOnce) return;
-    refreshingOnce = true;
-    window.location.reload();
-  });
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
-      reg.update().catch(() => {});
-    }).catch(err => console.error('SW registration failed', err));
-  });
-}
-</script>
-</body>
-</html>
+  await 
