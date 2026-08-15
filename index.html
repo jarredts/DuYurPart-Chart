@@ -79,7 +79,10 @@
 <header class="px-3 py-3 border-b border-gray-200 bg-gradient-to-r from-white to-purple-50/40 sticky top-0 z-30 shadow-sm w-full max-w-xl mx-auto">
   <div class="flex justify-between items-center mb-2">
     <div>
-      <div class="text-[9px] text-gray-500 font-mono font-bold tracking-wider uppercase">Family Chores</div>
+      <div class="flex items-center gap-1.5">
+        <span class="text-[9px] text-gray-500 font-mono font-bold tracking-wider uppercase">Family Chores</span>
+        <span id="roleBadge" class="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-700">Admin</span>
+      </div>
       <div class="text-lg font-bold text-gray-900" id="headerMonthLabel">--</div>
     </div>
     <div class="flex items-center gap-2">
@@ -119,7 +122,7 @@
 
 <main class="w-full max-w-xl mx-auto px-1 sm:px-2 pt-2">
 
-  <!-- TAB: Chore Calendar with 7-Day Horizontal Snapshot -->
+  <!-- TAB: Chore Calendar -->
   <section id="tab-calendar" class="space-y-2">
     <div class="bg-white rounded-2xl shadow-sm p-1.5 flex items-center gap-1.5 overflow-x-auto" id="calendarFilterBar"></div>
 
@@ -131,7 +134,6 @@
           <button onclick="navigateCalendar(1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
         
-        <!-- Month vs Week View Switcher -->
         <div class="flex bg-gray-100 p-0.5 rounded-xl border border-gray-200">
           <button onclick="setCalView('month')" id="calViewMonthBtn" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-purple-700 shadow-sm">Month</button>
           <button onclick="setCalView('week')" id="calViewWeekBtn" class="px-2.5 py-1 text-xs font-bold rounded-lg text-gray-500">Week</button>
@@ -144,7 +146,7 @@
         <div id="calendarGrid" class="grid grid-cols-7 gap-0.5"></div>
       </div>
 
-      <!-- Week View: 7-Day Horizontal Strip -->
+      <!-- Week View Container -->
       <div id="weekViewContainer" class="hidden">
         <div id="weekWeekdayHeader" class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-bold text-gray-400 mb-1"></div>
         <div id="weekGrid" class="grid grid-cols-7 gap-0.5"></div>
@@ -155,7 +157,7 @@
     <div id="selectedDayCard" class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm" id="selectedDayLabel">Today</div>
-        <button onclick="openChoreModal(null, selectedDate)" class="text-xs font-bold text-purple-600 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+        <button onclick="openChoreModal(null, selectedDate)" class="admin-only text-xs font-bold text-purple-600 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
       <div id="selectedDayList" class="space-y-2"></div>
     </div>
@@ -168,7 +170,7 @@
         <select id="logPersonFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1 bg-white">
           <option value="all">Everyone</option>
         </select>
-        <button onclick="openChoreModal()" class="text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+        <button onclick="openChoreModal()" class="admin-only text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
       
       <div class="grid grid-cols-2 gap-2 mb-2">
@@ -192,9 +194,9 @@
     </div>
   </section>
 
-  <!-- TAB: Family Stats & Ticket Prize Counter -->
+  <!-- TAB: Carnival Prizes, Wallets & Family Stats -->
   <section id="tab-stats" class="hidden space-y-3">
-    <!-- Ticket Balances Banner -->
+    <!-- 1. Ticket Wallets -->
     <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200/70 shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm text-amber-900 flex items-center gap-1.5">
@@ -205,10 +207,32 @@
       <div id="statsTicketCards" class="grid grid-cols-2 gap-2"></div>
     </div>
 
-    <!-- Stats Performance Chart -->
+    <!-- 2. Carnival Prize Booth (Always in stock & Editable) -->
+    <div class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3 space-y-2.5">
+      <div class="flex items-center justify-between">
+        <div class="font-bold text-sm text-purple-900 flex items-center gap-1.5">
+          <i class="fa-solid fa-store text-purple-600"></i> Carnival Prize Booth
+        </div>
+        <button onclick="openPrizeModal()" class="admin-only text-xs font-bold bg-purple-600 text-white rounded-lg px-2.5 py-1 flex items-center gap-1">
+          <i class="fa-solid fa-plus"></i> Add Prize
+        </button>
+      </div>
+      <div id="prizeBoothList" class="space-y-2"></div>
+    </div>
+
+    <!-- 3. Banked Cash & Claims -->
+    <div class="bg-white rounded-2xl shadow-sm p-3">
+      <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <i class="fa-solid fa-piggy-bank text-amber-500"></i> Banked Cash & Redemptions
+      </div>
+      <div id="bankList" class="space-y-2"></div>
+    </div>
+
+    <!-- 4. Stats Performance Chart -->
     <div class="bg-gradient-to-br from-white to-emerald-50/40 rounded-2xl shadow-sm p-3">
-      <div class="flex items-center gap-2 mb-3">
-        <select id="statsPeriod" onchange="renderStats()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1 bg-white">
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <div class="font-bold text-sm text-emerald-900">Chores Completed</div>
+        <select id="statsPeriod" onchange="renderStats()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
           <option value="month">This Month</option>
           <option value="week">This Week</option>
           <option value="30">Last 30 Days</option>
@@ -219,26 +243,6 @@
     </div>
     
     <div id="statsPersonCards" class="space-y-2"></div>
-
-    <!-- Prize Booth & Reward Bank -->
-    <div class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3 space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="font-bold text-sm text-purple-900 flex items-center gap-1.5">
-          <i class="fa-solid fa-store text-purple-600"></i> Carnival Prize Booth
-        </div>
-        <button onclick="openAddPrizeModal()" class="text-xs font-bold bg-purple-600 text-white rounded-lg px-2.5 py-1 flex items-center gap-1">
-          <i class="fa-solid fa-plus"></i> Add Prize
-        </button>
-      </div>
-      <div id="prizeBoothList" class="space-y-2"></div>
-
-      <div class="border-t border-gray-100 pt-2.5">
-        <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          <i class="fa-solid fa-piggy-bank text-amber-500"></i> Banked Cash & Claims
-        </div>
-        <div id="bankList" class="space-y-2"></div>
-      </div>
-    </div>
   </section>
 
   <!-- TAB: Honey-Do List -->
@@ -246,7 +250,7 @@
     <div class="bg-gradient-to-br from-white to-orange-50/50 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm">Never-Ending Honey-Do List</div>
-        <button onclick="openHoneyDoModal()" class="text-xs font-bold bg-orange-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
+        <button onclick="openHoneyDoModal()" class="admin-only text-xs font-bold bg-orange-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
       <div class="text-[11px] text-gray-500 mb-2">Projects & weekend tasks — no due date required.</div>
       <div id="honeyDoList" class="space-y-2"></div>
@@ -258,7 +262,7 @@
     <div class="bg-gradient-to-br from-amber-50 to-pink-50 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-1">
         <div class="font-bold text-sm"><i class="fa-solid fa-store text-pink-500"></i> Open Chores</div>
-        <button onclick="openMarketModal()" class="text-xs font-bold bg-pink-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Post</button>
+        <button onclick="openMarketModal()" class="admin-only text-xs font-bold bg-pink-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Post</button>
       </div>
       <div class="text-[11px] text-gray-500">First come, first served. Claim one and pick when you'll get it done.</div>
     </div>
@@ -289,7 +293,7 @@
     <i class="fa-solid fa-list-check"></i><span class="text-[9px]">Chore Log</span>
   </button>
   <button id="nav-stats" onclick="switchTab('stats')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1">
-    <i class="fa-solid fa-chart-simple"></i><span class="text-[9px]">Stats & Prizes</span>
+    <i class="fa-solid fa-chart-simple"></i><span class="text-[9px]">Prizes & Stats</span>
   </button>
   <button id="nav-honeydo" onclick="switchTab('honeydo')" class="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-800 px-2.5 py-1.5 -my-1">
     <i class="fa-solid fa-house-chimney"></i><span class="text-[9px]">Honey-Do</span>
@@ -314,8 +318,8 @@
     <div class="flex gap-2">
       <button id="cdCompleteBtn" onclick="toggleChoreComplete()" class="flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-emerald-600"><i class="fa-solid fa-check"></i> Mark Complete</button>
       <button id="cdPokeBtn" onclick="pokeFromChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-bell"></i></button>
-      <button id="cdEditBtn" onclick="editCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
-      <button id="cdDeleteBtn" onclick="deleteCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
+      <button id="cdEditBtn" onclick="editCurrentChore()" class="admin-only rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
+      <button id="cdDeleteBtn" onclick="deleteCurrentChore()" class="admin-only rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
     </div>
   </div>
 </div>
@@ -441,7 +445,7 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveChore()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
-      <button id="choreDeleteBtn" onclick="deleteCurrentChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="choreDeleteBtn" onclick="deleteCurrentChore()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
@@ -454,7 +458,7 @@
       <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="dayListItems" class="space-y-2 mb-3"></div>
-    <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Item This Day</button>
+    <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="admin-only w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Item This Day</button>
   </div>
 </div>
 
@@ -464,23 +468,29 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.4.0</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.5.0</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
-    <div class="font-bold text-sm mb-2">Family Members</div>
-    <div id="peopleList" class="space-y-2 mb-2"></div>
-    <button onclick="addPersonRow()" class="text-xs font-bold text-purple-600 mb-4"><i class="fa-solid fa-plus"></i> Add person</button>
-
-    <div class="font-bold text-sm mb-2">This Device & Push Notifications</div>
-    <div class="mb-4 space-y-2">
-      <div>
-        <label class="text-xs font-bold text-gray-500">Whose phone is this?</label>
-        <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
-        <div class="text-[10px] text-gray-400 mt-0.5">Saved locally on this device only.</div>
+    <!-- Active Profile & Role -->
+    <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
+      <label class="text-xs font-bold text-gray-700">This Device's Active Profile</label>
+      <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"></select>
+      
+      <div class="flex items-center justify-between pt-1">
+        <span class="text-xs text-gray-600 font-medium">Device Role:</span>
+        <span id="roleLabelBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-600 text-white">Admin (Parent)</span>
       </div>
+      <div class="text-[10px] text-gray-400">Kids profiles cannot add, edit, or delete listings/prizes.</div>
+    </div>
 
+    <div class="font-bold text-sm mb-2">Family Members & Roles</div>
+    <div id="peopleList" class="space-y-2 mb-2"></div>
+    <button onclick="addPersonRow()" class="admin-only text-xs font-bold text-purple-600 mb-4"><i class="fa-solid fa-plus"></i> Add person</button>
+
+    <div class="font-bold text-sm mb-2">Push Notifications</div>
+    <div class="mb-4 space-y-2">
       <div>
         <label class="text-xs font-bold text-gray-500">Firebase VAPID Public Key</label>
         <input id="fcmVapidKeyInput" type="text" placeholder="Paste FCM Web Push Certificate Key here" onchange="saveVapidKey(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mt-1">
@@ -521,16 +531,14 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.4.0</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.5.0</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
       </button>
-      <div class="text-[10px] text-gray-400 leading-tight">Pulls the newest app version directly from the web server without needing to uninstall.</div>
     </div>
 
     <div class="font-bold text-sm mb-2">Cloud Sync</div>
-    <div class="text-[11px] text-gray-500 mb-2">Sync across devices using Firebase Firestore.</div>
     <textarea id="syncConfigInput" rows="4" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
     <div class="flex gap-2 mb-2">
       <button onclick="enableCloudSync()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-purple-600 text-white">Enable Sync</button>
@@ -591,12 +599,12 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveHoneyDo()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
-      <button id="honeyDeleteBtn" onclick="deleteHoneyDo()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="honeyDeleteBtn" onclick="deleteHoneyDo()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
 
-<!-- Market Listing Add/Edit Modal (Clean Reward Config) -->
+<!-- Market Listing Add/Edit Modal -->
 <div id="marketModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-3">
@@ -683,12 +691,12 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveMarketChore()" class="flex-1 bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm">Save Listing</button>
-      <button id="marketDeleteBtn" onclick="deleteMarketChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="marketDeleteBtn" onclick="deleteMarketChore()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
 
-<!-- Market Claim Modal (With "Bank It" Choice At Claim Time) -->
+<!-- Market Claim Modal -->
 <div id="marketClaimModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
     <div class="flex justify-between items-center mb-3">
@@ -719,13 +727,14 @@
   </div>
 </div>
 
-<!-- Add Prize Modal (Carnival Prize Counter) -->
-<div id="addPrizeModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+<!-- Add/Edit Carnival Prize Modal -->
+<div id="prizeModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
     <div class="flex justify-between items-center mb-3">
-      <div class="text-lg font-bold flex items-center gap-1.5"><i class="fa-solid fa-ticket text-amber-500"></i> Add Prize to Booth</div>
-      <button onclick="closeModal('addPrizeModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      <div id="prizeModalTitle" class="text-lg font-bold flex items-center gap-1.5"><i class="fa-solid fa-ticket text-amber-500"></i> Add Prize</div>
+      <button onclick="closeModal('prizeModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
+    <input type="hidden" id="prizeId">
     <div class="space-y-3">
       <div>
         <label class="text-xs font-bold text-gray-500">Prize Name</label>
@@ -736,7 +745,32 @@
         <input id="prizeCost" type="number" min="1" placeholder="e.g. 20" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
     </div>
-    <button onclick="saveCarnivalPrize()" class="w-full bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm mt-4">Save Prize</button>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveCarnivalPrize()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save Prize</button>
+      <button id="prizeDeleteBtn" onclick="deleteCarnivalPrize()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Prize Redemption Confirmation Modal -->
+<div id="redeemModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-lg font-bold flex items-center gap-1.5"><i class="fa-solid fa-gift text-amber-500"></i> Redeem Prize</div>
+      <button onclick="closeModal('redeemModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="redeemPrizeId">
+    <div id="redeemPrizeTitle" class="text-sm font-bold text-purple-900 mb-1"></div>
+    <div id="redeemPrizeCost" class="text-xs font-bold text-amber-600 mb-3"></div>
+    
+    <label class="text-xs font-bold text-gray-500">Who is redeeming this prize?</label>
+    <select id="redeemPersonSelect" onchange="updateRedeemModalEligible()" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3"></select>
+    
+    <div id="redeemStatusNotice" class="text-xs font-semibold mb-3"></div>
+
+    <button id="confirmRedeemBtn" onclick="confirmPrizeRedemption()" class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2.5 font-bold text-sm">
+      <i class="fa-solid fa-ticket"></i> Redeem for Tickets
+    </button>
   </div>
 </div>
 
@@ -771,7 +805,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.4.0";
+const APP_VERSION = "v6.5.0";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -813,7 +847,7 @@ let state = {
   yearlyCompletions: {},
   honeyDo: [],
   bankedRewards: [],
-  carnivalPrizes: [], // Carnival Prize Counter Items
+  carnivalPrizes: [],
   pokes: [],
   deviceTokens: {},
   marketChores: [],
@@ -843,6 +877,25 @@ function todayStr() { return formatLocalDate(new Date()); }
 function formatLocalDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function parseLocalDate(s) { const [y,m,d] = (s||todayStr()).split('-').map(Number); return new Date(y,m-1,d); }
 function uid(prefix) { return prefix+'-'+Date.now()+'-'+Math.floor(Math.random()*10000); }
+
+/* =========================== ROLE HELPERS =========================== */
+function isCurrentAdmin() {
+  if (!localDeviceProfileId) return true; // Default admin if not chosen
+  const p = getPerson(localDeviceProfileId);
+  return !p || p.role !== 'kid';
+}
+
+function updateRoleUI() {
+  const admin = isCurrentAdmin();
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.classList.toggle('hidden', !admin);
+  });
+  const rBadge = document.getElementById('roleBadge');
+  if (rBadge) {
+    rBadge.textContent = admin ? 'Admin' : 'Member';
+    rBadge.className = `text-[9px] font-bold px-1.5 py-0.2 rounded-md ${admin ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-700'}`;
+  }
+}
 
 /* =========================== FORCE UPDATE ENGINE =========================== */
 async function forceAppUpdate() {
@@ -902,7 +955,13 @@ async function loadState() {
 }
 
 function seedDefaultData() {
-  state.people = DEFAULT_COLORS.slice(0,4).map((c,i) => ({ id: uid('p'), name: i===0?'Jarred':i===1?'Jaclyn':i===2?'Jiana':'Juliette', color: c.hex }));
+  state.people = [
+    { id: uid('p'), name: 'Jarred', color: DEFAULT_COLORS[1].hex, role: 'parent' },
+    { id: uid('p'), name: 'Jaclyn', color: DEFAULT_COLORS[0].hex, role: 'parent' },
+    { id: uid('p'), name: 'Jiana', color: DEFAULT_COLORS[2].hex, role: 'kid' },
+    { id: uid('p'), name: 'Juliette', color: DEFAULT_COLORS[3].hex, role: 'kid' },
+    { id: uid('p'), name: 'Jayde', color: DEFAULT_COLORS[4].hex, role: 'kid' }
+  ];
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   state.yearlyChores = monthNames.map((m,i) => ({ id: uid('yc'), month: i+1, title: m+' Family Chore', subtasks: [] }));
   state.carnivalPrizes = [
@@ -1056,7 +1115,7 @@ function getSingleForDate(dateStr) {
   }));
 }
 
-/* =========================== MARKETPLACE ENGINE (WEEKLY & MONTHLY POOLS) =========================== */
+/* =========================== MARKETPLACE ENGINE =========================== */
 function marketClaimKey(marketId, scopeKey) { return marketId+'_'+scopeKey; }
 function getMarketClaim(marketId, scopeKey) { return state.marketClaims && state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
 function archiveMarketClaimIfCompleted(marketId, scopeKey) {
@@ -1211,7 +1270,7 @@ function getChoresForDate(dateStr) {
   return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
 
-/* =========================== CALENDAR (MONTH & 7-DAY SNAPSHOT MODES) =========================== */
+/* =========================== CALENDAR =========================== */
 function setCalView(mode) {
   calViewMode = mode;
   localStorage.setItem('chores_cal_view_mode', mode);
@@ -1283,7 +1342,6 @@ function toggleCalendarFilterPerson(id) {
   renderCalendarFilterBar();
 }
 
-/* Dynamic remaining count and completion dimming logic */
 function renderPersonBadgePills(chores, isMini) {
   const group = {};
   chores.forEach(c => {
@@ -1990,7 +2048,6 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
       document.getElementById('rewardTickets').value = r.reward.tickets || 5;
       document.getElementById('rewardAmount').value = r.reward.amount != null ? r.reward.amount : '';
       document.getElementById('rewardDesc').value = r.reward.description || '';
-      document.getElementById('rewardBanked').checked = !!r.reward.banked;
     }
     document.getElementById('choreNotes').value = r.notes || '';
     document.getElementById('choreDeleteBtn').classList.remove('hidden');
@@ -2010,7 +2067,6 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
       document.getElementById('rewardTickets').value = c.reward.tickets || 5;
       document.getElementById('rewardAmount').value = c.reward.amount != null ? c.reward.amount : '';
       document.getElementById('rewardDesc').value = c.reward.description || '';
-      document.getElementById('rewardBanked').checked = !!c.reward.banked;
     }
     document.getElementById('choreNotes').value = r.notes || '';
     document.getElementById('choreDeleteBtn').classList.remove('hidden');
@@ -2022,7 +2078,6 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     document.getElementById('rewardTickets').value = 5;
     document.getElementById('rewardAmount').value = '';
     document.getElementById('rewardDesc').value = '';
-    document.getElementById('rewardBanked').checked = false;
     setChoreRepeatMode('single');
     if (isKidLog && localDeviceProfileId) document.getElementById('chorePerson').value = localDeviceProfileId;
   }
@@ -2049,7 +2104,7 @@ function saveChore() {
     tickets: rewardType === 'tickets' ? ticketsAmt : null,
     amount: rewardType === 'money' ? parsedAmt : null,
     description: rewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null,
-    banked: document.getElementById('rewardBanked').checked
+    banked: rewardType === 'tickets' // Tickets automatically bank
   } : { enabled: false };
   const notes = document.getElementById('choreNotes').value.trim();
 
@@ -2352,7 +2407,7 @@ function openMarketClaimModal(marketId, scopeKey) {
     rewDisp.textContent = 'Reward: ' + rewardLabel(m.reward);
     rewDisp.classList.remove('hidden');
     bankChoiceWrapper.classList.remove('hidden');
-    bankedCheckbox.checked = m.reward.type === 'tickets'; // Automatically check bank for carnival tickets
+    bankedCheckbox.checked = m.reward.type === 'tickets'; // Automatically check for carnival tickets
   } else {
     rewDisp.classList.add('hidden');
     bankChoiceWrapper.classList.add('hidden');
@@ -2448,8 +2503,8 @@ function marketListingCardHtml(x, claimedView) {
       ${claimedView
         ? `<button onclick="unclaimMarket('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-gray-200 text-gray-600 rounded-lg px-2 py-1.5">Release</button>`
         : `<button onclick="openMarketClaimModal('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-pink-500 text-white rounded-lg px-2.5 py-1.5"><i class="fa-solid fa-hand"></i> Claim</button>`}
-      ${!claimedView ? `<button onclick="openMarketModal('${x.market.id}')" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-pen text-xs"></i></button>
-      <button onclick="quickDeleteMarketChore('${x.market.id}')" class="w-7 h-7 flex-shrink-0 rounded-lg bg-red-50 text-red-400"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
+      ${!claimedView ? `<button onclick="openMarketModal('${x.market.id}')" class="admin-only w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-pen text-xs"></i></button>
+      <button onclick="quickDeleteMarketChore('${x.market.id}')" class="admin-only w-7 h-7 flex-shrink-0 rounded-lg bg-red-50 text-red-400"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
     </div>
   </div>`;
 }
@@ -2499,7 +2554,7 @@ function renderMarketplace() {
   if (banner) banner.textContent = open.length + (open.length===1?' open':' open');
 }
 
-/* =========================== SETTINGS QUOTAS =========================== */
+/* =========================== SETTINGS & QUOTAS =========================== */
 function setWeeklyQuota(val) { 
   state.settings = state.settings || {}; 
   state.settings.weeklyQuota = Math.max(0, Number(val||0)); 
@@ -2510,6 +2565,20 @@ function setMonthlyQuota(val) {
   state.settings = state.settings || {}; 
   state.settings.monthlyQuota = Math.max(0, Number(val||0)); 
   saveState(); 
+}
+
+function setWeekStart(val) { 
+  state.settings = state.settings || {}; 
+  state.settings.weekStart = val; 
+  saveState(); 
+  toast('Calendar updated', 'fa-calendar-days'); 
+}
+
+function saveVapidKey(val) {
+  state.settings = state.settings || {};
+  state.settings.vapidKey = val.trim();
+  saveState();
+  toast('VAPID key saved', 'fa-key');
 }
 
 /* =========================== CARNIVAL TICKET & PRIZE BOOTH SYSTEM =========================== */
@@ -2525,13 +2594,27 @@ function getPersonTicketBalance(personId) {
   return Math.max(0, earned - spent);
 }
 
-function openAddPrizeModal() {
-  document.getElementById('prizeName').value = '';
-  document.getElementById('prizeCost').value = '';
-  openModal('addPrizeModal');
+function openPrizeModal(prizeId) {
+  document.getElementById('prizeId').value = prizeId || '';
+  document.getElementById('prizeModalTitle').innerHTML = prizeId 
+    ? '<i class="fa-solid fa-pen text-amber-500"></i> Edit Prize' 
+    : '<i class="fa-solid fa-ticket text-amber-500"></i> Add Prize';
+  document.getElementById('prizeDeleteBtn').classList.toggle('hidden', !prizeId);
+
+  if (prizeId) {
+    const p = (state.carnivalPrizes || []).find(x => x.id === prizeId);
+    if (!p) return;
+    document.getElementById('prizeName').value = p.name;
+    document.getElementById('prizeCost').value = p.cost;
+  } else {
+    document.getElementById('prizeName').value = '';
+    document.getElementById('prizeCost').value = '';
+  }
+  openModal('prizeModal');
 }
 
 function saveCarnivalPrize() {
+  const id = document.getElementById('prizeId').value;
   const name = document.getElementById('prizeName').value.trim();
   const cost = parseInt(document.getElementById('prizeCost').value);
   if (!name || isNaN(cost) || cost <= 0) {
@@ -2539,35 +2622,74 @@ function saveCarnivalPrize() {
     return;
   }
   state.carnivalPrizes = state.carnivalPrizes || [];
-  state.carnivalPrizes.push({ id: uid('prz'), name, cost });
-  closeModal('addPrizeModal');
+  if (id) {
+    const p = state.carnivalPrizes.find(x => x.id === id);
+    if (p) Object.assign(p, { name, cost });
+  } else {
+    state.carnivalPrizes.push({ id: uid('prz'), name, cost });
+  }
+  closeModal('prizeModal');
   saveState();
-  toast('Prize added to booth!', 'fa-store');
+  toast(id ? 'Prize updated!' : 'Prize added to booth!', 'fa-store');
 }
 
-function deleteCarnivalPrize(prizeId) {
+function deleteCarnivalPrize() {
+  const id = document.getElementById('prizeId').value;
+  if (!id) return;
   if (!confirm('Remove this prize from the booth?')) return;
-  state.carnivalPrizes = (state.carnivalPrizes || []).filter(p => p.id !== prizeId);
+  state.carnivalPrizes = (state.carnivalPrizes || []).filter(p => p.id !== id);
+  closeModal('prizeModal');
   saveState();
 }
 
-function redeemCarnivalPrize(prizeId) {
+/* Explicit Confirmation with Target Dropdown */
+function promptRedeemPrize(prizeId) {
   const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
   if (!prize) return;
 
-  const eligibleKids = (state.people || []).filter(p => getPersonTicketBalance(p.id) >= prize.cost);
-  if (!eligibleKids.length) {
-    toast(`Need at least 🎟️ ${prize.cost} tickets to redeem!`, 'fa-triangle-exclamation');
+  document.getElementById('redeemPrizeId').value = prizeId;
+  document.getElementById('redeemPrizeTitle').textContent = prize.name;
+  document.getElementById('redeemPrizeCost').textContent = `Cost: 🎟️ ${prize.cost} Tickets`;
+
+  const sel = document.getElementById('redeemPersonSelect');
+  sel.innerHTML = personOptions(localDeviceProfileId);
+
+  updateRedeemModalEligible();
+  openModal('redeemModal');
+}
+
+function updateRedeemModalEligible() {
+  const prizeId = document.getElementById('redeemPrizeId').value;
+  const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
+  if (!prize) return;
+
+  const personId = document.getElementById('redeemPersonSelect').value;
+  const balance = getPersonTicketBalance(personId);
+  const statusNotice = document.getElementById('redeemStatusNotice');
+  const btn = document.getElementById('confirmRedeemBtn');
+
+  if (balance >= prize.cost) {
+    statusNotice.innerHTML = `<span class="text-emerald-600">Wallet: 🎟️ ${balance} tickets (Eligible!)</span>`;
+    btn.disabled = false;
+    btn.className = 'w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2.5 font-bold text-sm';
+  } else {
+    statusNotice.innerHTML = `<span class="text-red-500">Wallet: 🎟️ ${balance} tickets (Need ${prize.cost - balance} more)</span>`;
+    btn.disabled = true;
+    btn.className = 'w-full bg-gray-300 text-gray-500 rounded-xl py-2.5 font-bold text-sm cursor-not-allowed';
+  }
+}
+
+function confirmPrizeRedemption() {
+  const prizeId = document.getElementById('redeemPrizeId').value;
+  const personId = document.getElementById('redeemPersonSelect').value;
+  const prize = (state.carnivalPrizes || []).find(p => p.id === prizeId);
+  const person = getPerson(personId);
+
+  if (!prize || !person) return;
+  if (getPersonTicketBalance(personId) < prize.cost) {
+    toast('Not enough tickets!', 'fa-triangle-exclamation');
     return;
   }
-
-  let personId = localDeviceProfileId;
-  if (!personId || getPersonTicketBalance(personId) < prize.cost) {
-    personId = eligibleKids[0].id;
-  }
-
-  const person = getPerson(personId);
-  if (!confirm(`Redeem "${prize.name}" for ${person.name} for 🎟️ ${prize.cost} tickets?`)) return;
 
   state.bankedRewards = state.bankedRewards || [];
   state.bankedRewards.push({
@@ -2581,6 +2703,7 @@ function redeemCarnivalPrize(prizeId) {
     redeemedAt: new Date().toISOString()
   });
 
+  closeModal('redeemModal');
   saveState();
   toast(`🎉 ${person.name} redeemed ${prize.name}!`, 'fa-gift');
 }
@@ -2644,7 +2767,6 @@ function renderLog() {
     }
   });
 
-  // Filter pipeline
   let filtered = items;
 
   if (personFilter !== 'all') {
@@ -2683,7 +2805,7 @@ function renderLog() {
   }
 }
 
-/* =========================== STATS TAB & CARNIVAL PRIZE BOOTH RENDER =========================== */
+/* =========================== STATS TAB RENDERING =========================== */
 function periodRange(period) {
   const now = new Date();
   let start, end = new Date(now);
@@ -2751,7 +2873,31 @@ function renderStats() {
     }).join('');
   }
 
-  // 2. Render Chart
+  // 2. Carnival Prize Booth List (Always available & Editable)
+  const boothList = document.getElementById('prizeBoothList');
+  if (boothList) {
+    const prizes = state.carnivalPrizes || [];
+    boothList.innerHTML = prizes.length ? prizes.map(prz => `
+      <div class="flex items-center justify-between bg-white rounded-xl p-2.5 border border-purple-100 shadow-xs">
+        <div class="min-w-0 flex-1">
+          <div class="text-xs font-bold text-gray-800 truncate">${escapeHtml(prz.name)}</div>
+          <div class="text-[10px] font-bold text-amber-600 flex items-center gap-1 mt-0.5">
+            <span>🎟️ ${prz.cost} Tickets</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button onclick="promptRedeemPrize('${prz.id}')" class="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2.5 py-1 flex items-center gap-1">
+            <i class="fa-solid fa-gift"></i> Redeem
+          </button>
+          <button onclick="openPrizeModal('${prz.id}')" class="admin-only w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-purple-600">
+            <i class="fa-solid fa-pen text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+    `).join('') : '<div class="text-xs text-gray-400 py-2 text-center">No prizes in the booth yet. Add one!</div>';
+  }
+
+  // 3. Render Chart
   const counts = {};
   (state.people||[]).forEach(p => counts[p.id] = 0);
   completed.forEach(c => { if (counts[c.personId] !== undefined) counts[c.personId]++; });
@@ -2770,7 +2916,7 @@ function renderStats() {
     });
   }
 
-  // 3. Person Activity Cards
+  // 4. Person Activity Cards
   const pCards = document.getElementById('statsPersonCards');
   if (pCards) {
     pCards.innerHTML = (state.people||[]).map(p => {
@@ -2797,31 +2943,8 @@ function renderStats() {
     }).join('');
   }
 
-  // 4. Carnival Prize Booth Items
-  const boothList = document.getElementById('prizeBoothList');
-  if (boothList) {
-    const prizes = state.carnivalPrizes || [];
-    boothList.innerHTML = prizes.length ? prizes.map(prz => `
-      <div class="flex items-center justify-between bg-white rounded-xl p-2.5 border border-purple-100 shadow-xs">
-        <div class="min-w-0 flex-1">
-          <div class="text-xs font-bold text-gray-800 truncate">${escapeHtml(prz.name)}</div>
-          <div class="text-[10px] font-bold text-amber-600 flex items-center gap-1 mt-0.5">
-            <span>🎟️ ${prz.cost} Tickets</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-1.5 flex-shrink-0">
-          <button onclick="redeemCarnivalPrize('${prz.id}')" class="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2.5 py-1 flex items-center gap-1">
-            <i class="fa-solid fa-gift"></i> Redeem
-          </button>
-          <button onclick="deleteCarnivalPrize('${prz.id}')" class="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500">
-            <i class="fa-solid fa-trash text-[10px]"></i>
-          </button>
-        </div>
-      </div>
-    `).join('') : '<div class="text-xs text-gray-400 py-2 text-center">No prizes in the booth yet. Add one!</div>';
-  }
-
   renderBankList();
+  updateRoleUI();
 }
 
 function openStatsPersonDetail(personId) {
@@ -2848,18 +2971,25 @@ function openStatsPersonDetail(personId) {
 function renderBankList() {
   const list = document.getElementById('bankList');
   if (!list) return;
-  const unredeemed = (state.bankedRewards||[]).filter(b => !b.redeemed && !b.isPrizeRedemption);
-  if (!unredeemed.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-1">No banked cash or other rewards.</div>'; return; }
-  list.innerHTML = unredeemed.map(b => `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
-    <div class="min-w-0 flex-1">
-      <div class="text-xs font-semibold truncate">${escapeHtml(b.choreTitle)}</div>
-      <div class="flex items-center gap-1.5 mt-0.5">${personChip(b.personId)}<span class="text-[10px] text-gray-400">${b.date}</span></div>
-    </div>
-    <div class="flex items-center gap-2 flex-shrink-0">
-      <span class="text-xs font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
-      <button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-1">Redeem</button>
-    </div>
-  </div>`).join('');
+  const entries = (state.bankedRewards||[]).filter(b => (!b.redeemed && !b.isPrizeRedemption) || b.isPrizeRedemption);
+  if (!entries.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-1">No banked cash or prize claims yet.</div>'; return; }
+  
+  list.innerHTML = entries.slice(-10).reverse().map(b => {
+    const isRedeem = b.isPrizeRedemption;
+    return `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+      <div class="min-w-0 flex-1">
+        <div class="text-xs font-semibold truncate ${isRedeem?'text-amber-800':'text-gray-800'}">${escapeHtml(b.choreTitle)}</div>
+        <div class="flex items-center gap-1.5 mt-0.5">${personChip(b.personId)}<span class="text-[10px] text-gray-400">${b.date}</span></div>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        ${isRedeem 
+          ? `<span class="text-xs font-bold text-amber-600">-🎟️ ${b.ticketCost}</span>`
+          : `<span class="text-xs font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
+             <button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-1">Redeem</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function redeemBank(id) {
@@ -3017,19 +3147,32 @@ function toggleYearlySubtask(month, subId, checked) {
   saveState(); renderHeader();
 }
 
-/* =========================== PROFILES / SETTINGS =========================== */
+/* =========================== PROFILES & ROLES =========================== */
 function renderProfiles() {
   const pList = document.getElementById('peopleList');
   if (pList) {
-    pList.innerHTML = (state.people||[]).map(p => `<div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2.5 py-2">
-      <input type="color" value="${p.color||'#8b5cf6'}" onchange="updatePersonColor('${p.id}', this.value)" class="w-8 h-8 rounded-lg border-0 flex-shrink-0" style="background:${p.color||'#8b5cf6'}">
-      <input type="text" value="${escapeHtml(p.name)}" onchange="updatePersonName('${p.id}', this.value)" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm">
-      <button onclick="removePerson('${p.id}')" class="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
-    </div>`).join('');
+    pList.innerHTML = (state.people||[]).map(p => `
+      <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-2.5 py-2">
+        <input type="color" value="${p.color||'#8b5cf6'}" onchange="updatePersonColor('${p.id}', this.value)" class="w-8 h-8 rounded-lg border-0 flex-shrink-0" style="background:${p.color||'#8b5cf6'}">
+        <input type="text" value="${escapeHtml(p.name)}" onchange="updatePersonName('${p.id}', this.value)" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm">
+        <select onchange="updatePersonRole('${p.id}', this.value)" class="text-xs font-bold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+          <option value="parent" ${p.role==='parent'?'selected':''}>Parent</option>
+          <option value="kid" ${p.role==='kid'?'selected':''}>Kid</option>
+        </select>
+        <button onclick="removePerson('${p.id}')" class="admin-only w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+      </div>
+    `).join('');
   }
 
   const mySel = document.getElementById('myProfileSelect');
-  if (mySel) mySel.innerHTML = '<option value="">-- select --</option>' + personOptions(localDeviceProfileId);
+  if (mySel) mySel.innerHTML = '<option value="">-- select active profile --</option>' + personOptions(localDeviceProfileId);
+
+  const roleLabel = document.getElementById('roleLabelBadge');
+  if (roleLabel) {
+    const admin = isCurrentAdmin();
+    roleLabel.textContent = admin ? 'Admin (Parent)' : 'Member (Kid - View Only)';
+    roleLabel.className = `text-xs font-bold px-2 py-0.5 rounded-full ${admin ? 'bg-purple-600 text-white' : 'bg-gray-300 text-gray-700'}`;
+  }
 
   const vapidInput = document.getElementById('fcmVapidKeyInput');
   if (vapidInput) vapidInput.value = (state.settings && state.settings.vapidKey) || '';
@@ -3054,17 +3197,20 @@ function renderProfiles() {
   if (verDisplay) verDisplay.textContent = APP_VERSION;
   const verBadge = document.getElementById('appVersionBadge');
   if (verBadge) verBadge.textContent = APP_VERSION;
+
+  updateRoleUI();
 }
 
 function addPersonRow() {
   state.people = state.people || [];
   const usedColors = state.people.map(p => p.color);
   const nextColor = DEFAULT_COLORS.find(c => !usedColors.includes(c.hex)) || DEFAULT_COLORS[state.people.length % 5];
-  state.people.push({ id: uid('p'), name: 'New Person', color: nextColor.hex });
+  state.people.push({ id: uid('p'), name: 'New Person', color: nextColor.hex, role: 'kid' });
   saveState(); renderProfiles();
 }
 function updatePersonName(id, val) { const p = getPerson(id); if (p) p.name = val; saveState(); renderProfiles(); }
 function updatePersonColor(id, val) { const p = getPerson(id); if (p) p.color = val; saveState(); renderProfiles(); }
+function updatePersonRole(id, val) { const p = getPerson(id); if (p) p.role = val; saveState(); renderProfiles(); }
 function removePerson(id) {
   if (!confirm('Remove this person? Their assigned chores will stay but show as unassigned.')) return;
   state.people = (state.people||[]).filter(p => p.id !== id);
@@ -3075,17 +3221,9 @@ function setMyProfile(id) {
   localDeviceProfileId = id || null;
   localStorage.setItem('chores_local_profile_id', localDeviceProfileId || '');
   renderApp(); 
-  toast('Profile selected for this device', 'fa-check'); 
+  toast('Profile switched for this device', 'fa-check'); 
   registerDeviceToken();
 }
-
-function saveVapidKey(val) {
-  state.settings = state.settings || {};
-  state.settings.vapidKey = val.trim();
-  saveState();
-  toast('VAPID key saved', 'fa-key');
-}
-function setWeekStart(val) { state.settings = state.settings || {}; state.settings.weekStart = val; saveState(); toast('Calendar updated', 'fa-calendar-days'); }
 
 /* =========================== PUSH NOTIFICATIONS (FCM) =========================== */
 async function requestPushNotificationPermission() {
@@ -3322,6 +3460,7 @@ function renderApp() {
   if (activeTab === 'log') renderLog();
   if (activeTab === 'stats') renderStats();
   if (activeTab === 'honeydo') renderHoneyDo();
+  updateRoleUI();
 }
 function renderMarketplaceBannerOnly() {
   const banner = document.getElementById('marketBannerCount');
