@@ -151,7 +151,7 @@
       </div>
     </div>
 
-    <!-- Selected Day Detail View (Active for both Month & Week views) -->
+    <!-- Selected Day Detail View -->
     <div id="selectedDayCard" class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm" id="selectedDayLabel">Today</div>
@@ -233,13 +233,16 @@
       </div>
       <div class="text-[11px] text-gray-500">First come, first served. Claim one and pick when you'll get it done.</div>
     </div>
+    
+    <!-- Quota Cards Grid (Weekly & Monthly Quotas) -->
     <div id="marketQuotaCards" class="grid grid-cols-2 gap-2"></div>
+    
     <div class="bg-white rounded-2xl shadow-sm p-3">
       <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Up for grabs</div>
       <div id="marketOpenList" class="space-y-2"></div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm p-3">
-      <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Claimed this week</div>
+      <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Claimed in active periods</div>
       <div id="marketClaimedList" class="space-y-2"></div>
     </div>
   </section>
@@ -421,20 +424,20 @@
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-2">
       <div id="dayListTitle" class="text-lg font-bold"></div>
-      <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="dayListItems" class="space-y-2 mb-3"></div>
     <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Item This Day</button>
   </div>
 </div>
 
-<!-- Profiles / Settings Modal -->
+<!-- Profiles / Settings Modal (Includes Weekly & Monthly Quotas) -->
 <div id="profilesModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.2.3</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.3.0</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -462,15 +465,25 @@
       <div id="notifPermStatus" class="text-[10px] text-gray-500"></div>
     </div>
 
-    <div class="font-bold text-sm mb-2">Calendar</div>
-    <div class="mb-4">
-      <label class="text-xs font-bold text-gray-500">Week starts on</label>
-      <select id="weekStartSelect" onchange="setWeekStart(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-2">
-        <option value="sunday">Sunday</option>
-        <option value="monday">Monday</option>
-      </select>
-      <label class="text-xs font-bold text-gray-500">Weekly marketplace quota</label>
-      <input id="weeklyQuotaInput" type="number" min="0" max="14" onchange="setWeeklyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+    <div class="font-bold text-sm mb-2">Calendar & Marketplace Goals</div>
+    <div class="mb-4 space-y-2">
+      <div>
+        <label class="text-xs font-bold text-gray-500">Week starts on</label>
+        <select id="weekStartSelect" onchange="setWeekStart(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+          <option value="sunday">Sunday</option>
+          <option value="monday">Monday</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs font-bold text-gray-500">Weekly quota</label>
+          <input id="weeklyQuotaInput" type="number" min="0" max="25" onchange="setWeeklyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" placeholder="e.g. 2">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">Monthly quota</label>
+          <input id="monthlyQuotaInput" type="number" min="0" max="50" onchange="setMonthlyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" placeholder="e.g. 8">
+        </div>
+      </div>
     </div>
 
     <div class="font-bold text-sm mb-2">Dark Mode</div>
@@ -481,7 +494,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.2.3</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.3.0</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -556,7 +569,7 @@
   </div>
 </div>
 
-<!-- Market Listing Add/Edit Modal (With Bank Checkbox & Correct IDs) -->
+<!-- Market Listing Add/Edit Modal (One-Time, Weekly Pool, and Monthly Pool) -->
 <div id="marketModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-3">
@@ -570,9 +583,10 @@
         <input id="marketTitle" type="text" placeholder="Clean downstairs bathroom" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
 
-      <div class="flex gap-2">
-        <button type="button" onclick="setMarketRepeats('once')" id="marketRepeatsOnceBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">One-time</button>
-        <button type="button" onclick="setMarketRepeats('weekly')" id="marketRepeatsWeeklyBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Weekly Pool</button>
+      <div class="flex gap-1.5">
+        <button type="button" onclick="setMarketRepeats('once')" id="marketRepeatsOnceBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">One-time</button>
+        <button type="button" onclick="setMarketRepeats('weekly')" id="marketRepeatsWeeklyBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">Weekly Pool</button>
+        <button type="button" onclick="setMarketRepeats('monthly')" id="marketRepeatsMonthlyBtn" class="flex-1 rounded-lg py-2 text-[11px] font-bold border">Monthly Pool</button>
       </div>
       <div class="text-[10px] text-gray-400" id="marketRepeatsHelp">One-time: posted once, gone once claimed & done.</div>
 
@@ -588,6 +602,10 @@
       <div id="marketFixedWeeklyBox" class="hidden">
         <label class="text-xs font-bold text-gray-500">Due Day (every week)</label>
         <select id="marketDueDayOfWeek" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
+      </div>
+      <div id="marketFixedMonthlyBox" class="hidden">
+        <label class="text-xs font-bold text-gray-500">Due Day of Month (1–31)</label>
+        <input id="marketDueDayOfMonth" type="number" min="1" max="31" value="15" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
       <div id="marketFlexOnceBox" class="hidden grid grid-cols-2 gap-2">
         <div>
@@ -697,7 +715,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.2.3";
+const APP_VERSION = "v6.3.0";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -744,7 +762,7 @@ let state = {
   marketChores: [],
   marketClaims: {},
   marketCompletions: [],
-  settings: { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' }
+  settings: { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' }
 };
 
 let localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || null;
@@ -814,7 +832,7 @@ async function loadState() {
     if (raw) {
       const loaded = JSON.parse(raw);
       state = Object.assign(state, loaded);
-      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' };
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
       if (!Array.isArray(state.people)) state.people = [];
       if (!Array.isArray(state.chores)) state.chores = [];
       if (!Array.isArray(state.recurring)) state.recurring = [];
@@ -975,7 +993,7 @@ function getSingleForDate(dateStr) {
   }));
 }
 
-/* =========================== MARKETPLACE ENGINE =========================== */
+/* =========================== MARKETPLACE ENGINE (WEEKLY & MONTHLY POOLS) =========================== */
 function marketClaimKey(marketId, scopeKey) { return marketId+'_'+scopeKey; }
 function getMarketClaim(marketId, scopeKey) { return state.marketClaims && state.marketClaims[marketClaimKey(marketId, scopeKey)]; }
 function archiveMarketClaimIfCompleted(marketId, scopeKey) {
@@ -992,7 +1010,9 @@ function archiveMarketClaimIfCompleted(marketId, scopeKey) {
 function activeMarketInstances(refDateStr) {
   const ref = refDateStr || todayStr();
   const weekStartStr = currentWeekStartStr(ref);
+  const monthKeyStr = ref.slice(0, 7); // e.g. "2026-08"
   const out = [];
+
   (state.marketChores||[]).forEach(m => {
     if (m.repeats === 'weekly') {
       const scopeKey = weekStartStr;
@@ -1009,6 +1029,19 @@ function activeMarketInstances(refDateStr) {
         dueDate = formatLocalDate(dd);
       }
       out.push({ market:m, scopeKey, claim, windowStart, windowEnd, dueDate });
+    } else if (m.repeats === 'monthly') {
+      const scopeKey = monthKeyStr;
+      const claim = getMarketClaim(m.id, scopeKey);
+      const [y, mo] = monthKeyStr.split('-').map(Number);
+      const lastDay = new Date(y, mo, 0).getDate();
+      let dueDate = null, windowStart = `${monthKeyStr}-01`, windowEnd = `${monthKeyStr}-${String(lastDay).padStart(2,'0')}`;
+      if (m.scheduleType === 'fixed') {
+        const dNum = Math.min(lastDay, Math.max(1, Number(m.dueDayOfMonth || 15)));
+        dueDate = `${monthKeyStr}-${String(dNum).padStart(2,'0')}`;
+      } else {
+        dueDate = claim ? claim.dueDate : null;
+      }
+      out.push({ market:m, scopeKey, claim, windowStart, windowEnd, dueDate });
     } else {
       const scopeKey = 'once';
       const claim = getMarketClaim(m.id, scopeKey);
@@ -1022,6 +1055,7 @@ function activeMarketInstances(refDateStr) {
   });
   return out;
 }
+
 function getMarketForCalendarDate(dateStr) {
   const items = [];
   activeMarketInstances(dateStr).forEach(x => {
@@ -1046,6 +1080,7 @@ function getMarketForCalendarDate(dateStr) {
   });
   return items;
 }
+
 function resolvedMarketDueDate(market, scopeKey, claim) {
   if (market.scheduleType === 'fixed') {
     if (market.repeats === 'weekly') {
@@ -1053,10 +1088,17 @@ function resolvedMarketDueDate(market, scopeKey, claim) {
       dd.setDate(dd.getDate() + (market.dueDayOffset||0));
       return formatLocalDate(dd);
     }
+    if (market.repeats === 'monthly') {
+      const [y, mo] = scopeKey.split('-').map(Number);
+      const lastDay = new Date(y, mo, 0).getDate();
+      const dNum = Math.min(lastDay, Math.max(1, Number(market.dueDayOfMonth || 15)));
+      return `${scopeKey}-${String(dNum).padStart(2,'0')}`;
+    }
     return market.dueDate;
   }
   return claim ? claim.dueDate : null;
 }
+
 function allMarketClaimEntries() {
   if (!state.marketClaims) return [];
   return Object.keys(state.marketClaims).map(key => {
@@ -1069,12 +1111,24 @@ function allMarketClaimEntries() {
     return { market, scopeKey, claim, dueDate: resolvedMarketDueDate(market, scopeKey, claim) };
   }).filter(Boolean);
 }
+
 function weeklyClaimCountForPerson(personId) {
   const weekStartStr = currentWeekStartStr();
   let n = 0;
   (state.marketChores||[]).forEach(m => {
     if (m.repeats !== 'weekly') return;
     const claim = getMarketClaim(m.id, weekStartStr);
+    if (claim && claim.personId === personId) n++;
+  });
+  return n;
+}
+
+function monthlyClaimCountForPerson(personId) {
+  const monthKeyStr = todayStr().slice(0, 7);
+  let n = 0;
+  (state.marketChores||[]).forEach(m => {
+    if (m.repeats !== 'monthly') return;
+    const claim = getMarketClaim(m.id, monthKeyStr);
     if (claim && claim.personId === personId) n++;
   });
   return n;
@@ -1960,23 +2014,31 @@ function offsetDayLabels() {
 
 function setMarketRepeats(mode) {
   marketRepeats = mode;
-  ['marketRepeatsOnceBtn','marketRepeatsWeeklyBtn'].forEach(bid => {
+  ['marketRepeatsOnceBtn','marketRepeatsWeeklyBtn','marketRepeatsMonthlyBtn'].forEach(bid => {
     const el = document.getElementById(bid);
     if (!el) return;
-    const active = (bid==='marketRepeatsOnceBtn' && mode==='once') || (bid==='marketRepeatsWeeklyBtn' && mode==='weekly');
-    el.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
+    const active = (bid==='marketRepeatsOnceBtn' && mode==='once') 
+      || (bid==='marketRepeatsWeeklyBtn' && mode==='weekly')
+      || (bid==='marketRepeatsMonthlyBtn' && mode==='monthly');
+    el.className = 'flex-1 rounded-lg py-2 text-[11px] font-bold border ' + (active ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-500 border-gray-200');
   });
+
   const helpEl = document.getElementById('marketRepeatsHelp');
-  if (helpEl) helpEl.textContent = mode === 'once'
-    ? 'One-time: posted once, gone once claimed & done.'
-    : "Weekly Pool: reopens every week for someone new to claim — whoever claims it picks that week's date, so it never gets stuck.";
+  if (helpEl) {
+    if (mode === 'once') helpEl.textContent = 'One-time: posted once, gone once claimed & done.';
+    else if (mode === 'weekly') helpEl.textContent = "Weekly Pool: reopens every week for someone new to claim — whoever claims it picks that week's date.";
+    else if (mode === 'monthly') helpEl.textContent = "Monthly Pool: reopens every month for someone new to claim — whoever claims it picks that month's date.";
+  }
+
   const fixedBtn = document.getElementById('marketSchedFixedBtn');
   if (fixedBtn) {
     fixedBtn.disabled = (mode === 'weekly');
     fixedBtn.className = 'flex-1 rounded-lg py-2 text-xs font-bold border ' + (mode === 'weekly' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-white text-gray-500 border-gray-200');
   }
-  if (mode === 'weekly') setMarketSchedule('flexible'); else updateMarketScheduleUI();
+  if (mode === 'weekly') setMarketSchedule('flexible'); 
+  else updateMarketScheduleUI();
 }
+
 function setMarketSchedule(mode) {
   marketSchedule = mode;
   ['marketSchedFixedBtn','marketSchedFlexBtn'].forEach(bid => {
@@ -1987,16 +2049,21 @@ function setMarketSchedule(mode) {
   });
   updateMarketScheduleUI();
 }
+
 function updateMarketScheduleUI() {
   const fOnce = document.getElementById('marketFixedOnceBox');
   const fWeek = document.getElementById('marketFixedWeeklyBox');
+  const fMonth = document.getElementById('marketFixedMonthlyBox');
   const flOnce = document.getElementById('marketFlexOnceBox');
   const flWeek = document.getElementById('marketFlexWeeklyBox');
+
   if (fOnce) fOnce.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='once'));
   if (fWeek) fWeek.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='weekly'));
+  if (fMonth) fMonth.classList.toggle('hidden', !(marketSchedule==='fixed' && marketRepeats==='monthly'));
   if (flOnce) flOnce.classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='once'));
   if (flWeek) flWeek.classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='weekly'));
 }
+
 function setMarketRewardType(t) {
   marketRewardType = t;
   const amtEl = document.getElementById('marketRewardAmount');
@@ -2010,6 +2077,7 @@ function setMarketRewardType(t) {
     el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
   });
 }
+
 function addMarketSubtaskRow(text, id) {
   marketSubtaskBuilderCount++;
   const rowId = id || uid('mst');
@@ -2026,6 +2094,7 @@ function addMarketSubtaskRow(text, id) {
     makeDraggableList(container);
   }
 }
+
 function readMarketSubtasksFromBuilder() {
   const builder = document.getElementById('marketSubtaskBuilder');
   if (!builder) return [];
@@ -2033,6 +2102,7 @@ function readMarketSubtasksFromBuilder() {
     id: row.dataset.subid, text: row.querySelector('.market-subtask-text-input').value.trim()
   })).filter(s => s.text);
 }
+
 function fillOffsetSelect(id, selected) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -2057,10 +2127,11 @@ function openMarketModal(marketId) {
     const m = (state.marketChores||[]).find(x => x.id === marketId);
     if (!m) return;
     document.getElementById('marketTitle').value = m.title;
-    setMarketRepeats(m.repeats);
+    setMarketRepeats(m.repeats || 'once');
     if (!(m.repeats === 'weekly' && m.scheduleType === 'fixed')) setMarketSchedule(m.scheduleType);
     document.getElementById('marketDueDate').value = m.dueDate || '';
     document.getElementById('marketDueDayOfWeek').value = m.dueDayOffset || 0;
+    document.getElementById('marketDueDayOfMonth').value = m.dueDayOfMonth || 15;
     document.getElementById('marketWindowStart').value = m.windowStart || '';
     document.getElementById('marketWindowEnd').value = m.windowEnd || '';
     fillOffsetSelect('marketWindowStartOffset', m.windowStartOffset||0);
@@ -2078,6 +2149,7 @@ function openMarketModal(marketId) {
   } else {
     document.getElementById('marketTitle').value = '';
     document.getElementById('marketDueDate').value = todayStr();
+    document.getElementById('marketDueDayOfMonth').value = 15;
     document.getElementById('marketWindowStart').value = todayStr();
     document.getElementById('marketWindowEnd').value = todayStr();
     document.getElementById('marketRewardAmount').value = '';
@@ -2096,6 +2168,7 @@ function saveMarketChore() {
   const subtasks = readMarketSubtasksFromBuilder();
   const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
   
+  // Safe numeric parsing for marketplace rewards
   const rawAmt = document.getElementById('marketRewardAmount').value;
   const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
   const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
@@ -2112,6 +2185,8 @@ function saveMarketChore() {
   const data = { title, subtasks, reward, notes, repeats: marketRepeats, scheduleType: marketSchedule };
   if (marketSchedule === 'fixed' && marketRepeats === 'once') data.dueDate = document.getElementById('marketDueDate').value || todayStr();
   if (marketSchedule === 'fixed' && marketRepeats === 'weekly') data.dueDayOffset = Number(document.getElementById('marketDueDayOfWeek').value || 0);
+  if (marketSchedule === 'fixed' && marketRepeats === 'monthly') data.dueDayOfMonth = Number(document.getElementById('marketDueDayOfMonth').value || 15);
+  
   if (marketSchedule === 'flexible' && marketRepeats === 'once') {
     data.windowStart = document.getElementById('marketWindowStart').value || todayStr();
     data.windowEnd = document.getElementById('marketWindowEnd').value || data.windowStart;
@@ -2150,6 +2225,7 @@ function deleteMarketChore() {
   closeModal('marketModal');
   saveState(); renderMarketplace();
 }
+
 function quickDeleteMarketChore(id) {
   const m = (state.marketChores||[]).find(x => x.id === id);
   if (!m) return;
@@ -2181,7 +2257,7 @@ function openMarketClaimModal(marketId, scopeKey) {
   const dateBox = document.getElementById('claimDateBox');
   if (m.scheduleType === 'flexible') {
     dateBox.classList.remove('hidden');
-    const inst = activeMarketInstances(scopeKey==='once' ? todayStr() : scopeKey).find(x => x.market.id === marketId);
+    const inst = activeMarketInstances(scopeKey==='once' ? todayStr() : (scopeKey.includes('-') && scopeKey.length===7 ? scopeKey+'-01' : scopeKey)).find(x => x.market.id === marketId);
     const min = inst ? inst.windowStart : todayStr();
     const max = inst ? inst.windowEnd : todayStr();
     document.getElementById('claimDate').min = min;
@@ -2193,6 +2269,7 @@ function openMarketClaimModal(marketId, scopeKey) {
   }
   openModal('marketClaimModal');
 }
+
 function confirmClaimMarket() {
   const marketId = document.getElementById('claimMarketId').value;
   const scopeKey = document.getElementById('claimScopeKey').value;
@@ -2210,6 +2287,7 @@ function confirmClaimMarket() {
   saveState(); renderMarketplace();
   toast((getPerson(personId)||{}).name+' claimed it!', 'fa-hand');
 }
+
 function unclaimMarket(marketId, scopeKey) {
   if (!confirm('Release this chore back to the marketplace?')) return;
   archiveMarketClaimIfCompleted(marketId, scopeKey);
@@ -2220,20 +2298,31 @@ function unclaimMarket(marketId, scopeKey) {
 /* =========================== MARKETPLACE TAB RENDER =========================== */
 function marketScheduleLabel(x) {
   if (x.market.scheduleType === 'fixed') {
-    return x.market.repeats === 'weekly' ? `Due every ${offsetDayLabels()[x.market.dueDayOffset||0]}` : `Due ${x.dueDate}`;
+    if (x.market.repeats === 'weekly') return `Due every ${offsetDayLabels()[x.market.dueDayOffset||0]}`;
+    if (x.market.repeats === 'monthly') return `Due on day ${x.market.dueDayOfMonth || 15} each month`;
+    return `Due ${x.dueDate}`;
   }
-  return x.market.repeats === 'weekly'
-    ? `Open ${offsetDayLabels()[x.market.windowStartOffset||0]}–${offsetDayLabels()[x.market.windowEndOffset!=null?x.market.windowEndOffset:6]}, at their leisure`
-    : `Open ${x.windowStart} to ${x.windowEnd}, at their leisure`;
+  if (x.market.repeats === 'weekly') {
+    return `Open ${offsetDayLabels()[x.market.windowStartOffset||0]}–${offsetDayLabels()[x.market.windowEndOffset!=null?x.market.windowEndOffset:6]}, at their leisure`;
+  }
+  if (x.market.repeats === 'monthly') {
+    return `Open any day this month, at their leisure`;
+  }
+  return `Open ${x.windowStart} to ${x.windowEnd}, at their leisure`;
 }
+
 function marketListingCardHtml(x, claimedView) {
   const claim = x.claim;
   const p = claim ? getPerson(claim.personId) : null;
+  let poolBadge = '';
+  if (x.market.repeats === 'weekly') poolBadge = '<span class="text-[10px] font-bold text-pink-500 bg-pink-100 rounded-full px-1.5 py-0.5">Weekly Pool</span>';
+  else if (x.market.repeats === 'monthly') poolBadge = '<span class="text-[10px] font-bold text-purple-600 bg-purple-100 rounded-full px-1.5 py-0.5">Monthly Pool</span>';
+
   return `<div class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 ${claimedView?'bg-gray-50':'bg-gradient-to-r from-amber-50 to-pink-50 border border-pink-100'}">
     <div class="min-w-0 flex-1">
       <div class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(x.market.title)}</div>
       <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-        ${x.market.repeats==='weekly' ? '<span class="text-[10px] font-bold text-pink-500 bg-pink-100 rounded-full px-1.5 py-0.5">Weekly Pool</span>' : ''}
+        ${poolBadge}
         <span class="text-[10px] text-gray-500">${marketScheduleLabel(x)}</span>
         ${x.market.reward && x.market.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(x.market.reward)}</span>` : ''}
         ${claimedView && p ? personChip(p.id) : ''}
@@ -2249,6 +2338,7 @@ function marketListingCardHtml(x, claimedView) {
     </div>
   </div>`;
 }
+
 function renderMarketplace() {
   const instances = activeMarketInstances();
   const open = instances.filter(x => !x.claim);
@@ -2264,24 +2354,47 @@ function renderMarketplace() {
   if (claimedList) {
     claimedList.innerHTML = claimed.length
       ? claimed.map(x => marketListingCardHtml(x, true)).join('')
-      : '<div class="text-xs text-gray-400 text-center py-3">No claims yet this week.</div>';
+      : '<div class="text-xs text-gray-400 text-center py-3">No claims yet in this active cycle.</div>';
   }
 
-  const quota = Number((state.settings && state.settings.weeklyQuota) || 0);
+  const wQuota = Number((state.settings && state.settings.weeklyQuota) || 0);
+  const mQuota = Number((state.settings && state.settings.monthlyQuota) || 0);
   const quotaCards = document.getElementById('marketQuotaCards');
   if (quotaCards) {
     quotaCards.innerHTML = (state.people||[]).map(p => {
-      const n = weeklyClaimCountForPerson(p.id);
-      const met = quota > 0 && n >= quota;
-      return `<div class="rounded-xl px-3 py-2 flex items-center justify-between" style="background:${p.color||'#8b5cf6'}15">
-        <div class="flex items-center gap-1.5 min-w-0"><span class="person-dot" style="background:${p.color||'#8b5cf6'}"></span><span class="text-xs font-bold truncate" style="color:${p.color||'#8b5cf6'}">${escapeHtml(p.name)}</span></div>
-        <span class="text-xs font-mono font-bold ${met?'text-emerald-500':'text-gray-500'}">${n}${quota?'/'+quota:''}${met?' ✓':''}</span>
+      const wn = weeklyClaimCountForPerson(p.id);
+      const mn = monthlyClaimCountForPerson(p.id);
+      const wMet = wQuota > 0 && wn >= wQuota;
+      const mMet = mQuota > 0 && mn >= mQuota;
+
+      return `<div class="rounded-xl px-2.5 py-2 flex flex-col justify-between" style="background:${p.color||'#8b5cf6'}15">
+        <div class="flex items-center gap-1.5 min-w-0 mb-1">
+          <span class="person-dot" style="background:${p.color||'#8b5cf6'}"></span>
+          <span class="text-xs font-bold truncate" style="color:${p.color||'#8b5cf6'}">${escapeHtml(p.name)}</span>
+        </div>
+        <div class="flex items-center justify-between text-[10px] font-mono font-bold text-gray-600 gap-1">
+          <span class="${wMet?'text-emerald-600 font-bold':''}">W: ${wn}${wQuota?'/'+wQuota:''}</span>
+          <span class="${mMet?'text-emerald-600 font-bold':''}">M: ${mn}${mQuota?'/'+mQuota:''}</span>
+        </div>
       </div>`;
     }).join('');
   }
 
   const banner = document.getElementById('marketBannerCount');
   if (banner) banner.textContent = open.length + (open.length===1?' open':' open');
+}
+
+/* =========================== SETTINGS QUOTAS =========================== */
+function setWeeklyQuota(val) { 
+  state.settings = state.settings || {}; 
+  state.settings.weeklyQuota = Math.max(0, Number(val||0)); 
+  saveState(); 
+}
+
+function setMonthlyQuota(val) { 
+  state.settings = state.settings || {}; 
+  state.settings.monthlyQuota = Math.max(0, Number(val||0)); 
+  saveState(); 
 }
 
 /* =========================== CHORE LOG TAB =========================== */
@@ -2369,7 +2482,6 @@ function renderLog() {
     filtered = filtered.filter(i => (i.dateStr || today).startsWith(mStr));
   }
 
-  // Sort: Upcoming/pending first, then date
   filtered.sort((a, b) => {
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
     return (a.dateStr || '').localeCompare(b.dateStr || '');
@@ -2689,6 +2801,8 @@ function renderProfiles() {
   if (weekStartSel) weekStartSel.value = (state.settings && state.settings.weekStart) || 'sunday';
   const quotaInput = document.getElementById('weeklyQuotaInput');
   if (quotaInput) quotaInput.value = (state.settings && state.settings.weeklyQuota != null) ? state.settings.weeklyQuota : 2;
+  const mQuotaInput = document.getElementById('monthlyQuotaInput');
+  if (mQuotaInput) mQuotaInput.value = (state.settings && state.settings.monthlyQuota != null) ? state.settings.monthlyQuota : 8;
 
   const notifStatus = document.getElementById('notifPermStatus');
   if (notifStatus) {
@@ -2735,7 +2849,6 @@ function saveVapidKey(val) {
   toast('VAPID key saved', 'fa-key');
 }
 function setWeekStart(val) { state.settings = state.settings || {}; state.settings.weekStart = val; saveState(); toast('Calendar updated', 'fa-calendar-days'); }
-function setWeeklyQuota(val) { state.settings = state.settings || {}; state.settings.weeklyQuota = Math.max(0, Number(val||0)); saveState(); }
 
 /* =========================== PUSH NOTIFICATIONS (FCM) =========================== */
 async function requestPushNotificationPermission() {
@@ -2888,7 +3001,7 @@ async function pullFromCloud() {
     if (doc.exists && doc.data().data) {
       const remote = JSON.parse(doc.data().data);
       state = Object.assign(state, remote);
-      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' };
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
       persist();
       renderApp();
       checkForNewPokesTargetingMe();
@@ -2902,7 +3015,7 @@ function listenForCloudChanges() {
       if (doc.exists && doc.data().data) {
         const remote = JSON.parse(doc.data().data);
         state = Object.assign(state, remote);
-        if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' };
+        if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
         persist();
         renderApp();
         checkForNewPokesTargetingMe();
@@ -2939,7 +3052,7 @@ function importDataJSON(e) {
       const imported = JSON.parse(evt.target.result);
       if (!confirm('This will replace all current data with the imported file. Continue?')) return;
       state = Object.assign(state, imported);
-      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' };
+      if (!state.settings) state.settings = { weekStart: 'sunday', weeklyQuota: 2, monthlyQuota: 8, vapidKey: '' };
       saveState(); renderProfiles();
       toast('Data imported', 'fa-check');
     } catch(err) { toast('Could not read that file', 'fa-triangle-exclamation'); }
