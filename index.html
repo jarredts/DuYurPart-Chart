@@ -635,7 +635,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.8.0</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.9.0</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -697,7 +697,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.8.0</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.9.0</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -882,9 +882,6 @@
     <div id="claimChoreTitle" class="text-sm font-bold text-gray-800 mb-1"></div>
     <div id="claimRewardDisplay" class="text-xs font-bold text-purple-600 mb-3 hidden"></div>
     
-    <label class="text-xs font-bold text-gray-500">Who's claiming it?</label>
-    <select id="claimPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-2"></select>
-    
     <div id="claimDateBox" class="hidden mb-3">
       <label class="text-xs font-bold text-gray-500">Pick a due date</label>
       <input id="claimDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
@@ -906,7 +903,7 @@
       <div class="text-[10px] text-purple-700 mt-1">Exchange rate: <strong>$0.50 = 1 Ticket</strong></div>
     </div>
 
-    <button onclick="confirmClaimMarket()" class="w-full bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm"><i class="fa-solid fa-hand"></i> Claim It</button>
+    <button onclick="confirmClaimMarket()" class="w-full bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm"><i class="fa-solid fa-hand"></i> Claim It Now</button>
   </div>
 </div>
 
@@ -988,7 +985,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.8.0";
+const APP_VERSION = "v6.9.0";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -1859,10 +1856,40 @@ function openChoreDetail(kind, id, dateStr) {
   const btn = document.getElementById('cdCompleteBtn');
   if (isUnclaimed) {
     btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-pink-500';
-    btn.innerHTML = '<i class="fa-solid fa-hand"></i> Claim It';
+    btn.innerHTML = '<i class="fa-solid fa-hand"></i> Claim It Now';
+    btn.onclick = () => {
+      closeModal('choreDetailModal');
+      const [marketId, scopeKey] = id.split('::');
+      const m = (state.marketChores||[]).find(x => x.id === marketId);
+      if (!m) return;
+      
+      // Auto assign to active profile user
+      const assignTo = localDeviceProfileId || (state.people[0] ? state.people[0].id : null);
+      if (!assignTo) { toast('Select a profile first', 'fa-triangle-exclamation'); return; }
+
+      let payoutPref = 'tickets';
+      if (m.reward && m.reward.enabled) {
+        if (m.reward.type === 'money') payoutPref = 'money';
+        else payoutPref = 'tickets';
+      }
+
+      state.marketClaims = state.marketClaims || {};
+      state.marketClaims[marketClaimKey(marketId, scopeKey)] = {
+        personId: assignTo,
+        dueDate: m.scheduleType === 'fixed' ? (m.repeats === 'weekly' ? formatLocalDate(parseLocalDate(scopeKey)) : m.dueDate) : dateStr,
+        payoutPreference: payoutPref,
+        claimedAt: new Date().toISOString(),
+        completed: false,
+        subtaskState: {}
+      };
+      saveState();
+      renderApp();
+      toast('Chore claimed successfully!', 'fa-hand');
+    };
   } else {
     btn.className = 'flex-1 rounded-xl py-2.5 font-bold text-sm text-white ' + (comp.completed ? 'bg-gray-400' : 'bg-emerald-600');
     btn.innerHTML = comp.completed ? '<i class="fa-solid fa-rotate-left"></i> Undo Complete' : '<i class="fa-solid fa-check"></i> Mark Complete';
+    btn.onclick = toggleChoreComplete;
   }
 
   const pokeBtn = document.getElementById('cdPokeBtn');
@@ -1931,7 +1958,6 @@ function toggleChoreComplete() {
     targetChore = (state.marketChores||[]).find(x => x.id === marketId);
   }
 
-  // Check if currently completed to determine if this is an UNDO
   let isCurrentlyCompleted = false;
   if (kind === 'single') isCurrentlyCompleted = targetChore?.completed;
   else if (kind === 'weekly_daily_progress') {
@@ -1944,13 +1970,11 @@ function toggleChoreComplete() {
     isCurrentlyCompleted = getMarketClaim(marketId, scopeKey)?.completed;
   }
 
-  // If already completed, undo it and remove the awarded balance entry
   if (isCurrentlyCompleted) {
     finalizeCompletion(kind, id, dateStr, null, true);
     return;
   }
 
-  // If it's a marketplace item that selected payout at claim time
   if (kind === 'market') {
     const [marketId, scopeKey] = id.split('::');
     const claim = getMarketClaim(marketId, scopeKey);
@@ -1960,7 +1984,6 @@ function toggleChoreComplete() {
     }
   }
 
-  // If completing and reward is Money ($), prompt choice between Cash and Tickets
   if (targetChore && targetChore.reward && targetChore.reward.enabled && targetChore.reward.type === 'money' && !targetChore.isTask) {
     const amt = parseFloat(targetChore.reward.amount || 0);
     const tCount = moneyToTickets(amt);
@@ -1977,7 +2000,6 @@ function toggleChoreComplete() {
     return;
   }
 
-  // Otherwise (Tickets Only), award tickets
   finalizeCompletion(kind, id, dateStr, 'tickets', false);
 }
 
@@ -2043,11 +2065,10 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice, isUndo) {
     }
   }
 
-  // UNDO HANDLING: Automatically remove the associated reward entry
   if (isUndo) {
     state.bankedRewards = (state.bankedRewards || []).filter(b => {
       if (b.sourceRef === sourceRefKey) return false;
-      if (b.personId === assignedPersonId && b.choreTitle === choreTitle && (b.date === today || b.date === dateStr) && !b.isPrizeRedemption) {
+      if (b.personId === assignedPersonId && b.choreTitle === choreTitle && !b.isPrizeRedemption) {
         return false;
       }
       return true;
@@ -2950,7 +2971,6 @@ function openMarketClaimModal(marketId, scopeKey) {
     payoutWrapper.classList.add('hidden');
   }
 
-  document.getElementById('claimPerson').innerHTML = personOptions(localDeviceProfileId);
   const dateBox = document.getElementById('claimDateBox');
   if (m.scheduleType === 'flexible') {
     dateBox.classList.remove('hidden');
@@ -2964,8 +2984,9 @@ function openMarketClaimModal(marketId, scopeKey) {
 function confirmClaimMarket() {
   const marketId = document.getElementById('claimMarketId').value;
   const scopeKey = document.getElementById('claimScopeKey').value;
-  const personId = document.getElementById('claimPerson').value;
-  if (!personId) { toast('Pick who is claiming this', 'fa-triangle-exclamation'); return; }
+  const personId = localDeviceProfileId || (state.people[0] ? state.people[0].id : null);
+  if (!personId) { toast('Select a profile first', 'fa-triangle-exclamation'); return; }
+
   const m = (state.marketChores||[]).find(x => x.id === marketId);
   let dueDate = null;
   if (m && m.scheduleType === 'flexible') {
@@ -2992,7 +3013,7 @@ function confirmClaimMarket() {
   };
   closeModal('marketClaimModal');
   saveState(); renderMarketplace();
-  toast((getPerson(personId)||{}).name+' claimed it!', 'fa-hand');
+  toast('Chore claimed successfully!', 'fa-hand');
 }
 
 function unclaimMarket(marketId, scopeKey) {
