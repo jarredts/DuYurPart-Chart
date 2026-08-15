@@ -202,7 +202,7 @@
       </div>
 
       <button onclick="openKidChoreOfferModal(todayStr())" class="w-full text-xs font-bold border-2 border-dashed border-amber-400 bg-amber-50/50 text-amber-700 rounded-lg py-2 mb-2 flex items-center justify-center gap-1.5">
-        <i class="fa-solid fa-wand-magic-sparkles"></i> I did a chore not listed! Propose tickets/reward
+        <i class="fa-solid fa-wand-magic-sparkles"></i> I did a chore not listed! Propose reward
       </button>
       <div id="logList" class="space-y-2"></div>
     </div>
@@ -214,9 +214,9 @@
     <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200/70 shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm text-amber-900 flex items-center gap-1.5">
-          <i class="fa-solid fa-ticket text-amber-500"></i> Wallets ($0.50 = 1 Ticket)
+          <i class="fa-solid fa-ticket text-amber-500"></i> Wallets & Bank Balances
         </div>
-        <span class="text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">Live Balances</span>
+        <span class="text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">$0.50 = 1 Ticket</span>
       </div>
       <div id="statsTicketCards" class="grid grid-cols-2 gap-2"></div>
     </div>
@@ -344,25 +344,21 @@
 
       <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-3 space-y-2">
         <label class="text-xs font-bold text-amber-900">Your Requested Reward</label>
-        <div class="text-[10px] text-amber-700">Permanent exchange: <strong>$0.50 = 1 Ticket</strong></div>
         
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="text-[10px] font-bold text-gray-500">🎟️ Tickets</label>
-            <input id="kidOfferTickets" type="number" min="1" step="1" placeholder="e.g. 2" oninput="syncExchangeRate('tickets', this.value, 'kidOfferAmount')" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white">
-          </div>
-          <div>
-            <label class="text-[10px] font-bold text-gray-500">💵 Or Cash Value ($)</label>
-            <input id="kidOfferAmount" type="number" min="0" step="0.25" placeholder="e.g. 1.00" oninput="syncExchangeRate('money', this.value, 'kidOfferTickets')" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white">
-          </div>
+        <div class="flex gap-1.5 mb-2">
+          <button type="button" onclick="setKidOfferType('tickets')" id="kidOfferTypeTicketsBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border bg-purple-600 text-white border-purple-600">🎟️ Tickets</button>
+          <button type="button" onclick="setKidOfferType('money')" id="kidOfferTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border bg-white text-gray-500 border-gray-200">💵 Cash / Dollar</button>
         </div>
 
-        <div>
-          <label class="text-[10px] font-bold text-gray-500">Your preference upon approval:</label>
-          <select id="kidOfferPayoutType" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white mt-1">
-            <option value="tickets">Deposit Tickets to Wallet</option>
-            <option value="money">Bank as Cash</option>
-          </select>
+        <div id="kidOfferTicketsBox">
+          <label class="text-[10px] font-bold text-gray-500">🎟️ Tickets</label>
+          <input id="kidOfferTickets" type="number" min="1" step="1" value="2" placeholder="e.g. 2" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white">
+        </div>
+
+        <div id="kidOfferMoneyBox" class="hidden">
+          <label class="text-[10px] font-bold text-gray-500">💵 Dollar Value ($)</label>
+          <input id="kidOfferAmount" type="number" min="0" step="0.25" value="1.00" placeholder="e.g. 1.00" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white">
+          <div class="text-[10px] text-amber-700 mt-1">Equivalent to <strong id="kidOfferMoneyEquivalent">2 Tickets</strong> ($0.50 = 1 Ticket)</div>
         </div>
       </div>
 
@@ -392,7 +388,7 @@
   </div>
 </div>
 
-<!-- Complete Reward Choice Modal (Tickets vs Cash) -->
+<!-- Complete Reward Choice Modal (For Dollar Value Chores: Cash vs Ticket Equivalent) -->
 <div id="rewardChoiceModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
     <div class="flex justify-between items-center mb-3">
@@ -405,19 +401,19 @@
     <input type="hidden" id="rcTargetDateStr">
     
     <div id="rcTitle" class="text-sm font-bold text-gray-800 mb-1"></div>
-    <div class="text-xs text-gray-500 mb-3">Permanent rate: <strong>$0.50 = 1 Carnival Ticket</strong></div>
+    <div class="text-xs text-gray-500 mb-3">This chore earns cash or carnival tickets ($0.50 = 1 Ticket):</div>
 
     <div class="grid grid-cols-2 gap-3 mb-4">
-      <button type="button" id="rcChoiceTicketBtn" onclick="confirmCompletionWithChoice('tickets')" class="border-2 border-amber-400 bg-amber-50 hover:bg-amber-100 rounded-xl p-3 text-center transition-all">
-        <div class="text-2xl mb-1">🎟️</div>
-        <div class="text-sm font-bold text-amber-900" id="rcTicketsAmountLabel">1 Ticket</div>
-        <div class="text-[10px] text-amber-700">Add to carnival wallet</div>
-      </button>
-
       <button type="button" id="rcChoiceMoneyBtn" onclick="confirmCompletionWithChoice('money')" class="border-2 border-emerald-400 bg-emerald-50 hover:bg-emerald-100 rounded-xl p-3 text-center transition-all">
         <div class="text-2xl mb-1">💵</div>
         <div class="text-sm font-bold text-emerald-900" id="rcMoneyAmountLabel">$0.50</div>
         <div class="text-[10px] text-emerald-700">Bank as cash</div>
+      </button>
+
+      <button type="button" id="rcChoiceTicketBtn" onclick="confirmCompletionWithChoice('tickets')" class="border-2 border-amber-400 bg-amber-50 hover:bg-amber-100 rounded-xl p-3 text-center transition-all">
+        <div class="text-2xl mb-1">🎟️</div>
+        <div class="text-sm font-bold text-amber-900" id="rcTicketsAmountLabel">1 Ticket</div>
+        <div class="text-[10px] text-amber-700">Add to carnival wallet</div>
       </button>
     </div>
   </div>
@@ -553,21 +549,24 @@
           <input type="checkbox" id="rewardEnabled" onchange="updateRewardUI()" class="chk"> Assign a Reward
         </label>
         <div id="rewardBox" class="hidden mt-2 space-y-2">
-          <div class="text-[10px] text-purple-700 font-semibold mb-1">Exchange rate: <strong>$0.50 = 1 Ticket</strong> (auto-calculated)</div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-[10px] font-bold text-gray-500">🎟️ Tickets</label>
-              <input id="rewardTickets" type="number" min="1" step="1" placeholder="Tickets (e.g. 1)" oninput="syncExchangeRate('tickets', this.value, 'rewardAmount')" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white">
-            </div>
-            <div>
-              <label class="text-[10px] font-bold text-gray-500">💵 Dollar ($)</label>
-              <input id="rewardAmount" type="number" min="0" step="0.25" placeholder="Amount ($ e.g. 0.50)" oninput="syncExchangeRate('money', this.value, 'rewardTickets')" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white">
-            </div>
+          <div class="flex gap-1.5">
+            <button type="button" onclick="setRewardType('tickets')" id="rewardTypeTicketsBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">🎟️ Tickets Only</button>
+            <button type="button" onclick="setRewardType('money')" id="rewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">💵 Dollar ($) / Option</button>
+            <button type="button" onclick="setRewardType('other')" id="rewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">🎁 Other</button>
           </div>
-          <div>
-            <label class="text-[10px] font-bold text-gray-500">Other Description (Optional)</label>
-            <input id="rewardDesc" type="text" placeholder="e.g. 30 min screen time" class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white mt-0.5">
+          
+          <div id="rewardTicketsWrapper">
+            <label class="text-[10px] font-bold text-gray-500">Number of Tickets</label>
+            <input id="rewardTickets" type="number" min="1" step="1" value="5" placeholder="Number of Tickets (e.g. 5)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-0.5">
           </div>
+
+          <div id="rewardAmountWrapper" class="hidden">
+            <label class="text-[10px] font-bold text-gray-500">Dollar Amount ($)</label>
+            <input id="rewardAmount" type="number" min="0" step="0.25" value="0.50" placeholder="Amount ($ e.g. 0.50)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-0.5">
+            <div class="text-[10px] text-purple-700 mt-1">Dollar items automatically give kids the option for cash or tickets at $0.50 = 1 Ticket.</div>
+          </div>
+
+          <input id="rewardDesc" type="text" placeholder="e.g. 30 min screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
         </div>
       </div>
 
@@ -601,7 +600,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.6.0</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.7.0</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -664,7 +663,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.6.0</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.7.0</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -806,21 +805,24 @@
           <input type="checkbox" id="marketRewardEnabled" onchange="document.getElementById('marketRewardBox').classList.toggle('hidden', !this.checked)" class="chk"> Assign a Reward
         </label>
         <div id="marketRewardBox" class="hidden mt-2 space-y-2">
-          <div class="text-[10px] text-purple-700 font-semibold mb-1">Exchange rate: <strong>$0.50 = 1 Ticket</strong></div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-[10px] font-bold text-gray-500">🎟️ Tickets</label>
-              <input id="marketRewardTickets" type="number" min="1" step="1" placeholder="Tickets" oninput="syncExchangeRate('tickets', this.value, 'marketRewardAmount')" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white">
-            </div>
-            <div>
-              <label class="text-[10px] font-bold text-gray-500">💵 Dollar ($)</label>
-              <input id="marketRewardAmount" type="number" min="0" step="0.25" placeholder="Amount ($)" oninput="syncExchangeRate('money', this.value, 'marketRewardTickets')" class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white">
-            </div>
+          <div class="flex gap-1.5">
+            <button type="button" onclick="setMarketRewardType('tickets')" id="marketRewardTypeTicketsBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">🎟️ Tickets Only</button>
+            <button type="button" onclick="setMarketRewardType('money')" id="marketRewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">💵 Dollar ($) / Option</button>
+            <button type="button" onclick="setMarketRewardType('other')" id="marketRewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">🎁 Other</button>
           </div>
-          <div>
-            <label class="text-[10px] font-bold text-gray-500">Other Description</label>
-            <input id="marketRewardDesc" type="text" placeholder="e.g. 30 min screen time" class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white mt-0.5">
+          
+          <div id="marketRewardTicketsWrapper">
+            <label class="text-[10px] font-bold text-gray-500">Number of Tickets</label>
+            <input id="marketRewardTickets" type="number" min="1" step="1" value="5" placeholder="Number of Tickets (e.g. 5)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-0.5">
           </div>
+
+          <div id="marketRewardAmountWrapper" class="hidden">
+            <label class="text-[10px] font-bold text-gray-500">Dollar Amount ($)</label>
+            <input id="marketRewardAmount" type="number" min="0" step="0.25" value="0.50" placeholder="Amount ($ e.g. 0.50)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-0.5">
+            <div class="text-[10px] text-purple-700 mt-1">Dollar items automatically give kids the option for cash or tickets at $0.50 = 1 Ticket.</div>
+          </div>
+
+          <input id="marketRewardDesc" type="text" placeholder="e.g. 30 min screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
         </div>
       </div>
 
@@ -938,7 +940,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.6.0";
+const APP_VERSION = "v6.7.0";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -1006,6 +1008,10 @@ let subtaskBuilderCount = 0;
 let marketSubtaskBuilderCount = 0;
 let rotationStageCount = 0;
 let currentItemType = 'chore';
+let choreRepeatMode = 'single';
+let rewardType = 'tickets';
+let marketRewardType = 'tickets';
+let kidOfferType = 'tickets';
 let calendarFilter = new Set();
 let firestoreDb = null, firebaseApp = null, fcmMessaging = null, unsubscribeSync = null;
 
@@ -1014,7 +1020,7 @@ function formatLocalDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).
 function parseLocalDate(s) { const [y,m,d] = (s||todayStr()).split('-').map(Number); return new Date(y,m-1,d); }
 function uid(prefix) { return prefix+'-'+Date.now()+'-'+Math.floor(Math.random()*10000); }
 
-/* =========================== EXCHANGE RATE ENGINE ($0.50 = 1 TICKET) =========================== */
+/* =========================== REWARD FORMATTING & CONVERSION ($0.50 = 1 TICKET) =========================== */
 function moneyToTickets(val) {
   const m = parseFloat(val);
   if (isNaN(m) || m <= 0) return 0;
@@ -1022,18 +1028,22 @@ function moneyToTickets(val) {
 }
 function ticketsToMoney(val) {
   const t = parseInt(val);
-  if (isNaN(t) || t <= 0) return 0;
+  if (isNaN(t) || t <= 0) return '0.00';
   return (t * 0.50).toFixed(2);
 }
 
-function syncExchangeRate(source, value, targetInputId) {
-  const target = document.getElementById(targetInputId);
-  if (!target) return;
-  if (source === 'money') {
-    target.value = moneyToTickets(value) || '';
-  } else {
-    target.value = ticketsToMoney(value) || '';
+function rewardLabel(r) { 
+  if (!r || !r.enabled) return ''; 
+  if (r.type === 'tickets') {
+    const t = parseInt(r.tickets || 1);
+    return `🎟️ ${t} Ticket${t===1?'':'s'}${r.description ? ' · ' + r.description : ''}`;
   }
+  if (r.type === 'money') {
+    const amt = parseFloat(r.amount || 0);
+    const tkts = moneyToTickets(amt);
+    return `$${amt.toFixed(2)} (or 🎟️ ${tkts} Tkt${tkts===1?'':'s'})${r.description ? ' · ' + r.description : ''}`;
+  }
+  return (r.description || 'Reward'); 
 }
 
 /* =========================== ROLE HELPERS =========================== */
@@ -1143,7 +1153,6 @@ function seedDefaultData() {
     { id: uid('prz'), name: 'Dollar Store Shopping Spree', cost: 20 }
   ];
 
-  // Example Weekly Daily Category progress chore for Laundry
   state.recurring.push({
     id: uid('rec'),
     title: 'Weekly Laundry Routine',
@@ -1159,7 +1168,7 @@ function seedDefaultData() {
       { id: uid('st'), text: 'Whites & Delicates' },
       { id: uid('st'), text: 'Dark & Casuals' }
     ],
-    reward: { enabled: true, type: 'tickets', tickets: 10, amount: 5.00 },
+    reward: { enabled: true, type: 'money', amount: 5.00, tickets: null },
     notes: 'Daily progress tracked throughout the week. Due by week end!',
     active: true
   });
@@ -1586,7 +1595,7 @@ function renderPersonBadgePills(chores, isMini) {
   return keys.map(pid => {
     const p = getPerson(pid);
     const color = pid === '__unassigned__' ? '#9CA3AF' : (p ? (p.color || '#8B5CF6') : '#cbd5e1');
-    const { total, pending, completed } = group[pid];
+    const { total, pending } = group[pid];
     const allDone = pending === 0 && total > 0;
     const opacityStyle = allDone ? 'opacity: 0.35;' : 'opacity: 1;';
     const displayVal = allDone ? '<i class="fa-solid fa-check text-[8px]"></i>' : pending;
@@ -1755,13 +1764,6 @@ function choreRowHtml(c) {
   </div>`;
 }
 
-function rewardLabel(r) { 
-  if (!r || !r.enabled) return ''; 
-  const tickets = r.tickets || moneyToTickets(r.amount);
-  const money = r.amount != null ? Number(r.amount).toFixed(2) : ticketsToMoney(tickets);
-  return `🎟️ ${tickets} Tkt ($${money})${r.description ? ' · ' + r.description : ''}`;
-}
-
 function openDayList(dateStr) {
   dayListDate = dateStr;
   const d = parseLocalDate(dateStr);
@@ -1901,23 +1903,43 @@ function toggleChoreComplete() {
     targetChore = (state.marketChores||[]).find(x => x.id === marketId);
   }
 
-  if (targetChore && targetChore.reward && targetChore.reward.enabled && !targetChore.isTask) {
-    const tCount = targetChore.reward.tickets || moneyToTickets(targetChore.reward.amount) || 1;
-    const mCount = targetChore.reward.amount != null ? Number(targetChore.reward.amount).toFixed(2) : ticketsToMoney(tCount);
+  // If already completed, toggle to undo
+  let isCurrentlyCompleted = false;
+  if (kind === 'single') isCurrentlyCompleted = targetChore?.completed;
+  else if (kind === 'weekly_daily_progress') {
+    const progKey = id + '_' + currentWeekStartStr(dateStr);
+    isCurrentlyCompleted = state.weeklyDailyProgress?.[progKey]?.completed;
+  } else if (kind === 'recurring') {
+    isCurrentlyCompleted = state.recurringCompletions?.[id + '_' + dateStr]?.completed;
+  } else if (kind === 'market') {
+    const [marketId, scopeKey] = id.split('::');
+    isCurrentlyCompleted = getMarketClaim(marketId, scopeKey)?.completed;
+  }
+
+  if (isCurrentlyCompleted) {
+    finalizeCompletion(kind, id, dateStr, null, true);
+    return;
+  }
+
+  // If completing and reward is Money ($), prompt them to pick Cash or Ticket Equivalent
+  if (targetChore && targetChore.reward && targetChore.reward.enabled && targetChore.reward.type === 'money' && !targetChore.isTask) {
+    const amt = parseFloat(targetChore.reward.amount || 0);
+    const tCount = moneyToTickets(amt);
 
     document.getElementById('rcTargetKind').value = kind;
     document.getElementById('rcTargetId').value = id;
     document.getElementById('rcTargetDateStr').value = dateStr;
     document.getElementById('rcTitle').textContent = targetChore.title;
+    document.getElementById('rcMoneyAmountLabel').textContent = `$${amt.toFixed(2)}`;
     document.getElementById('rcTicketsAmountLabel').textContent = `${tCount} Ticket${tCount===1?'':'s'}`;
-    document.getElementById('rcMoneyAmountLabel').textContent = `$${mCount}`;
     
     closeModal('choreDetailModal');
     openModal('rewardChoiceModal');
     return;
   }
 
-  finalizeCompletion(kind, id, dateStr, 'tickets');
+  // Otherwise (Tickets Only or Other), deposit directly
+  finalizeCompletion(kind, id, dateStr, 'tickets', false);
 }
 
 function confirmCompletionWithChoice(choice) {
@@ -1925,10 +1947,10 @@ function confirmCompletionWithChoice(choice) {
   const id = document.getElementById('rcTargetId').value;
   const dateStr = document.getElementById('rcTargetDateStr').value;
   closeModal('rewardChoiceModal');
-  finalizeCompletion(kind, id, dateStr, choice);
+  finalizeCompletion(kind, id, dateStr, choice, false);
 }
 
-function finalizeCompletion(kind, id, dateStr, rewardChoice) {
+function finalizeCompletion(kind, id, dateStr, rewardChoice, isUndo) {
   const today = todayStr();
   let assignedPersonId = null;
   let choreTitle = '';
@@ -1937,7 +1959,7 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice) {
   if (kind === 'single') {
     const c = (state.chores||[]).find(x => x.id === id);
     if (c) {
-      c.completed = !c.completed;
+      c.completed = !isUndo;
       if (c.completed) {
         c.completedAt = new Date().toISOString();
         assignedPersonId = c.personId;
@@ -1950,7 +1972,7 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice) {
     const progKey = id + '_' + weekStartKey;
     state.weeklyDailyProgress = state.weeklyDailyProgress || {};
     state.weeklyDailyProgress[progKey] = state.weeklyDailyProgress[progKey] || { completed: false, subtaskState: {} };
-    state.weeklyDailyProgress[progKey].completed = !state.weeklyDailyProgress[progKey].completed;
+    state.weeklyDailyProgress[progKey].completed = !isUndo;
     if (state.weeklyDailyProgress[progKey].completed) {
       state.weeklyDailyProgress[progKey].completedAt = new Date().toISOString();
       const r = (state.recurring||[]).find(x => x.id === id);
@@ -1964,7 +1986,7 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice) {
     const key = id+'_'+dateStr;
     state.recurringCompletions = state.recurringCompletions || {};
     state.recurringCompletions[key] = state.recurringCompletions[key] || { completed:false, subtaskState:{} };
-    state.recurringCompletions[key].completed = !state.recurringCompletions[key].completed;
+    state.recurringCompletions[key].completed = !isUndo;
     if (state.recurringCompletions[key].completed) {
       state.recurringCompletions[key].completedAt = new Date().toISOString();
       const rule = (state.recurring||[]).find(r => r.id === id);
@@ -1978,7 +2000,7 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice) {
     const [marketId, scopeKey] = id.split('::');
     const claim = getMarketClaim(marketId, scopeKey);
     if (!claim) return;
-    claim.completed = !claim.completed;
+    claim.completed = !isUndo;
     if (claim.completed) {
       claim.completedAt = new Date().toISOString();
       const m = (state.marketChores||[]).find(x => x.id === marketId);
@@ -1990,27 +2012,42 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice) {
     }
   }
 
-  if (assignedPersonId && rewardObj && rewardObj.enabled) {
-    const tickets = rewardObj.tickets || moneyToTickets(rewardObj.amount) || 1;
-    const cash = rewardObj.amount != null ? Number(rewardObj.amount) : parseFloat(ticketsToMoney(tickets));
+  if (!isUndo && assignedPersonId && rewardObj && rewardObj.enabled) {
+    if (rewardObj.type === 'tickets') {
+      const tickets = parseInt(rewardObj.tickets || 1);
+      state.bankedRewards = state.bankedRewards || [];
+      state.bankedRewards.push({
+        id: uid('bank'),
+        personId: assignedPersonId,
+        choreTitle: choreTitle,
+        reward: { enabled: true, type: 'tickets', tickets: tickets, amount: null },
+        date: today,
+        redeemed: false
+      });
+      const p = getPerson(assignedPersonId);
+      toast(`${p ? p.name : 'They'} earned 🎟️ ${tickets} Ticket${tickets===1?'':'s'}!`, 'fa-award');
+    } else if (rewardObj.type === 'money') {
+      const dollarVal = parseFloat(rewardObj.amount || 0);
+      const ticketVal = moneyToTickets(dollarVal);
 
-    state.bankedRewards = state.bankedRewards || [];
-    state.bankedRewards.push({
-      id: uid('bank'),
-      personId: assignedPersonId,
-      choreTitle: choreTitle,
-      reward: {
-        enabled: true,
-        type: rewardChoice,
-        tickets: rewardChoice === 'tickets' ? tickets : null,
-        amount: rewardChoice === 'money' ? cash : null
-      },
-      date: today,
-      redeemed: false
-    });
+      state.bankedRewards = state.bankedRewards || [];
+      state.bankedRewards.push({
+        id: uid('bank'),
+        personId: assignedPersonId,
+        choreTitle: choreTitle,
+        reward: {
+          enabled: true,
+          type: rewardChoice,
+          tickets: rewardChoice === 'tickets' ? ticketVal : null,
+          amount: rewardChoice === 'money' ? dollarVal : null
+        },
+        date: today,
+        redeemed: false
+      });
 
-    const p = getPerson(assignedPersonId);
-    toast(`${p ? p.name : 'They'} earned ${rewardChoice === 'tickets' ? `🎟️ ${tickets} Ticket(s)` : `$${cash.toFixed(2)} Cash`}!`, 'fa-award');
+      const p = getPerson(assignedPersonId);
+      toast(`${p ? p.name : 'They'} earned ${rewardChoice === 'tickets' ? `🎟️ ${ticketVal} Ticket(s)` : `$${dollarVal.toFixed(2)} Cash`}!`, 'fa-award');
+    }
   }
 
   saveState();
@@ -2040,14 +2077,28 @@ function pokeFromChore() {
 }
 
 /* =========================== KID UNLISTED CHORE SUBMISSIONS & APPROVALS =========================== */
+function setKidOfferType(type) {
+  kidOfferType = type;
+  const tBtn = document.getElementById('kidOfferTypeTicketsBtn');
+  const mBtn = document.getElementById('kidOfferTypeMoneyBtn');
+  const tBox = document.getElementById('kidOfferTicketsBox');
+  const mBox = document.getElementById('kidOfferMoneyBox');
+
+  if (tBtn) tBtn.className = type === 'tickets' ? 'flex-1 rounded-lg py-1.5 text-xs font-bold border bg-purple-600 text-white border-purple-600' : 'flex-1 rounded-lg py-1.5 text-xs font-bold border bg-white text-gray-500 border-gray-200';
+  if (mBtn) mBtn.className = type === 'money' ? 'flex-1 rounded-lg py-1.5 text-xs font-bold border bg-purple-600 text-white border-purple-600' : 'flex-1 rounded-lg py-1.5 text-xs font-bold border bg-white text-gray-500 border-gray-200';
+
+  if (tBox) tBox.classList.toggle('hidden', type !== 'tickets');
+  if (mBox) mBox.classList.toggle('hidden', type !== 'money');
+}
+
 function openKidChoreOfferModal(presetDate) {
   document.getElementById('kidOfferPerson').innerHTML = personOptions(localDeviceProfileId);
   document.getElementById('kidOfferDate').value = presetDate || todayStr();
   document.getElementById('kidOfferTitle').value = '';
   document.getElementById('kidOfferNotes').value = '';
-  document.getElementById('kidOfferTickets').value = '1';
-  document.getElementById('kidOfferAmount').value = '0.50';
-  document.getElementById('kidOfferPayoutType').value = 'tickets';
+  document.getElementById('kidOfferTickets').value = '2';
+  document.getElementById('kidOfferAmount').value = '1.00';
+  setKidOfferType('tickets');
   openModal('kidOfferModal');
 }
 
@@ -2055,15 +2106,15 @@ function submitKidChoreOffer() {
   const personId = document.getElementById('kidOfferPerson').value;
   const title = document.getElementById('kidOfferTitle').value.trim();
   const date = document.getElementById('kidOfferDate').value || todayStr();
-  const tickets = parseInt(document.getElementById('kidOfferTickets').value) || 1;
-  const amount = parseFloat(document.getElementById('kidOfferAmount').value) || 0.50;
-  const payoutType = document.getElementById('kidOfferPayoutType').value;
   const notes = document.getElementById('kidOfferNotes').value.trim();
 
   if (!title) {
     toast('Please enter the chore you accomplished', 'fa-triangle-exclamation');
     return;
   }
+
+  const requestedTickets = kidOfferType === 'tickets' ? (parseInt(document.getElementById('kidOfferTickets').value) || 1) : null;
+  const requestedAmount = kidOfferType === 'money' ? (parseFloat(document.getElementById('kidOfferAmount').value) || 0.50) : null;
 
   state.pendingApprovals = state.pendingApprovals || [];
   state.pendingApprovals.push({
@@ -2072,9 +2123,9 @@ function submitKidChoreOffer() {
     title,
     date,
     notes,
-    requestedTickets: tickets,
-    requestedAmount: amount,
-    payoutType,
+    payoutType: kidOfferType,
+    requestedTickets,
+    requestedAmount,
     status: 'pending',
     submittedAt: new Date().toISOString()
   });
@@ -2099,7 +2150,7 @@ function renderPendingApprovalsList() {
   }
 
   list.innerHTML = pending.map(item => {
-    const p = getPerson(item.personId);
+    const isMoney = item.payoutType === 'money';
     return `
       <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 space-y-2.5" id="pa_card_${item.id}">
         <div class="flex justify-between items-start">
@@ -2115,17 +2166,18 @@ function renderPendingApprovalsList() {
         ${item.notes ? `<div class="text-xs text-gray-600 bg-white p-2 rounded-lg border border-gray-100">${escapeHtml(item.notes)}</div>` : ''}
 
         <div class="bg-amber-50/60 p-2.5 rounded-lg border border-amber-100 space-y-1.5">
-          <div class="text-[10px] font-bold text-amber-900">Adjust Reward (Parents can edit before approving):</div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-[9px] font-bold text-gray-500">🎟️ Tickets</label>
-              <input id="pa_tkt_${item.id}" type="number" min="1" step="1" value="${item.requestedTickets}" oninput="syncExchangeRate('tickets', this.value, 'pa_amt_${item.id}')" class="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-            </div>
+          <div class="text-[10px] font-bold text-amber-900">Adjust Requested Reward (Parents can edit before approving):</div>
+          ${isMoney ? `
             <div>
               <label class="text-[9px] font-bold text-gray-500">💵 Dollar Value ($)</label>
-              <input id="pa_amt_${item.id}" type="number" min="0" step="0.25" value="${item.requestedAmount.toFixed(2)}" oninput="syncExchangeRate('money', this.value, 'pa_tkt_${item.id}')" class="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white">
+              <input id="pa_amt_${item.id}" type="number" min="0" step="0.25" value="${(item.requestedAmount||0.50).toFixed(2)}" class="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white">
             </div>
-          </div>
+          ` : `
+            <div>
+              <label class="text-[9px] font-bold text-gray-500">🎟️ Tickets</label>
+              <input id="pa_tkt_${item.id}" type="number" min="1" step="1" value="${item.requestedTickets||1}" class="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white">
+            </div>
+          `}
         </div>
 
         <div class="flex gap-2 pt-1">
@@ -2145,10 +2197,12 @@ function approveKidChore(approvalId) {
   const item = (state.pendingApprovals || []).find(a => a.id === approvalId);
   if (!item) return;
 
-  const tktInp = document.getElementById(`pa_tkt_${item.id}`);
+  const isMoney = item.payoutType === 'money';
   const amtInp = document.getElementById(`pa_amt_${item.id}`);
-  const finalTickets = tktInp ? parseInt(tktInp.value) || 1 : item.requestedTickets;
-  const finalAmount = amtInp ? parseFloat(amtInp.value) || 0.50 : item.requestedAmount;
+  const tktInp = document.getElementById(`pa_tkt_${item.id}`);
+
+  const finalAmount = isMoney ? (amtInp ? parseFloat(amtInp.value) || 0.50 : item.requestedAmount) : null;
+  const finalTickets = !isMoney ? (tktInp ? parseInt(tktInp.value) || 1 : item.requestedTickets) : null;
 
   item.status = 'approved';
   item.approvedAt = new Date().toISOString();
@@ -2162,9 +2216,9 @@ function approveKidChore(approvalId) {
     choreTitle: item.title,
     reward: {
       enabled: true,
-      type: item.payoutType || 'tickets',
-      tickets: item.payoutType === 'money' ? null : finalTickets,
-      amount: item.payoutType === 'money' ? finalAmount : null
+      type: item.payoutType,
+      tickets: finalTickets,
+      amount: finalAmount
     },
     date: item.date,
     redeemed: false
@@ -2401,6 +2455,26 @@ function toggleRecurDay(i) {
 }
 function getSelectedRecurDays() { return Array.from(document.querySelectorAll('.recur-day-btn.bg-purple-600')).map(b => Number(b.dataset.day)); }
 
+function setRewardType(t) {
+  rewardType = t;
+  const tktWrap = document.getElementById('rewardTicketsWrapper');
+  const amtWrap = document.getElementById('rewardAmountWrapper');
+  const descEl = document.getElementById('rewardDesc');
+
+  if (tktWrap) tktWrap.classList.toggle('hidden', t !== 'tickets');
+  if (amtWrap) amtWrap.classList.toggle('hidden', t !== 'money');
+  if (descEl) descEl.classList.toggle('hidden', t !== 'other');
+
+  ['rewardTypeTicketsBtn','rewardTypeMoneyBtn','rewardTypeOtherBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='rewardTypeTicketsBtn' && t==='tickets')
+      || (bid==='rewardTypeMoneyBtn' && t==='money')
+      || (bid==='rewardTypeOtherBtn' && t==='other');
+    el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  });
+}
+
 function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   document.getElementById('choreModalTitle').textContent = (choreId || recurringId) ? 'Edit Item' : 'Add Item';
   document.getElementById('choreId').value = choreId || '';
@@ -2414,6 +2488,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
   buildRecurDaysGrid([]);
   document.getElementById('choreDeleteBtn').classList.add('hidden');
   document.getElementById('rewardEnabled').checked = false;
+  setRewardType('tickets');
   updateRewardUI();
   setItemType('chore');
 
@@ -2440,8 +2515,9 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     (r.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
     if (r.reward && r.reward.enabled) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
-      document.getElementById('rewardTickets').value = r.reward.tickets || moneyToTickets(r.reward.amount) || 1;
-      document.getElementById('rewardAmount').value = r.reward.amount != null ? r.reward.amount : ticketsToMoney(r.reward.tickets);
+      setRewardType(r.reward.type || 'tickets');
+      document.getElementById('rewardTickets').value = r.reward.tickets || 5;
+      document.getElementById('rewardAmount').value = r.reward.amount != null ? r.reward.amount : '0.50';
       document.getElementById('rewardDesc').value = r.reward.description || '';
     }
     document.getElementById('choreDeleteBtn').classList.remove('hidden');
@@ -2456,15 +2532,16 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     (c.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
     if (c.reward && c.reward.enabled) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
-      document.getElementById('rewardTickets').value = c.reward.tickets || moneyToTickets(c.reward.amount) || 1;
-      document.getElementById('rewardAmount').value = c.reward.amount != null ? c.reward.amount : ticketsToMoney(c.reward.tickets);
+      setRewardType(c.reward.type || 'tickets');
+      document.getElementById('rewardTickets').value = c.reward.tickets || 5;
+      document.getElementById('rewardAmount').value = c.reward.amount != null ? c.reward.amount : '0.50';
       document.getElementById('rewardDesc').value = c.reward.description || '';
     }
     document.getElementById('choreDeleteBtn').classList.remove('hidden');
   } else {
     document.getElementById('choreTitle').value = '';
     document.getElementById('choreDate').value = presetDate || selectedDate || todayStr();
-    document.getElementById('rewardTickets').value = '1';
+    document.getElementById('rewardTickets').value = '5';
     document.getElementById('rewardAmount').value = '0.50';
     setChoreRepeatMode('single');
   }
@@ -2479,18 +2556,13 @@ function saveChore() {
   const isTask = (currentItemType === 'task');
   const subtasks = readSubtasksFromBuilder();
   const rewardEnabled = !isTask && document.getElementById('rewardEnabled').checked;
-  
-  const rawAmt = document.getElementById('rewardAmount').value;
-  const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
-  const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
-  const ticketsAmt = parseInt(document.getElementById('rewardTickets').value) || moneyToTickets(parsedAmt) || 1;
 
   const reward = rewardEnabled ? {
     enabled: true, 
-    type: 'tickets',
-    tickets: ticketsAmt,
-    amount: parsedAmt > 0 ? parsedAmt : parseFloat(ticketsToMoney(ticketsAmt)),
-    description: document.getElementById('rewardDesc').value.trim() || null
+    type: rewardType,
+    tickets: rewardType === 'tickets' ? (parseInt(document.getElementById('rewardTickets').value) || 1) : null,
+    amount: rewardType === 'money' ? (parseFloat(document.getElementById('rewardAmount').value) || 0.50) : null,
+    description: rewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null
   } : { enabled: false };
   const notes = document.getElementById('choreNotes').value.trim();
 
@@ -2627,6 +2699,26 @@ function updateMarketScheduleUI() {
   if (flWeek) flWeek.classList.toggle('hidden', !(marketSchedule==='flexible' && marketRepeats==='weekly'));
 }
 
+function setMarketRewardType(t) {
+  marketRewardType = t;
+  const tktWrap = document.getElementById('marketRewardTicketsWrapper');
+  const amtWrap = document.getElementById('marketRewardAmountWrapper');
+  const descEl = document.getElementById('marketRewardDesc');
+
+  if (tktWrap) tktWrap.classList.toggle('hidden', t !== 'tickets');
+  if (amtWrap) amtWrap.classList.toggle('hidden', t !== 'money');
+  if (descEl) descEl.classList.toggle('hidden', t !== 'other');
+
+  ['marketRewardTypeTicketsBtn','marketRewardTypeMoneyBtn','marketRewardTypeOtherBtn'].forEach(bid => {
+    const el = document.getElementById(bid);
+    if (!el) return;
+    const active = (bid==='marketRewardTypeTicketsBtn' && t==='tickets')
+      || (bid==='marketRewardTypeMoneyBtn' && t==='money')
+      || (bid==='marketRewardTypeOtherBtn' && t==='other');
+    el.className = 'flex-1 rounded-lg py-1.5 text-xs font-bold border ' + (active ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200');
+  });
+}
+
 function addMarketSubtaskRow(text, id) {
   marketSubtaskBuilderCount++;
   const rowId = id || uid('mst');
@@ -2668,6 +2760,7 @@ function openMarketModal(marketId) {
   fillOffsetSelect('marketWindowEndOffset', 6);
   document.getElementById('marketRewardEnabled').checked = false;
   document.getElementById('marketRewardBox').classList.add('hidden');
+  setMarketRewardType('tickets');
   document.getElementById('marketDeleteBtn').classList.toggle('hidden', !marketId);
 
   if (marketId) {
@@ -2681,14 +2774,15 @@ function openMarketModal(marketId) {
     if (m.reward && m.reward.enabled) {
       document.getElementById('marketRewardEnabled').checked = true;
       document.getElementById('marketRewardBox').classList.remove('hidden');
-      document.getElementById('marketRewardTickets').value = m.reward.tickets || moneyToTickets(m.reward.amount) || 1;
-      document.getElementById('marketRewardAmount').value = m.reward.amount != null ? m.reward.amount : ticketsToMoney(m.reward.tickets);
+      setMarketRewardType(m.reward.type || 'tickets');
+      document.getElementById('marketRewardTickets').value = m.reward.tickets || 5;
+      document.getElementById('marketRewardAmount').value = m.reward.amount != null ? m.reward.amount : '0.50';
       document.getElementById('marketRewardDesc').value = m.reward.description || '';
     }
   } else {
     document.getElementById('marketTitle').value = '';
     document.getElementById('marketDueDate').value = todayStr();
-    document.getElementById('marketRewardTickets').value = '1';
+    document.getElementById('marketRewardTickets').value = '5';
     document.getElementById('marketRewardAmount').value = '0.50';
     setMarketRepeats('once'); setMarketSchedule('fixed');
   }
@@ -2701,18 +2795,13 @@ function saveMarketChore() {
   if (!title) { toast('Give the chore a name', 'fa-triangle-exclamation'); return; }
   const subtasks = readMarketSubtasksFromBuilder();
   const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
-  
-  const rawAmt = document.getElementById('marketRewardAmount').value;
-  const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
-  const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
-  const ticketsAmt = parseInt(document.getElementById('marketRewardTickets').value) || moneyToTickets(parsedAmt) || 1;
 
   const reward = rewardEnabled ? {
     enabled: true, 
-    type: 'tickets',
-    tickets: ticketsAmt,
-    amount: parsedAmt > 0 ? parsedAmt : parseFloat(ticketsToMoney(ticketsAmt)),
-    description: document.getElementById('marketRewardDesc').value.trim() || null
+    type: marketRewardType,
+    tickets: marketRewardType === 'tickets' ? (parseInt(document.getElementById('marketRewardTickets').value) || 1) : null,
+    amount: marketRewardType === 'money' ? (parseFloat(document.getElementById('marketRewardAmount').value) || 0.50) : null,
+    description: marketRewardType === 'other' ? document.getElementById('marketRewardDesc').value.trim() : null
   } : { enabled: false };
 
   const data = { title, subtasks, reward, notes: document.getElementById('marketNotes').value.trim(), repeats: marketRepeats, scheduleType: marketSchedule };
@@ -2875,7 +2964,7 @@ function getPersonBalances(personId) {
   
   const earnedTickets = entries
     .filter(b => b.reward && b.reward.type === 'tickets')
-    .reduce((sum, b) => sum + parseInt(b.reward.tickets || moneyToTickets(b.reward.amount) || 0), 0);
+    .reduce((sum, b) => sum + parseInt(b.reward.tickets || 0), 0);
   
   const spentTickets = entries
     .filter(b => b.isPrizeRedemption)
@@ -2883,7 +2972,7 @@ function getPersonBalances(personId) {
 
   const bankedCash = entries
     .filter(b => b.reward && b.reward.type === 'money' && !b.redeemed && !b.isPrizeRedemption)
-    .reduce((sum, b) => sum + parseFloat(b.reward.amount || ticketsToMoney(b.reward.tickets) || 0), 0);
+    .reduce((sum, b) => sum + parseFloat(b.reward.amount || 0), 0);
 
   return {
     ticketBalance: Math.max(0, earnedTickets - spentTickets),
