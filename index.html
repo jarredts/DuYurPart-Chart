@@ -65,6 +65,12 @@
   .modal-backdrop { backdrop-filter:blur(2px); }
   .fade-in { animation: fadeIn .15s ease; }
   @keyframes fadeIn { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  /* Drag & Drop Reordering Styles */
+  .draggable-item { touch-action: none; user-select: none; }
+  .draggable-item.dragging { opacity: 0.45; background-color: rgba(139, 92, 246, 0.1); border-radius: 8px; }
+  .drag-handle { cursor: grab; padding: 4px 6px; }
+  .drag-handle:active { cursor: grabbing; }
 </style>
 </head>
 <body class="min-h-screen pb-24 text-gray-800 bg-gray-100">
@@ -113,11 +119,11 @@
 
 <main class="w-full max-w-xl mx-auto px-1 sm:px-2 pt-2">
 
-  <!-- TAB: Chore Calendar -->
+  <!-- TAB: Chore Calendar with Touch Swipe -->
   <section id="tab-calendar" class="space-y-2">
     <div class="bg-white rounded-2xl shadow-sm p-1.5 flex items-center gap-1.5 overflow-x-auto" id="calendarFilterBar"></div>
 
-    <div class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-1 sm:p-2">
+    <div id="calendarCardWrapper" class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-1 sm:p-2 touch-pan-y select-none">
       <div class="flex items-center justify-between mb-1.5 px-1">
         <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
         <div id="calMonthLabel" class="font-bold text-base text-gray-900"></div>
@@ -272,7 +278,6 @@
       <button onclick="closeModal('choreModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
-    <!-- Mode Selector: Family Chore vs Personal Task -->
     <div class="flex gap-2 bg-gray-100 p-1 rounded-xl mb-3">
       <button type="button" id="itemTypeChoreBtn" onclick="setItemType('chore')" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700">Family Chore</button>
       <button type="button" id="itemTypeTaskBtn" onclick="setItemType('task')" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500">Personal Task</button>
@@ -289,7 +294,6 @@
         <select id="chorePerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
       </div>
 
-      <!-- Repeat Mode Selector -->
       <div class="flex gap-2">
         <button type="button" onclick="setChoreRepeatMode('single')" id="repeatModeSingleBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Single</button>
         <button type="button" onclick="setChoreRepeatMode('recurring')" id="repeatModeRecurBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Recurring</button>
@@ -358,7 +362,7 @@
 
       <div id="subtaskSection">
         <div class="flex justify-between items-center">
-          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
+          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(drag handle to reorder)</span></label>
         </div>
         <div id="subtaskBuilder" class="space-y-1.5 mt-1"></div>
         <button type="button" onclick="addSubtaskRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
@@ -411,7 +415,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.1.5</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.1.6</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -458,7 +462,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.1.5</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.1.6</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -586,7 +590,7 @@
 
       <div>
         <div class="flex justify-between items-center">
-          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
+          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(drag handle to reorder)</span></label>
         </div>
         <div id="marketSubtaskBuilder" class="space-y-1.5 mt-1"></div>
         <button type="button" onclick="addMarketSubtaskRow()" class="text-xs font-bold text-pink-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
@@ -669,7 +673,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.1.5";
+const APP_VERSION = "v6.1.6";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -1063,7 +1067,7 @@ function getChoresForDate(dateStr) {
   return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
 
-/* =========================== CALENDAR (EXPANDED WIDTH & HEIGHT) =========================== */
+/* =========================== CALENDAR & TOUCH SWIPE =========================== */
 function changeMonth(delta) {
   calMonth += delta;
   if (calMonth < 0) { calMonth = 11; calYear--; }
@@ -1136,6 +1140,39 @@ function renderCalendar() {
       </div>`;
     cell.onclick = () => { selectedDate = dateStr; openDayList(dateStr); renderCalendar(); renderSelectedDay(); };
     grid.appendChild(cell);
+  }
+}
+
+function initCalendarSwipe() {
+  const el = document.getElementById('calendarCardWrapper');
+  if (!el) return;
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchEndX = 0;
+  let touchEndY = 0;
+
+  el.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  el.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  }, { passive: true });
+
+  function handleSwipe() {
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+    // Check if horizontal swipe dominates vertical scrolling
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX < 0) {
+        changeMonth(1); // Swipe left -> Next month
+      } else {
+        changeMonth(-1); // Swipe right -> Previous month
+      }
+    }
   }
 }
 
@@ -1390,7 +1427,7 @@ function pokeFromChore() {
   openPokeModal(personId);
 }
 
-/* =========================== ADD/EDIT ITEM MODAL =========================== */
+/* =========================== ADD/EDIT ITEM & DRAG/DROP REORDER =========================== */
 let choreRepeatMode = 'single';
 let rewardType = 'money';
 
@@ -1525,17 +1562,98 @@ function toggleRecurDay(i) {
 }
 function getSelectedRecurDays() { return Array.from(document.querySelectorAll('.recur-day-btn.bg-purple-600')).map(b => Number(b.dataset.day)); }
 
+/* Subtask Drag and Drop Setup */
+function makeDraggableList(container) {
+  if (!container) return;
+  let draggedEl = null;
+
+  container.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.draggable-item');
+    if (!item) return;
+    draggedEl = item;
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  container.addEventListener('dragend', (e) => {
+    const item = e.target.closest('.draggable-item');
+    if (item) item.classList.remove('dragging');
+    draggedEl = null;
+  });
+
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const afterElement = getDragAfterElement(container, e.clientY);
+    if (!draggedEl) return;
+    if (afterElement == null) {
+      container.appendChild(draggedEl);
+    } else {
+      container.insertBefore(draggedEl, afterElement);
+    }
+  });
+
+  // Touch Support for Mobile Drag
+  let touchY = 0;
+  let activeTouchItem = null;
+
+  container.addEventListener('touchstart', (e) => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    activeTouchItem = handle.closest('.draggable-item');
+    if (activeTouchItem) {
+      activeTouchItem.classList.add('dragging');
+      touchY = e.touches[0].clientY;
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchmove', (e) => {
+    if (!activeTouchItem) return;
+    e.preventDefault();
+    const currentY = e.touches[0].clientY;
+    const afterElement = getDragAfterElement(container, currentY);
+    if (afterElement == null) {
+      container.appendChild(activeTouchItem);
+    } else {
+      container.insertBefore(activeTouchItem, afterElement);
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchend', () => {
+    if (activeTouchItem) {
+      activeTouchItem.classList.remove('dragging');
+      activeTouchItem = null;
+    }
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
 function addSubtaskRow(text, id) {
   subtaskBuilderCount++;
   const rowId = id || uid('st');
   const div = document.createElement('div');
-  div.className = 'flex items-center gap-1.5';
+  div.className = 'draggable-item flex items-center gap-1.5 bg-white p-1 rounded-lg border border-gray-100';
+  div.draggable = true;
   div.dataset.subid = rowId;
-  div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
+  div.innerHTML = `<span class="drag-handle text-gray-400 hover:text-purple-600"><i class="fa-solid fa-grip-lines-vertical text-xs"></i></span>
     <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${subtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm subtask-text-input">
-    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xs"></i></button>`;
   const container = document.getElementById('subtaskBuilder');
-  if (container) container.appendChild(div);
+  if (container) {
+    container.appendChild(div);
+    makeDraggableList(container);
+  }
 }
 function readSubtasksFromBuilder() {
   const builder = document.getElementById('subtaskBuilder');
@@ -1741,7 +1859,7 @@ function updateMarketScheduleUI() {
 }
 function setMarketRewardType(t) {
   marketRewardType = t;
-  const amtEl = document.getElementById('rewardAmount');
+  const amtEl = document.getElementById('marketRewardAmount');
   const descEl = document.getElementById('rewardDesc');
   if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
   if (descEl) descEl.classList.toggle('hidden', t !== 'other');
@@ -1756,13 +1874,17 @@ function addMarketSubtaskRow(text, id) {
   marketSubtaskBuilderCount++;
   const rowId = id || uid('mst');
   const div = document.createElement('div');
-  div.className = 'flex items-center gap-1.5';
+  div.className = 'draggable-item flex items-center gap-1.5 bg-white p-1 rounded-lg border border-gray-100';
+  div.draggable = true;
   div.dataset.subid = rowId;
-  div.innerHTML = `<i class="fa-solid fa-grip-lines-vertical text-gray-300 text-xs"></i>
+  div.innerHTML = `<span class="drag-handle text-gray-400 hover:text-pink-600"><i class="fa-solid fa-grip-lines-vertical text-xs"></i></span>
     <input type="text" value="${escapeHtml(text||'')}" placeholder="Step ${marketSubtaskBuilderCount}" class="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm market-subtask-text-input">
-    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+    <button type="button" onclick="this.parentElement.remove()" class="w-7 h-7 flex-shrink-0 rounded-lg bg-gray-100 text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xs"></i></button>`;
   const container = document.getElementById('marketSubtaskBuilder');
-  if (container) container.appendChild(div);
+  if (container) {
+    container.appendChild(div);
+    makeDraggableList(container);
+  }
 }
 function readMarketSubtasksFromBuilder() {
   const builder = document.getElementById('marketSubtaskBuilder');
@@ -2707,6 +2829,7 @@ window.onload = async function() {
   await loadState();
   renderApp();
   initSyncOnBoot();
+  initCalendarSwipe();
   const lastTab = localStorage.getItem('chores_last_tab');
   if (lastTab) switchTab(lastTab);
   setInterval(checkForNewPokesTargetingMe, 15000);
