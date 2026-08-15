@@ -316,7 +316,7 @@
 
 <!-- ============ MODALS ============ -->
 
-<!-- Wallet Adjust Modal (Parents adjust tickets/cash) -->
+<!-- Wallet Adjust Modal (Parents edit balances directly) -->
 <div id="walletAdjustModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
     <div class="flex justify-between items-center mb-3">
@@ -343,7 +343,7 @@
 
       <div>
         <label class="text-xs font-bold text-gray-500">Reason / Note</label>
-        <input id="waReason" type="text" placeholder="Manual parent adjustment" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        <input id="waReason" type="text" placeholder="Parent balance adjustment" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
       </div>
 
       <button onclick="saveWalletAdjustment()" class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl py-2.5 font-bold text-sm">
@@ -1535,7 +1535,7 @@ function getChoresForDate(dateStr) {
   return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
 
-/* =========================== CALENDAR RENDER =========================== */
+/* =========================== CALENDAR =========================== */
 function setCalView(mode) {
   calViewMode = mode;
   localStorage.setItem('chores_cal_view_mode', mode);
@@ -1623,7 +1623,7 @@ function renderPersonBadgePills(chores, isMini) {
   return keys.map(pid => {
     const p = getPerson(pid);
     const color = pid === '__unassigned__' ? '#9CA3AF' : (p ? (p.color || '#8B5CF6') : '#cbd5e1');
-    const { total, pending, completed } = group[pid];
+    const { total, pending } = group[pid];
     const allDone = pending === 0 && total > 0;
     const opacityStyle = allDone ? 'opacity: 0.35;' : 'opacity: 1;';
     const displayVal = allDone ? '<i class="fa-solid fa-check text-[8px]"></i>' : pending;
@@ -2047,7 +2047,6 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice, isUndo) {
   if (isUndo) {
     state.bankedRewards = (state.bankedRewards || []).filter(b => {
       if (b.sourceRef === sourceRefKey) return false;
-      // Fallback matching
       if (b.personId === assignedPersonId && b.choreTitle === choreTitle && (b.date === today || b.date === dateStr) && !b.isPrizeRedemption) {
         return false;
       }
@@ -2055,7 +2054,6 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice, isUndo) {
     });
     toast('Chore completion and reward undone', 'fa-rotate-left');
   } else if (assignedPersonId && rewardObj && rewardObj.enabled) {
-    // AWARD HANDLING
     if (rewardObj.type === 'tickets') {
       const tickets = parseInt(rewardObj.tickets || 1);
       state.bankedRewards = state.bankedRewards || [];
@@ -3278,7 +3276,6 @@ function renderStats() {
   const { start, end } = periodRange(period);
   const completed = completedChoresInRange(start, end);
 
-  // 1. Wallets with Parent Edit Option
   const tktCards = document.getElementById('statsTicketCards');
   if (tktCards) {
     tktCards.innerHTML = (state.people || []).map(p => {
