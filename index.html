@@ -140,7 +140,7 @@
   <section id="tab-log" class="hidden space-y-3">
     <div class="bg-gradient-to-br from-white to-blue-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2 gap-2">
-        <select id="logPersonFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1">
+        <select id="logPersonFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1 bg-white">
           <option value="all">Everyone</option>
         </select>
         <button onclick="openChoreModal()" class="text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
@@ -149,9 +149,9 @@
       <!-- Filter controls for Chore Log -->
       <div class="grid grid-cols-2 gap-2 mb-2">
         <select id="logStatusFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
-          <option value="all">All</option>
-          <option value="completed">Completed</option>
-          <option value="pending">Pending</option>
+          <option value="all">All Statuses</option>
+          <option value="completed">Completed Only</option>
+          <option value="pending">Pending Only</option>
         </select>
         <select id="logRangeFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
           <option value="all">All Time</option>
@@ -172,7 +172,7 @@
   <section id="tab-stats" class="hidden space-y-3">
     <div class="bg-gradient-to-br from-white to-emerald-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center gap-2 mb-3">
-        <select id="statsPeriod" onchange="renderStats()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1">
+        <select id="statsPeriod" onchange="renderStats()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 flex-1 bg-white">
           <option value="month">This Month</option>
           <option value="week">This Week</option>
           <option value="30">Last 30 Days</option>
@@ -333,344 +333,9 @@
 
         <div id="recurRotationBox" class="hidden">
           <label class="text-xs font-bold text-gray-500">Rotating shifts</label>
-          <div id="rotationStageBuilder" class="space-y-1.5 mt-1"></div>
-          <button type="button" onclick="addRotationStageRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add shift</button>
-          <div class="mt-2">
-            <label class="text-xs font-bold text-gray-500">Weeks per shift</label>
-            <input id="rotationStageWeeks" type="number" min="1" max="12" value="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="text-xs font-bold text-gray-500">Starts</label>
-            <input id="recurStart" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-gray-500">Time</label>
-            <input id="recurTime" type="time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-          </div>
-        </div>
-        <div>
-          <label class="text-xs font-bold text-gray-500">Ends <span class="font-normal">(optional)</span></label>
-          <input id="recurEnd" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-        </div>
-      </div>
-
-      <div id="subtaskSection">
-        <div class="flex justify-between items-center">
-          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
-        </div>
-        <div id="subtaskBuilder" class="space-y-1.5 mt-1"></div>
-        <button type="button" onclick="addSubtaskRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
-      </div>
-
-      <div id="rewardSectionWrapper" class="bg-purple-50 rounded-lg p-2.5">
-        <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
-          <input type="checkbox" id="rewardEnabled" onchange="updateRewardUI()" class="chk"> Assign a Reward
-        </label>
-        <div id="rewardBox" class="hidden mt-2 space-y-2">
-          <div class="flex gap-2">
-            <button type="button" onclick="setRewardType('money')" id="rewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
-            <button type="button" onclick="setRewardType('other')" id="rewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
-          </div>
-          <input id="rewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-          <input id="rewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
-          <label class="flex items-center gap-2 text-xs font-semibold text-gray-600">
-            <input type="checkbox" id="rewardBanked" class="chk"> Bank it (extra, above normal allowance)
-          </label>
-        </div>
-      </div>
-
-      <div>
-        <label class="text-xs font-bold text-gray-500">Notes</label>
-        <textarea id="choreNotes" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
-      </div>
-    </div>
-    <div class="flex gap-2 mt-4">
-      <button onclick="saveChore()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
-      <button id="choreDeleteBtn" onclick="deleteCurrentChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
-    </div>
-  </div>
-</div>
-
-<!-- Day List Modal -->
-<div id="dayListModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
-    <div class="flex justify-between items-center mb-2">
-      <div id="dayListTitle" class="text-lg font-bold"></div>
-      <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div id="dayListItems" class="space-y-2 mb-3"></div>
-    <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Item This Day</button>
-  </div>
-</div>
-
-<!-- Profiles / Settings Modal -->
-<div id="profilesModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
-    <div class="flex justify-between items-center mb-3">
-      <div>
-        <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.1.0</div>
-      </div>
-      <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-
-    <div class="font-bold text-sm mb-2">Family Members</div>
-    <div id="peopleList" class="space-y-2 mb-2"></div>
-    <button onclick="addPersonRow()" class="text-xs font-bold text-purple-600 mb-4"><i class="fa-solid fa-plus"></i> Add person</button>
-
-    <div class="font-bold text-sm mb-2">This Device & Push Notifications</div>
-    <div class="mb-4 space-y-2">
-      <div>
-        <label class="text-xs font-bold text-gray-500">Whose phone is this?</label>
-        <select id="myProfileSelect" onchange="setMyProfile(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
-        <div class="text-[10px] text-gray-400 mt-0.5">Saved locally on this device only.</div>
-      </div>
-
-      <div>
-        <label class="text-xs font-bold text-gray-500">Firebase VAPID Public Key</label>
-        <input id="fcmVapidKeyInput" type="text" placeholder="Paste FCM Web Push Certificate Key here" onchange="saveVapidKey(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mt-1">
-      </div>
-      
-      <button onclick="requestPushNotificationPermission()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 text-white shadow-sm flex items-center justify-center gap-2">
-        <i class="fa-solid fa-bell"></i> Enable Phone Push Notifications
-      </button>
-      <div id="notifPermStatus" class="text-[10px] text-gray-500"></div>
-    </div>
-
-    <div class="font-bold text-sm mb-2">Calendar</div>
-    <div class="mb-4">
-      <label class="text-xs font-bold text-gray-500">Week starts on</label>
-      <select id="weekStartSelect" onchange="setWeekStart(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-2">
-        <option value="sunday">Sunday</option>
-        <option value="monday">Monday</option>
-      </select>
-      <label class="text-xs font-bold text-gray-500">Weekly marketplace quota</label>
-      <input id="weeklyQuotaInput" type="number" min="0" max="14" onchange="setWeeklyQuota(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-    </div>
-
-    <div class="font-bold text-sm mb-2">Dark Mode</div>
-    <button onclick="toggleDarkMode()" class="w-full mb-4 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Toggle Dark Mode</button>
-
-    <!-- App Update Center -->
-    <div class="font-bold text-sm mb-2">App Updates</div>
-    <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
-      <div class="flex justify-between items-center">
-        <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.1.0</span>
-      </div>
-      <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
-        <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
-      </button>
-      <div class="text-[10px] text-gray-400 leading-tight">Pulls the newest app version directly from the web server without needing to uninstall.</div>
-    </div>
-
-    <div class="font-bold text-sm mb-2">Cloud Sync</div>
-    <div class="text-[11px] text-gray-500 mb-2">Sync across devices using Firebase Firestore.</div>
-    <textarea id="syncConfigInput" rows="4" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
-    <div class="flex gap-2 mb-2">
-      <button onclick="enableCloudSync()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-purple-600 text-white">Enable Sync</button>
-      <button onclick="manualSyncNow()" class="rounded-lg py-2 px-3 text-xs font-bold bg-gray-100 text-gray-700"><i class="fa-solid fa-rotate"></i></button>
-    </div>
-    <div id="syncStatusLine" class="text-[11px] text-gray-500 mb-4"></div>
-
-    <div class="font-bold text-sm mb-2">Data</div>
-    <div class="flex gap-2">
-      <button onclick="exportDataJSON()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Export</button>
-      <label class="flex-1 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700 text-center cursor-pointer">
-        Import <input type="file" accept="application/json" onchange="importDataJSON(event)" class="hidden">
-      </label>
-    </div>
-  </div>
-</div>
-
-<!-- Yearly Chore Modal -->
-<div id="yearlyChoreModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
-    <div class="flex justify-between items-center mb-3">
-      <div class="text-lg font-bold">12 Yearly Chores</div>
-      <button onclick="closeModal('yearlyChoreModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div id="yearlyChoreEditor" class="space-y-3"></div>
-  </div>
-</div>
-
-<!-- Honey-Do Add/Edit Modal -->
-<div id="honeyDoModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
-    <div class="flex justify-between items-center mb-3">
-      <div class="text-lg font-bold">Honey-Do Item</div>
-      <button onclick="closeModal('honeyDoModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <input type="hidden" id="honeyId">
-    <div class="space-y-3">
-      <div>
-        <label class="text-xs font-bold text-gray-500">Task</label>
-        <input id="honeyTitle" type="text" placeholder="Reseal the deck" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-      </div>
-      <div>
-        <label class="text-xs font-bold text-gray-500">Assign To</label>
-        <select id="honeyPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"><option value="">Anyone / Whole family</option></select>
-      </div>
-      <div>
-        <label class="text-xs font-bold text-gray-500">Priority</label>
-        <select id="honeyPriority" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-          <option value="normal">Normal</option>
-          <option value="high">High</option>
-          <option value="low">Whenever</option>
-        </select>
-      </div>
-      <div>
-        <label class="text-xs font-bold text-gray-500">Notes</label>
-        <textarea id="honeyNotes" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
-      </div>
-    </div>
-    <div class="flex gap-2 mt-4">
-      <button onclick="saveHoneyDo()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
-      <button id="honeyDeleteBtn" onclick="deleteHoneyDo()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
-    </div>
-  </div>
-</div>
-
-<!-- Market Listing Add/Edit Modal -->
-<div id="marketModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
-    <div class="flex justify-between items-center mb-3">
-      <div id="marketModalTitle" class="text-lg font-bold">Post to Marketplace</div>
-      <button onclick="closeModal('marketModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <input type="hidden" id="marketId">
-    <div class="space-y-3">
-      <div>
-        <label class="text-xs font-bold text-gray-500">Chore Name</label>
-        <input id="marketTitle" type="text" placeholder="Clean downstairs bathroom" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-      </div>
-
-      <div class="flex gap-2">
-        <button type="button" onclick="setMarketRepeats('once')" id="marketRepeatsOnceBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">One-time</button>
-        <button type="button" onclick="setMarketRepeats('weekly')" id="marketRepeatsWeeklyBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Weekly Pool</button>
-      </div>
-      <div class="text-[10px] text-gray-400" id="marketRepeatsHelp">One-time: posted once, gone once claimed & done.</div>
-
-      <div class="flex gap-2">
-        <button type="button" onclick="setMarketSchedule('fixed')" id="marketSchedFixedBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Specific Due Date</button>
-        <button type="button" onclick="setMarketSchedule('flexible')" id="marketSchedFlexBtn" class="flex-1 rounded-lg py-2 text-xs font-bold border">Flexible Window</button>
-      </div>
-
-      <div id="marketFixedOnceBox" class="hidden">
-        <label class="text-xs font-bold text-gray-500">Due Date</label>
-        <input id="marketDueDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-      </div>
-      <div id="marketFixedWeeklyBox" class="hidden">
-        <label class="text-xs font-bold text-gray-500">Due Day (every week)</label>
-        <select id="marketDueDayOfWeek" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></select>
-      </div>
-      <div id="marketFlexOnceBox" class="hidden grid grid-cols-2 gap-2">
-        <div>
-          <label class="text-xs font-bold text-gray-500">Window Start</label>
-          <input id="marketWindowStart" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-        </div>
-        <div>
-          <label class="text-xs font-bold text-gray-500">Window End</label>
-          <input id="marketWindowEnd" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-        </div>
-      </div>
-      <div id="marketFlexWeeklyBox" class="hidden">
-        <label class="text-xs font-bold text-gray-500">Open Window (within each week)</label>
-        <div class="grid grid-cols-2 gap-2 mt-1">
-          <select id="marketWindowStartOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
-          <select id="marketWindowEndOffset" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
-        </div>
-      </div>
-
-      <div>
-        <div class="flex justify-between items-center">
-          <label class="text-xs font-bold text-gray-500">Sub-tasks <span class="font-normal">(optional checklist)</span></label>
-        </div>
-        <div id="marketSubtaskBuilder" class="space-y-1.5 mt-1"></div>
-        <button type="button" onclick="addMarketSubtaskRow()" class="text-xs font-bold text-pink-600 mt-1"><i class="fa-solid fa-plus"></i> Add step</button>
-      </div>
-
-      <div class="bg-purple-50 rounded-lg p-2.5">
-        <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
-          <input type="checkbox" id="marketRewardEnabled" onchange="document.getElementById('marketRewardBox').classList.toggle('hidden', !this.checked)" class="chk"> Assign a Reward
-        </label>
-        <div id="marketRewardBox" class="hidden mt-2 space-y-2">
-          <div class="flex gap-2">
-            <button type="button" onclick="setMarketRewardType('money')" id="marketRewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
-            <button type="button" onclick="setMarketRewardType('other')" id="marketRewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
-          </div>
-          <input id="marketRewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-          <input id="marketRewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
-        </div>
-      </div>
-
-      <div>
-        <label class="text-xs font-bold text-gray-500">Notes</label>
-        <textarea id="marketNotes" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1"></textarea>
-      </div>
-    </div>
-    <div class="flex gap-2 mt-4">
-      <button onclick="saveMarketChore()" class="flex-1 bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm">Save Listing</button>
-      <button id="marketDeleteBtn" onclick="deleteMarketChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
-    </div>
-  </div>
-</div>
-
-<!-- Market Claim Modal -->
-<div id="marketClaimModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
-    <div class="flex justify-between items-center mb-3">
-      <div class="text-lg font-bold">Claim This Chore</div>
-      <button onclick="closeModal('marketClaimModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <input type="hidden" id="claimMarketId"><input type="hidden" id="claimScopeKey">
-    <div id="claimChoreTitle" class="text-sm font-bold text-gray-800 mb-3"></div>
-    <label class="text-xs font-bold text-gray-500">Who's claiming it?</label>
-    <select id="claimPerson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3"></select>
-    <div id="claimDateBox" class="hidden mb-3">
-      <label class="text-xs font-bold text-gray-500">Pick a due date</label>
-      <input id="claimDate" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
-      <div id="claimDateHint" class="text-[10px] text-gray-400 mt-1"></div>
-    </div>
-    <button onclick="confirmClaimMarket()" class="w-full bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm"><i class="fa-solid fa-hand"></i> Claim It</button>
-  </div>
-</div>
-
-<!-- Stats Person Detail Modal -->
-<div id="statsPersonModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[80vh] overflow-y-auto fade-in">
-    <div class="flex justify-between items-center mb-3">
-      <div id="statsPersonModalTitle" class="text-lg font-bold"></div>
-      <button onclick="closeModal('statsPersonModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div id="statsPersonModalList" class="space-y-2"></div>
-  </div>
-</div>
-
-<!-- Poke Modal -->
-<div id="pokeModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
-  <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
-    <div class="flex justify-between items-center mb-3">
-      <div class="text-lg font-bold">Send a Poke</div>
-      <button onclick="closeModal('pokeModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <label class="text-xs font-bold text-gray-500">To</label>
-    <select id="pokeTarget" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3"></select>
-    <label class="text-xs font-bold text-gray-500">Message</label>
-    <input id="pokeMessage" type="text" value="Hey! Don't forget your chores 👀" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 mb-3">
-    <button onclick="sendPoke()" class="w-full bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm"><i class="fa-solid fa-bell"></i> Send Poke</button>
-    <div id="pokeHistory" class="mt-4 space-y-1.5"></div>
-  </div>
-</div>
-
-<div id="toastBox" class="fixed top-3 left-1/2 -translate-x-1/2 z-[60] space-y-2 w-full max-w-xs px-3"></div>
-
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.1.0";
+const APP_VERSION = "v6.1.1";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -713,14 +378,13 @@ let state = {
   honeyDo: [],
   bankedRewards: [],
   pokes: [],
-  deviceTokens: {}, // Map of personId -> fcmToken
+  deviceTokens: {},
   marketChores: [],
   marketClaims: {},
   marketCompletions: [],
   settings: { weekStart: 'sunday', weeklyQuota: 2, vapidKey: '' }
 };
 
-// Isolated local-only device profile ID (never overwritten by cloud sync)
 let localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || null;
 
 let calMonth = new Date().getMonth();
@@ -1153,7 +817,7 @@ function choreRowHtml(c) {
         ${c.time ? `<span class="text-[10px] text-gray-400 font-mono">${formatTime(c.time)}</span>` : ''}
         ${subCount ? `<span class="text-[10px] text-gray-400">${subDone}/${subCount} steps</span>` : ''}
         ${c.reward && c.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(c.reward)}</span>` : ''}
-        ${!clickable ? `<span class="text-[10px] text-gray-400">${c.dateStr}</span>` : ''}
+        ${c.dateStr ? `<span class="text-[10px] text-gray-400 font-mono">${c.dateStr}</span>` : ''}
       </div>
     </div>
     <i class="fa-solid ${isUnclaimed?'fa-hand text-pink-400':(c.completed?'fa-circle-check text-emerald-500':'fa-chevron-right text-gray-300')} text-sm flex-shrink-0 ml-2"></i>
@@ -1728,7 +1392,7 @@ function saveMarketChore() {
   const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
   const reward = rewardEnabled ? {
     enabled: true, type: marketRewardType,
-    amount: marketRewardType === 'money' ? Number(document.getElementById('marketRewardAmount').value || 0) : null,
+    amount: marketRewardType === 'money' ? Number(document.getElementById('rewardAmount').value || 0) : null,
     description: marketRewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null
   } : { enabled:false };
   const notes = document.getElementById('marketNotes').value.trim();
@@ -1883,51 +1547,100 @@ function renderMarketplace() {
   if (banner) banner.textContent = open.length + (open.length===1?' open':' open');
 }
 
-/* =========================== CHORE LOG TAB =========================== */
+/* =========================== CHORE LOG TAB (FIXED & SAFE) =========================== */
 function renderLog() {
   const filterSel = document.getElementById('logPersonFilter');
-  if (filterSel.options.length <= 1) filterSel.innerHTML = '<option value="all">Everyone</option>' + personOptions(null);
-  const personFilter = filterSel.value;
+  if (filterSel && filterSel.options.length <= 1) {
+    filterSel.innerHTML = '<option value="all">Everyone</option>' + personOptions(null);
+  }
+  const personFilter = filterSel ? filterSel.value : 'all';
   const statusFilter = document.getElementById('logStatusFilter') ? document.getElementById('logStatusFilter').value : 'all';
   const rangeFilter = document.getElementById('logRangeFilter') ? document.getElementById('logRangeFilter').value : 'all';
 
   const items = [];
-  state.chores.filter(c => !c.isTask).forEach(c => items.push({ kind:'single', id:c.id, dateStr:c.date, title:c.title, personId:c.personId, time:c.time, completed:c.completed, subtasks:c.subtasks||[], reward:c.reward }));
-  
-  const start = new Date(); start.setDate(start.getDate()-45);
-  const end = new Date(); end.setDate(end.getDate()+45);
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
-    const ds = formatLocalDate(d);
-    getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => { if (o.completed) items.push(o); });
-  }
-  const marketStart = formatLocalDate(start), marketEnd = formatLocalDate(end);
-  completedChoresInRange(marketStart, marketEnd).forEach(c => { if (c.kind === 'market') items.push(c); });
 
+  // 1. Single Chores
+  (state.chores || []).filter(c => !c.isTask).forEach(c => {
+    items.push({
+      kind: 'single',
+      id: c.id,
+      dateStr: c.date || todayStr(),
+      title: c.title,
+      personId: c.personId,
+      time: c.time,
+      completed: !!c.completed,
+      subtasks: c.subtasks || [],
+      reward: c.reward
+    });
+  });
+  
+  // 2. Recurring Chores (Iterate safely across 45-day window)
   const today = todayStr();
+  for (let i = -45; i <= 45; i++) {
+    const curDate = new Date();
+    curDate.setDate(curDate.getDate() + i);
+    const ds = formatLocalDate(curDate);
+    getRecurringForDate(ds).filter(r => !r.isTask).forEach(o => {
+      items.push(o);
+    });
+  }
+
+  // 3. Market Chores
+  activeMarketInstances().forEach(x => {
+    if (x.claim) {
+      items.push({
+        kind: 'market',
+        id: x.market.id + '::' + x.scopeKey,
+        marketId: x.market.id,
+        scopeKey: x.scopeKey,
+        dateStr: x.claim.dueDate || today,
+        title: x.market.title,
+        personId: x.claim.personId,
+        time: null,
+        subtasks: x.market.subtasks || [],
+        reward: x.market.reward,
+        isTask: false,
+        completed: !!x.claim.completed,
+        subtaskState: x.claim.subtaskState || {}
+      });
+    }
+  });
+
+  // Filter pipeline
   let filtered = items;
 
-  if (personFilter !== 'all') filtered = filtered.filter(i => i.personId === personFilter);
-
-  if (statusFilter === 'completed') filtered = filtered.filter(i => i.completed);
-  else if (statusFilter === 'pending') filtered = filtered.filter(i => !i.completed);
-
-  if (rangeFilter === 'past7') {
-    const p7 = new Date(); p7.setDate(p7.getDate()-7);
-    const p7Str = formatLocalDate(p7);
-    filtered = filtered.filter(i => i.dateStr >= p7Str && i.dateStr <= today);
-  } else if (rangeFilter === 'next7') {
-    const n7 = new Date(); n7.setDate(n7.getDate()+7);
-    const n7Str = formatLocalDate(n7);
-    filtered = filtered.filter(i => i.dateStr >= today && i.dateStr <= n7Str);
-  } else if (rangeFilter === 'thisMonth') {
-    const mStr = today.slice(0,7);
-    filtered = filtered.filter(i => i.dateStr && i.dateStr.startsWith(mStr));
+  if (personFilter !== 'all') {
+    filtered = filtered.filter(i => i.personId === personFilter);
   }
 
-  filtered.sort((a,b) => b.dateStr.localeCompare(a.dateStr));
+  if (statusFilter === 'completed') {
+    filtered = filtered.filter(i => i.completed);
+  } else if (statusFilter === 'pending') {
+    filtered = filtered.filter(i => !i.completed);
+  }
+
+  if (rangeFilter === 'past7') {
+    const p7 = new Date(); p7.setDate(p7.getDate() - 7);
+    const p7Str = formatLocalDate(p7);
+    filtered = filtered.filter(i => (i.dateStr || today) >= p7Str && (i.dateStr || today) <= today);
+  } else if (rangeFilter === 'next7') {
+    const n7 = new Date(); n7.setDate(n7.getDate() + 7);
+    const n7Str = formatLocalDate(n7);
+    filtered = filtered.filter(i => (i.dateStr || today) >= today && (i.dateStr || today) <= n7Str);
+  } else if (rangeFilter === 'thisMonth') {
+    const mStr = today.slice(0, 7);
+    filtered = filtered.filter(i => (i.dateStr || today).startsWith(mStr));
+  }
+
+  // Sort newest first
+  filtered.sort((a, b) => (b.dateStr || '').localeCompare(a.dateStr || ''));
 
   const list = document.getElementById('logList');
-  list.innerHTML = filtered.length ? filtered.slice(0,150).map(c => choreRowHtml(c)).join('') : '<div class="text-xs text-gray-400 py-4 text-center">No matching chores found.</div>';
+  if (list) {
+    list.innerHTML = filtered.length
+      ? filtered.slice(0, 150).map(c => choreRowHtml(c)).join('')
+      : '<div class="text-xs text-gray-400 py-6 text-center"><i class="fa-solid fa-list-check text-2xl mb-2 opacity-40 block"></i>No matching chores found.</div>';
+  }
 }
 
 /* =========================== STATS TAB =========================== */
@@ -2269,7 +1982,7 @@ async function requestPushNotificationPermission() {
 async function registerDeviceToken() {
   if (!fcmMessaging || !localDeviceProfileId) return;
   try {
-    const swReg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+    const swReg = await navigator.serviceWorker.ready;
     const vapidKey = state.settings.vapidKey;
     const token = await fcmMessaging.getToken({
       vapidKey: vapidKey || undefined,
@@ -2382,7 +2095,6 @@ async function enableCloudSync() {
 async function pushToCloud() {
   if (!firestoreDb) return;
   try {
-    // Preserve other people's device tokens when pushing
     const doc = await firestoreDb.collection('chores_sync').doc('family-chores-shared').get();
     let mergedTokens = { ...(state.deviceTokens || {}) };
     if (doc.exists && doc.data().data) {
@@ -2402,7 +2114,6 @@ async function pullFromCloud() {
     const doc = await firestoreDb.collection('chores_sync').doc('family-chores-shared').get();
     if (doc.exists && doc.data().data) {
       const remote = JSON.parse(doc.data().data);
-      // Merge remote state without wiping local profile selection
       state = Object.assign(state, remote);
       persist();
       renderApp();
