@@ -657,7 +657,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.5</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.3</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -719,7 +719,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.5</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.3</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -1007,7 +1007,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.29.09.5";
+const APP_VERSION = "v6.29.09.3";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -3328,7 +3328,7 @@ function renderLog() {
     filterSel.innerHTML = '<option value="all">Everyone</option>' + personOptions(null);
   }
   const personFilter = filterSel ? filterSel.value : 'all';
-  const statusFilter = document.getElementById('logStatusFilter') ? document.getElementById('logStatusFilter'].value : 'all';
+  const statusFilter = document.getElementById('logStatusFilter') ? document.getElementById('logStatusFilter').value : 'all';
   const rangeFilter = document.getElementById('logRangeFilter') ? document.getElementById('logRangeFilter').value : 'next7';
 
   const items = [];
