@@ -491,8 +491,8 @@
     <div class="flex gap-2">
       <button id="cdCompleteBtn" onclick="toggleChoreComplete()" class="flex-1 rounded-xl py-2.5 font-bold text-sm text-white bg-emerald-600"><i class="fa-solid fa-check"></i> Mark Complete</button>
       <button id="cdPokeBtn" onclick="pokeFromChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-bell"></i></button>
-      <button id="cdEditBtn" onclick="editCurrentChore()" class="admin-only rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
-      <button id="cdDeleteBtn" onclick="deleteCurrentChore()" class="admin-only rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
+      <button id="cdEditBtn" onclick="editCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-gray-100 text-gray-600"><i class="fa-solid fa-pen"></i></button>
+      <button id="cdDeleteBtn" onclick="deleteCurrentChore()" class="rounded-xl py-2.5 px-3 font-bold text-sm bg-red-50 text-red-600"><i class="fa-solid fa-trash"></i></button>
     </div>
   </div>
 </div>
@@ -632,7 +632,7 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveChore()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
-      <button id="choreDeleteBtn" onclick="deleteCurrentChore()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="choreDeleteBtn" onclick="deleteCurrentChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
@@ -785,7 +785,7 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveHoneyDo()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save</button>
-      <button id="honeyDeleteBtn" onclick="deleteHoneyDo()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="honeyDeleteBtn" onclick="deleteHoneyDo()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
@@ -886,7 +886,7 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveMarketChore()" class="flex-1 bg-pink-500 text-white rounded-xl py-2.5 font-bold text-sm">Save Listing</button>
-      <button id="marketDeleteBtn" onclick="deleteMarketChore()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="marketDeleteBtn" onclick="deleteMarketChore()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
@@ -947,7 +947,7 @@
     </div>
     <div class="flex gap-2 mt-4">
       <button onclick="saveCarnivalPrize()" class="flex-1 bg-purple-600 text-white rounded-xl py-2.5 font-bold text-sm">Save Prize</button>
-      <button id="prizeDeleteBtn" onclick="deleteCarnivalPrize()" class="admin-only hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
+      <button id="prizeDeleteBtn" onclick="deleteCarnivalPrize()" class="hidden rounded-xl py-2.5 px-4 font-bold text-sm bg-red-50 text-red-600">Delete</button>
     </div>
   </div>
 </div>
@@ -1914,10 +1914,21 @@ function openChoreDetail(kind, id, dateStr) {
   const pokeBtn = document.getElementById('cdPokeBtn');
   if (pokeBtn) pokeBtn.classList.toggle('hidden', !!c.isTask);
 
+  // Edit/Delete Permissions Check:
+  // Kids can only edit/delete if it's a personal task created by the active user.
+  // Otherwise, edit/delete buttons are governed by admin-only visibility.
+  const isAdmin = isCurrentAdmin();
+  const isPersonalTask = c.isTask && c.personId === localDeviceProfileId;
+  const canEditDelete = isAdmin || isPersonalTask;
+
   const editBtn = document.getElementById('cdEditBtn');
-  if (editBtn) editBtn.classList.toggle('hidden', kind === 'market');
+  if (editBtn) editBtn.classList.toggle('hidden', !canEditDelete || kind === 'market');
+  
   const delBtn = document.getElementById('cdDeleteBtn');
-  if (delBtn) delBtn.innerHTML = (kind === 'market' && !isUnclaimed) ? '<i class="fa-solid fa-rotate-left"></i>' : '<i class="fa-solid fa-trash"></i>';
+  if (delBtn) {
+    delBtn.classList.toggle('hidden', !canEditDelete);
+    delBtn.innerHTML = (kind === 'market' && !isUnclaimed) ? '<i class="fa-solid fa-rotate-left"></i>' : '<i class="fa-solid fa-trash"></i>';
+  }
 
   openModal('choreDetailModal');
 }
@@ -2892,7 +2903,6 @@ function openMarketModal(marketId) {
   fillOffsetSelect('marketWindowEndOffset', 6);
   document.getElementById('marketRewardEnabled').checked = false;
   document.getElementById('marketRewardBox').classList.add('hidden');
-  setMarketRewardType('tickets');
   document.getElementById('marketDeleteBtn').classList.toggle('hidden', !marketId);
 
   if (marketId) {
@@ -3610,7 +3620,7 @@ function renderProfiles() {
           <option value="parent" ${p.role==='parent'?'selected':''}>Parent</option>
           <option value="kid" ${p.role==='kid'?'selected':''}>Kid</option>
         </select>
-        <button onclick="removePerson('${p.id}')" class="admin-only w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+        <button onclick="removePerson('${p.id}')" class="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
       </div>
     `).join('');
   }
