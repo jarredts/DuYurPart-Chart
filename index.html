@@ -59,7 +59,7 @@
   .subtask-row:last-child { border-bottom:none; }
   .chk { width:18px; height:18px; flex-shrink:0; accent-color:#7C3AED; }
   
-  .day-cell { min-height:56px; }
+  .day-cell { min-height:84px; height:auto; }
   .day-bar { height:4px; border-radius:2px; width:100%; transition:all .2s ease; }
   
   .modal-backdrop { backdrop-filter:blur(2px); }
@@ -111,20 +111,20 @@
   </div>
 </header>
 
-<main class="max-w-md mx-auto px-4 pt-3">
+<main class="max-w-md mx-auto px-2 pt-3">
 
-  <!-- TAB: Chore Calendar -->
+  <!-- TAB: Chore Calendar (Expanded, Zero-Wasted Space) -->
   <section id="tab-calendar" class="space-y-3">
-    <div class="bg-white rounded-2xl shadow-sm p-2.5 flex items-center gap-1.5 overflow-x-auto" id="calendarFilterBar"></div>
+    <div class="bg-white rounded-2xl shadow-sm p-2 flex items-center gap-1.5 overflow-x-auto" id="calendarFilterBar"></div>
 
-    <div class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-3.5">
-      <div class="flex items-center justify-between mb-3">
+    <div class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-2 sm:p-3">
+      <div class="flex items-center justify-between mb-2">
         <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
         <div id="calMonthLabel" class="font-bold text-base text-gray-900"></div>
         <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
       </div>
-      <div id="calWeekdayHeader" class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-gray-400 mb-1.5"></div>
-      <div id="calendarGrid" class="grid grid-cols-7 gap-1.5"></div>
+      <div id="calWeekdayHeader" class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-gray-400 mb-1"></div>
+      <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
     </div>
 
     <div class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3">
@@ -146,7 +146,6 @@
         <button onclick="openChoreModal()" class="text-xs font-bold bg-blue-500 text-white rounded-lg px-3 py-1.5 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
       
-      <!-- Filter controls for Chore Log -->
       <div class="grid grid-cols-2 gap-2 mb-2">
         <select id="logStatusFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
           <option value="all">All Statuses</option>
@@ -374,7 +373,7 @@
             <button type="button" onclick="setRewardType('money')" id="rewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
             <button type="button" onclick="setRewardType('other')" id="rewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
           </div>
-          <input id="rewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <input id="rewardAmount" type="text" placeholder="Amount (e.g. 0.50)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
           <input id="rewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
           <label class="flex items-center gap-2 text-xs font-semibold text-gray-600">
             <input type="checkbox" id="rewardBanked" class="chk"> Bank it (extra, above normal allowance)
@@ -412,7 +411,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.1.2</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.1.4</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -459,7 +458,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.1.2</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.1.4</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -602,7 +601,7 @@
             <button type="button" onclick="setMarketRewardType('money')" id="marketRewardTypeMoneyBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Money</button>
             <button type="button" onclick="setMarketRewardType('other')" id="marketRewardTypeOtherBtn" class="flex-1 rounded-lg py-1.5 text-xs font-bold border">Something Else</button>
           </div>
-          <input id="marketRewardAmount" type="number" step="0.01" placeholder="Amount ($)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <input id="marketRewardAmount" type="text" placeholder="Amount (e.g. 0.50)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
           <input id="marketRewardDesc" type="text" placeholder="e.g. extra screen time" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm hidden">
         </div>
       </div>
@@ -670,7 +669,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.1.2";
+const APP_VERSION = "v6.1.4";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -1064,7 +1063,7 @@ function getChoresForDate(dateStr) {
   return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
 
-/* =========================== CALENDAR =========================== */
+/* =========================== CALENDAR (EXPANDED TO SHOW ALL BARS) =========================== */
 function changeMonth(delta) {
   calMonth += delta;
   if (calMonth < 0) { calMonth = 11; calYear--; }
@@ -1120,22 +1119,20 @@ function renderCalendar() {
     const cell = document.createElement('div');
     const isToday = dateStr === todayStr();
     const isSelected = dateStr === selectedDate;
-    cell.className = 'day-cell rounded-xl flex flex-col items-center justify-between p-1 cursor-pointer text-xs transition-all '
+    cell.className = 'day-cell rounded-xl flex flex-col items-center justify-start p-1 cursor-pointer text-xs transition-all '
       + (isSelected ? 'bg-purple-100 font-bold text-purple-700 shadow-inner' : isToday ? 'bg-purple-50 font-bold text-purple-600 border border-purple-200' : 'hover:bg-gray-50 text-gray-700 bg-white border border-gray-100');
     
-    const barsHtml = chores.slice(0,3).map(c => {
+    // Render EVERY chore bar without truncation (+1, +2 removed)
+    const barsHtml = chores.map(c => {
       const p = getPerson(c.personId);
-      const color = c.unclaimed ? '#9CA3AF' : (p ? p.color : '#cbd5e1');
+      const color = c.unclaimed ? '#9CA3AF' : (p ? (p.color || '#8B5CF6') : '#cbd5e1');
       return `<div class="day-bar" style="background:${color};opacity:${c.completed?0.3:1};${c.unclaimed?'border:1px dashed #6B7280':''}"></div>`;
     }).join('');
-    
-    const extraCount = chores.length > 3 ? `<div class="text-[8px] font-bold text-gray-400 leading-none">+${chores.length-3}</div>` : '';
 
     cell.innerHTML = `
-      <div class="text-xs font-semibold">${day}</div>
-      <div class="w-full space-y-1 px-1 flex flex-col items-center mb-0.5">
+      <div class="text-xs font-semibold mb-1">${day}</div>
+      <div class="w-full space-y-1 px-0.5 flex flex-col items-center pb-1">
         ${barsHtml}
-        ${extraCount}
       </div>`;
     cell.onclick = () => { selectedDate = dateStr; openDayList(dateStr); renderCalendar(); renderSelectedDay(); };
     grid.appendChild(cell);
@@ -1180,7 +1177,14 @@ function choreRowHtml(c) {
   </div>`;
 }
 function formatTime(t) { if (!t) return ''; const [h,m] = t.split(':').map(Number); const ap = h>=12?'PM':'AM'; const h12 = h%12===0?12:h%12; return h12+':'+String(m).padStart(2,'0')+ap; }
-function rewardLabel(r) { if (!r || !r.enabled) return ''; if (r.type==='money') return '$'+Number(r.amount||0).toFixed(2)+(r.banked?' (banked)':''); return (r.description||'Reward')+(r.banked?' (banked)':''); }
+function rewardLabel(r) { 
+  if (!r || !r.enabled) return ''; 
+  if (r.type === 'money') {
+    const amt = parseFloat(r.amount);
+    return isNaN(amt) ? '' : '$' + amt.toFixed(2) + (r.banked ? ' (banked)' : '');
+  }
+  return (r.description || 'Reward') + (r.banked ? ' (banked)' : ''); 
+}
 
 function openDayList(dateStr) {
   dayListDate = dateStr;
@@ -1580,8 +1584,8 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     (r.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
     if (r.reward && r.reward.enabled) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
-      setRewardType(r.reward.type);
-      document.getElementById('rewardAmount').value = r.reward.amount || '';
+      setRewardType(r.reward.type || 'money');
+      document.getElementById('rewardAmount').value = r.reward.amount != null ? r.reward.amount : '';
       document.getElementById('rewardDesc').value = r.reward.description || '';
       document.getElementById('rewardBanked').checked = !!r.reward.banked;
     }
@@ -1599,12 +1603,12 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId) {
     (c.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
     if (c.reward && c.reward.enabled) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
-      setRewardType(c.reward.type);
-      document.getElementById('rewardAmount').value = c.reward.amount || '';
+      setRewardType(c.reward.type || 'money');
+      document.getElementById('rewardAmount').value = c.reward.amount != null ? c.reward.amount : '';
       document.getElementById('rewardDesc').value = c.reward.description || '';
       document.getElementById('rewardBanked').checked = !!c.reward.banked;
     }
-    document.getElementById('choreNotes').value = c.notes || '';
+    document.getElementById('choreNotes').value = r.notes || '';
     document.getElementById('choreDeleteBtn').classList.remove('hidden');
   } else {
     document.getElementById('choreTitle').value = '';
@@ -1628,9 +1632,16 @@ function saveChore() {
   const isTask = (currentItemType === 'task');
   const subtasks = readSubtasksFromBuilder();
   const rewardEnabled = !isTask && document.getElementById('rewardEnabled').checked;
+  
+  // Safe numeric parsing for money rewards
+  const rawAmt = document.getElementById('rewardAmount').value;
+  const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
+  const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
+
   const reward = rewardEnabled ? {
-    enabled: true, type: rewardType,
-    amount: rewardType === 'money' ? Number(document.getElementById('rewardAmount').value || 0) : null,
+    enabled: true, 
+    type: rewardType,
+    amount: rewardType === 'money' ? parsedAmt : null,
     description: rewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null,
     banked: document.getElementById('rewardBanked').checked
   } : { enabled: false };
@@ -1730,8 +1741,8 @@ function updateMarketScheduleUI() {
 }
 function setMarketRewardType(t) {
   marketRewardType = t;
-  const amtEl = document.getElementById('rewardAmount');
-  const descEl = document.getElementById('rewardDesc');
+  const amtEl = document.getElementById('marketRewardAmount');
+  const descEl = document.getElementById('marketRewardDesc');
   if (amtEl) amtEl.classList.toggle('hidden', t !== 'money');
   if (descEl) descEl.classList.toggle('hidden', t !== 'other');
   ['marketRewardTypeMoneyBtn','marketRewardTypeOtherBtn'].forEach(bid => {
@@ -1795,8 +1806,8 @@ function openMarketModal(marketId) {
     if (m.reward && m.reward.enabled) {
       document.getElementById('marketRewardEnabled').checked = true;
       document.getElementById('marketRewardBox').classList.remove('hidden');
-      setMarketRewardType(m.reward.type);
-      document.getElementById('marketRewardAmount').value = m.reward.amount || '';
+      setMarketRewardType(m.reward.type || 'money');
+      document.getElementById('marketRewardAmount').value = m.reward.amount != null ? m.reward.amount : '';
       document.getElementById('marketRewardDesc').value = m.reward.description || '';
     }
     document.getElementById('marketNotes').value = m.notes || '';
@@ -1812,17 +1823,25 @@ function openMarketModal(marketId) {
   }
   openModal('marketModal');
 }
+
 function saveMarketChore() {
   const id = document.getElementById('marketId').value;
   const title = document.getElementById('marketTitle').value.trim();
   if (!title) { toast('Give the chore a name', 'fa-triangle-exclamation'); return; }
   const subtasks = readMarketSubtasksFromBuilder();
   const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
+  
+  // Safe numeric parsing for marketplace rewards
+  const rawAmt = document.getElementById('marketRewardAmount').value;
+  const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
+  const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
+
   const reward = rewardEnabled ? {
-    enabled: true, type: marketRewardType,
-    amount: marketRewardType === 'money' ? Number(document.getElementById('rewardAmount').value || 0) : null,
-    description: marketRewardType === 'other' ? document.getElementById('rewardDesc').value.trim() : null
-  } : { enabled:false };
+    enabled: true, 
+    type: marketRewardType,
+    amount: marketRewardType === 'money' ? parsedAmt : null,
+    description: marketRewardType === 'other' ? document.getElementById('marketRewardDesc').value.trim() : null
+  } : { enabled: false };
   const notes = document.getElementById('marketNotes').value.trim();
 
   const data = { title, subtasks, reward, notes, repeats: marketRepeats, scheduleType: marketSchedule };
@@ -1854,6 +1873,7 @@ function saveMarketChore() {
   saveState(); renderMarketplace();
   toast('Posted to the marketplace', 'fa-store');
 }
+
 function deleteMarketChore() {
   const id = document.getElementById('marketId').value;
   if (!id) return;
