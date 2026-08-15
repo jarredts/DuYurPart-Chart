@@ -1,7 +1,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
 
-const CACHE_NAME = 'chores-cache-v36';
+const CACHE_NAME = 'chores-cache-v37';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
