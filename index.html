@@ -51,7 +51,7 @@
   button, .transition-all { transition:all .15s ease; }
   button:active { transform:scale(0.97); }
 
-  .person-dot { width:9px; height:9px; border-radius:9999px; display:inline-block; flex-shrink:0; }
+  .person-dot { width:8px; height:8px; border-radius:9999px; display:inline-block; flex-shrink:0; }
   .person-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:11px; font-weight:700; }
   .chore-card { border-left-width:4px; }
   .subtask-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.05); }
@@ -59,14 +59,13 @@
   .subtask-row:last-child { border-bottom:none; }
   .chk { width:18px; height:18px; flex-shrink:0; accent-color:#7C3AED; }
   
-  .day-cell { min-height:86px; height:auto; width:100%; }
+  .day-cell { min-height:64px; height:auto; width:100%; }
   .day-bar { height:4px; border-radius:2px; width:100%; transition:all .2s ease; }
   
   .modal-backdrop { backdrop-filter:blur(2px); }
   .fade-in { animation: fadeIn .15s ease; }
   @keyframes fadeIn { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
 
-  /* Drag & Drop Reordering Styles */
   .draggable-item { touch-action: none; user-select: none; }
   .draggable-item.dragging { opacity: 0.45; background-color: rgba(139, 92, 246, 0.1); border-radius: 8px; }
   .drag-handle { cursor: grab; padding: 4px 6px; }
@@ -119,21 +118,39 @@
 
 <main class="w-full max-w-xl mx-auto px-1 sm:px-2 pt-2">
 
-  <!-- TAB: Chore Calendar with Touch Swipe -->
+  <!-- TAB: Chore Calendar with Month/Week Toggle -->
   <section id="tab-calendar" class="space-y-2">
     <div class="bg-white rounded-2xl shadow-sm p-1.5 flex items-center gap-1.5 overflow-x-auto" id="calendarFilterBar"></div>
 
-    <div id="calendarCardWrapper" class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-1 sm:p-2 touch-pan-y select-none">
-      <div class="flex items-center justify-between mb-1.5 px-1">
-        <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
-        <div id="calMonthLabel" class="font-bold text-base text-gray-900"></div>
-        <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
+    <div id="calendarCardWrapper" class="bg-gradient-to-br from-white to-purple-50/30 rounded-2xl shadow-sm p-2 touch-pan-y select-none">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <div class="flex items-center gap-1">
+          <button onclick="navigateCalendar(-1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
+          <div id="calMainLabel" class="font-bold text-sm sm:text-base text-gray-900"></div>
+          <button onclick="navigateCalendar(1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+        
+        <!-- Month vs Week View Switcher -->
+        <div class="flex bg-gray-100 p-0.5 rounded-xl border border-gray-200">
+          <button onclick="setCalView('month')" id="calViewMonthBtn" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-purple-700 shadow-sm">Month</button>
+          <button onclick="setCalView('week')" id="calViewWeekBtn" class="px-2.5 py-1 text-xs font-bold rounded-lg text-gray-500">Week</button>
+        </div>
       </div>
-      <div id="calWeekdayHeader" class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-bold text-gray-400 mb-1"></div>
-      <div id="calendarGrid" class="grid grid-cols-7 gap-0.5"></div>
+
+      <!-- Month Grid Container -->
+      <div id="monthViewContainer">
+        <div id="calWeekdayHeader" class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-bold text-gray-400 mb-1"></div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-0.5"></div>
+      </div>
+
+      <!-- Week View Container -->
+      <div id="weekViewContainer" class="hidden space-y-2">
+        <div id="weekDaysList" class="space-y-2"></div>
+      </div>
     </div>
 
-    <div class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3">
+    <!-- Selected Day Detail View (Under Month View) -->
+    <div id="selectedDayCard" class="bg-gradient-to-br from-white to-purple-50/40 rounded-2xl shadow-sm p-3">
       <div class="flex items-center justify-between mb-2">
         <div class="font-bold text-sm" id="selectedDayLabel">Today</div>
         <button onclick="openChoreModal(null, selectedDate)" class="text-xs font-bold text-purple-600 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
@@ -402,7 +419,7 @@
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-2">
       <div id="dayListTitle" class="text-lg font-bold"></div>
-      <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      <button onclick="closeModal('dayListModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="dayListItems" class="space-y-2 mb-3"></div>
     <button onclick="closeModal('dayListModal'); openChoreModal(null, dayListDate)" class="w-full rounded-xl py-2.5 font-bold text-sm bg-purple-50 text-purple-600 border border-purple-200"><i class="fa-solid fa-plus"></i> Add Item This Day</button>
@@ -415,7 +432,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.1.6</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.2.0</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -462,7 +479,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.1.6</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.2.0</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -673,7 +690,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.1.6";
+const APP_VERSION = "v6.2.0";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -728,6 +745,9 @@ let localDeviceProfileId = localStorage.getItem('chores_local_profile_id') || nu
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
 let selectedDate = todayStr();
+let currentWeekAnchor = parseLocalDate(todayStr());
+let calViewMode = localStorage.getItem('chores_cal_view_mode') || 'month'; // 'month' or 'week'
+
 let dayListDate = null;
 let currentChoreDetail = null;
 let subtaskBuilderCount = 0;
@@ -1067,7 +1087,43 @@ function getChoresForDate(dateStr) {
   return items.sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
 }
 
-/* =========================== CALENDAR & TOUCH SWIPE =========================== */
+/* =========================== CALENDAR (MONTH & WEEK MODES) =========================== */
+function setCalView(mode) {
+  calViewMode = mode;
+  localStorage.setItem('chores_cal_view_mode', mode);
+  
+  const mBtn = document.getElementById('calViewMonthBtn');
+  const wBtn = document.getElementById('calViewWeekBtn');
+  const mCont = document.getElementById('monthViewContainer');
+  const wCont = document.getElementById('weekViewContainer');
+  const selCard = document.getElementById('selectedDayCard');
+
+  if (mode === 'month') {
+    mBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-purple-700 shadow-sm';
+    wBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg text-gray-500';
+    mCont.classList.remove('hidden');
+    wCont.classList.add('hidden');
+    selCard.classList.remove('hidden');
+    renderCalendar();
+  } else {
+    wBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-purple-700 shadow-sm';
+    mBtn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg text-gray-500';
+    wCont.classList.remove('hidden');
+    mCont.classList.add('hidden');
+    selCard.classList.add('hidden'); // Week view embeds chore cards directly
+    renderWeekView();
+  }
+}
+
+function navigateCalendar(delta) {
+  if (calViewMode === 'month') {
+    changeMonth(delta);
+  } else {
+    currentWeekAnchor.setDate(currentWeekAnchor.getDate() + (delta * 7));
+    renderWeekView();
+  }
+}
+
 function changeMonth(delta) {
   calMonth += delta;
   if (calMonth < 0) { calMonth = 11; calYear--; }
@@ -1090,16 +1146,24 @@ function renderCalendarFilterBar() {
   html += `<button onclick="toggleCalendarFilterPerson('__unassigned__')" class="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border ${calendarFilter.has('__unassigned__')?'bg-gray-600 text-white border-gray-600':'bg-white text-gray-400 border-gray-200'}">Unassigned</button>`;
   bar.innerHTML = html;
 }
-function setCalendarFilter(x) { calendarFilter = new Set(); renderCalendar(); renderSelectedDay(); renderCalendarFilterBar(); }
+function setCalendarFilter(x) { 
+  calendarFilter = new Set(); 
+  if (calViewMode === 'month') { renderCalendar(); renderSelectedDay(); } 
+  else { renderWeekView(); }
+  renderCalendarFilterBar(); 
+}
 function toggleCalendarFilterPerson(id) {
   if (calendarFilter.has(id)) calendarFilter.delete(id); else calendarFilter.add(id);
-  renderCalendar(); renderSelectedDay(); renderCalendarFilterBar();
+  if (calViewMode === 'month') { renderCalendar(); renderSelectedDay(); }
+  else { renderWeekView(); }
+  renderCalendarFilterBar();
 }
 
+/* 1. CLEAN MONTH VIEW: Summary Dots per Person */
 function renderCalendar() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const monthLabel = document.getElementById('calMonthLabel');
-  if (monthLabel) monthLabel.textContent = monthNames[calMonth]+' '+calYear;
+  const mainLabel = document.getElementById('calMainLabel');
+  if (mainLabel) mainLabel.textContent = monthNames[calMonth]+' '+calYear;
   renderCalendarFilterBar();
 
   const weekStart = getWeekStartSetting();
@@ -1123,33 +1187,83 @@ function renderCalendar() {
     const cell = document.createElement('div');
     const isToday = dateStr === todayStr();
     const isSelected = dateStr === selectedDate;
-    cell.className = 'day-cell rounded-lg flex flex-col items-center justify-start p-1 cursor-pointer text-xs transition-all '
+    
+    cell.className = 'day-cell rounded-lg flex flex-col items-center justify-between p-1 cursor-pointer text-xs transition-all '
       + (isSelected ? 'bg-purple-100 font-bold text-purple-700 shadow-inner' : isToday ? 'bg-purple-50 font-bold text-purple-600 border border-purple-200' : 'hover:bg-gray-50 text-gray-700 bg-white border border-gray-100');
     
-    // Render EVERY chore bar without truncation (+1, +2 removed)
-    const barsHtml = chores.map(c => {
-      const p = getPerson(c.personId);
-      const color = c.unclaimed ? '#9CA3AF' : (p ? (p.color || '#8B5CF6') : '#cbd5e1');
-      return `<div class="day-bar" style="background:${color};opacity:${c.completed?0.3:1};${c.unclaimed?'border:1px dashed #6B7280':''}"></div>`;
+    // Group chores by assigned person
+    const personChoreCounts = {};
+    chores.forEach(c => {
+      const pid = c.personId || '__unassigned__';
+      personChoreCounts[pid] = (personChoreCounts[pid] || 0) + 1;
+    });
+
+    const badgeDotsHtml = Object.keys(personChoreCounts).map(pid => {
+      const p = getPerson(pid);
+      const color = pid === '__unassigned__' ? '#9CA3AF' : (p ? (p.color || '#8B5CF6') : '#cbd5e1');
+      const count = personChoreCounts[pid];
+      return `<div class="flex items-center gap-0.5 px-1 py-0.5 rounded-md text-[9px] font-bold text-white leading-none" style="background:${color}">
+        <span>${count}</span>
+      </div>`;
     }).join('');
 
     cell.innerHTML = `
-      <div class="text-xs font-semibold mb-1">${day}</div>
-      <div class="w-full space-y-1 px-0.5 flex flex-col items-center pb-1">
-        ${barsHtml}
+      <div class="text-xs font-semibold mb-0.5">${day}</div>
+      <div class="w-full flex flex-wrap gap-0.5 justify-center items-center pb-0.5">
+        ${badgeDotsHtml}
       </div>`;
     cell.onclick = () => { selectedDate = dateStr; openDayList(dateStr); renderCalendar(); renderSelectedDay(); };
     grid.appendChild(cell);
   }
 }
 
+/* 2. EXPANDED WEEK VIEW */
+function renderWeekView() {
+  const weekStartMode = getWeekStartSetting();
+  const startD = startOfWeek(formatLocalDate(currentWeekAnchor), weekStartMode);
+  
+  const endD = new Date(startD);
+  endD.setDate(endD.getDate() + 6);
+
+  const mainLabel = document.getElementById('calMainLabel');
+  if (mainLabel) {
+    mainLabel.textContent = `${startD.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${endD.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+  }
+
+  const list = document.getElementById('weekDaysList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  for (let i = 0; i < 7; i++) {
+    const curD = new Date(startD);
+    curD.setDate(curD.getDate() + i);
+    const dateStr = formatLocalDate(curD);
+    const chores = getChoresForDate(dateStr);
+    const isToday = dateStr === todayStr();
+
+    const dayBox = document.createElement('div');
+    dayBox.className = `p-2.5 rounded-xl border ${isToday ? 'bg-purple-50/70 border-purple-200' : 'bg-white border-gray-100'} shadow-sm space-y-1.5`;
+
+    dayBox.innerHTML = `
+      <div class="flex items-center justify-between pb-1 border-b border-gray-100">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-bold ${isToday?'text-purple-700':'text-gray-700'}">${curD.toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric'})}</span>
+          ${isToday ? '<span class="text-[9px] font-bold bg-purple-600 text-white rounded-full px-1.5 py-0.5">Today</span>' : ''}
+        </div>
+        <button onclick="openChoreModal(null, '${dateStr}')" class="text-[11px] font-bold text-purple-600 hover:text-purple-800"><i class="fa-solid fa-plus"></i> Add</button>
+      </div>
+      <div class="space-y-1">
+        ${chores.length ? chores.map(choreRowHtml).join('') : '<div class="text-[11px] text-gray-400 py-1">No chores 🎉</div>'}
+      </div>
+    `;
+    list.appendChild(dayBox);
+  }
+}
+
 function initCalendarSwipe() {
   const el = document.getElementById('calendarCardWrapper');
   if (!el) return;
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let touchEndX = 0;
-  let touchEndY = 0;
+  let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
 
   el.addEventListener('touchstart', (e) => {
     touchStartX = e.changedTouches[0].screenX;
@@ -1165,13 +1279,8 @@ function initCalendarSwipe() {
   function handleSwipe() {
     const diffX = touchEndX - touchStartX;
     const diffY = touchEndY - touchStartY;
-    // Check if horizontal swipe dominates vertical scrolling
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-      if (diffX < 0) {
-        changeMonth(1); // Swipe left -> Next month
-      } else {
-        changeMonth(-1); // Swipe right -> Previous month
-      }
+      navigateCalendar(diffX < 0 ? 1 : -1);
     }
   }
 }
@@ -1195,14 +1304,14 @@ function choreRowHtml(c) {
   const isUnclaimed = c.kind === 'market' && c.unclaimed;
   const borderColor = isUnclaimed ? '#9CA3AF' : (p ? (p.color || '#8b5cf6') : '#cbd5e1');
   const clickable = c.id != null && c.dateStr != null;
-  return `<div ${clickable?`onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')"`:''} class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2.5 flex items-center justify-between ${clickable?'cursor-pointer':''}" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
+  return `<div ${clickable?`onclick="openChoreDetail('${c.kind}','${c.id}','${c.dateStr}')"`:''} class="chore-card ${isUnclaimed?'bg-gray-50/70 border-dashed':'bg-gray-50'} rounded-xl px-3 py-2 flex items-center justify-between ${clickable?'cursor-pointer':''}" style="border-left-color:${borderColor};${isUnclaimed?'border-left-style:dashed;border-left-width:4px':''}">
     <div class="min-w-0 flex-1">
       <div class="text-sm font-semibold ${c.completed?'line-through text-gray-400':'text-gray-800'} truncate">
         ${c.isTask ? '<i class="fa-solid fa-user-check text-purple-400 text-[11px] mr-1.5" title="Personal Task"></i>' : ''}
         ${c.kind==='market'?'<i class="fa-solid fa-store text-pink-400 text-[10px] mr-1"></i>':''}
         ${escapeHtml(c.title)}
       </div>
-      <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+      <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
         ${isUnclaimed ? '<span class="person-chip bg-gray-200 text-gray-500">Unassigned · Up for grabs</span>' : personChip(c.personId, c.isTask)}
         ${c.time ? `<span class="text-[10px] text-gray-400 font-mono">${formatTime(c.time)}</span>` : ''}
         ${subCount ? `<span class="text-[10px] text-gray-400">${subDone}/${subCount} steps</span>` : ''}
@@ -1322,7 +1431,8 @@ function toggleSubtask(subId, checked) {
   }
   persist();
   openChoreDetail(kind, id, dateStr);
-  renderSelectedDay(); renderCalendar();
+  if (calViewMode === 'month') { renderSelectedDay(); renderCalendar(); }
+  else { renderWeekView(); }
 }
 
 function toggleChoreComplete() {
@@ -1751,7 +1861,6 @@ function saveChore() {
   const subtasks = readSubtasksFromBuilder();
   const rewardEnabled = !isTask && document.getElementById('rewardEnabled').checked;
   
-  // Safe numeric parsing for money rewards
   const rawAmt = document.getElementById('rewardAmount').value;
   const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
   const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
@@ -1953,7 +2062,6 @@ function saveMarketChore() {
   const subtasks = readMarketSubtasksFromBuilder();
   const rewardEnabled = document.getElementById('marketRewardEnabled').checked;
   
-  // Safe numeric parsing for marketplace rewards
   const rawAmt = document.getElementById('marketRewardAmount').value;
   const cleanAmt = parseFloat(String(rawAmt).replace(/[^0-9.]/g, ''));
   const parsedAmt = isNaN(cleanAmt) ? 0 : cleanAmt;
@@ -2804,8 +2912,12 @@ function toggleDarkMode() {
 /* =========================== MASTER RENDER =========================== */
 function renderApp() {
   renderHeader();
-  renderCalendar();
-  renderSelectedDay();
+  if (calViewMode === 'month') {
+    renderCalendar();
+    renderSelectedDay();
+  } else {
+    renderWeekView();
+  }
   renderProfiles();
   renderMarketplaceBannerOnly();
   const activeTab = ['calendar','market','log','stats','honeydo'].find(t => {
@@ -2827,6 +2939,7 @@ function renderMarketplaceBannerOnly() {
 /* =========================== BOOT =========================== */
 window.onload = async function() {
   await loadState();
+  setCalView(calViewMode);
   renderApp();
   initSyncOnBoot();
   initCalendarSwipe();
