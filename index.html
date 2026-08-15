@@ -283,10 +283,30 @@
     
     <div id="marketQuotaCards" class="grid grid-cols-2 gap-2"></div>
     
-    <div class="bg-white rounded-2xl shadow-sm p-3">
-      <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Up for grabs</div>
-      <div id="marketOpenList" class="space-y-2"></div>
+    <!-- Split Marketplace Sections -->
+    <div class="bg-white rounded-2xl shadow-sm p-3 space-y-4">
+      <div>
+        <div class="text-xs font-extrabold text-pink-600 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <i class="fa-solid fa-bolt"></i> One-Time Chores
+        </div>
+        <div id="marketOpenOnceList" class="space-y-2"></div>
+      </div>
+
+      <div>
+        <div class="text-xs font-extrabold text-purple-600 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <i class="fa-solid fa-rotate"></i> Weekly Pool Chores
+        </div>
+        <div id="marketOpenWeeklyList" class="space-y-2"></div>
+      </div>
+
+      <div>
+        <div class="text-xs font-extrabold text-blue-600 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <i class="fa-solid fa-calendar-days"></i> Monthly Pool Chores
+        </div>
+        <div id="marketOpenMonthlyList" class="space-y-2"></div>
+      </div>
     </div>
+
     <div class="bg-white rounded-2xl shadow-sm p-3">
       <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2">Claimed in active periods</div>
       <div id="marketClaimedList" class="space-y-2"></div>
@@ -316,7 +336,7 @@
 
 <!-- ============ MODALS ============ -->
 
-<!-- Wallet Adjust Modal (Parents edit balances directly) -->
+<!-- Wallet Adjust Modal -->
 <div id="walletAdjustModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 fade-in">
     <div class="flex justify-between items-center mb-3">
@@ -455,7 +475,7 @@
   </div>
 </div>
 
-<!-- Day Chore Detail / Expand Modal -->
+<!-- Day Chore Detail Modal -->
 <div id="choreDetailModal" class="hidden fixed inset-0 bg-black/40 modal-backdrop z-50 flex items-end sm:items-center justify-center">
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-start mb-2">
@@ -635,7 +655,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.9.0</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.10.0</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -651,12 +671,12 @@
       </div>
     </div>
 
-    <div class="font-bold text-sm mb-2">Family Members & Roles</div>
-    <div id="peopleList" class="space-y-2 mb-2"></div>
+    <div class="font-bold text-sm mb-2 admin-only">Family Members & Roles</div>
+    <div id="peopleList" class="space-y-2 mb-2 admin-only"></div>
     <button onclick="addPersonRow()" class="admin-only text-xs font-bold text-purple-600 mb-4"><i class="fa-solid fa-plus"></i> Add person</button>
 
-    <div class="font-bold text-sm mb-2">Push Notifications</div>
-    <div class="mb-4 space-y-2">
+    <div class="font-bold text-sm mb-2 admin-only">Push Notifications</div>
+    <div class="mb-4 space-y-2 admin-only">
       <div>
         <label class="text-xs font-bold text-gray-500">Firebase VAPID Public Key</label>
         <input id="fcmVapidKeyInput" type="text" placeholder="Paste FCM Web Push Certificate Key here" onchange="saveVapidKey(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mt-1">
@@ -668,8 +688,8 @@
       <div id="notifPermStatus" class="text-[10px] text-gray-500"></div>
     </div>
 
-    <div class="font-bold text-sm mb-2">Calendar & Marketplace Goals</div>
-    <div class="mb-4 space-y-2">
+    <div class="font-bold text-sm mb-2 admin-only">Calendar & Marketplace Goals</div>
+    <div class="mb-4 space-y-2 admin-only">
       <div>
         <label class="text-xs font-bold text-gray-500">Week starts on</label>
         <select id="weekStartSelect" onchange="setWeekStart(this.value)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
@@ -697,23 +717,23 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.9.0</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.10.0</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
       </button>
     </div>
 
-    <div class="font-bold text-sm mb-2">Cloud Sync</div>
-    <textarea id="syncConfigInput" rows="4" placeholder='Paste Firebase config JSON here' class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
-    <div class="flex gap-2 mb-2">
+    <div class="font-bold text-sm mb-2 admin-only">Cloud Sync</div>
+    <textarea id="syncConfigInput" rows="4" placeholder='Paste Firebase config JSON here' class="admin-only w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono mb-2"></textarea>
+    <div class="flex gap-2 mb-2 admin-only">
       <button onclick="enableCloudSync()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-purple-600 text-white">Enable Sync</button>
       <button onclick="manualSyncNow()" class="rounded-lg py-2 px-3 text-xs font-bold bg-gray-100 text-gray-700"><i class="fa-solid fa-rotate"></i></button>
     </div>
-    <div id="syncStatusLine" class="text-[11px] text-gray-500 mb-4"></div>
+    <div id="syncStatusLine" class="text-[11px] text-gray-500 mb-4 admin-only"></div>
 
-    <div class="font-bold text-sm mb-2">Data</div>
-    <div class="flex gap-2">
+    <div class="font-bold text-sm mb-2 admin-only">Data</div>
+    <div class="flex gap-2 admin-only">
       <button onclick="exportDataJSON()" class="flex-1 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700">Export</button>
       <label class="flex-1 rounded-lg py-2 text-xs font-bold bg-gray-100 text-gray-700 text-center cursor-pointer">
         Import <input type="file" accept="application/json" onchange="importDataJSON(event)" class="hidden">
@@ -985,7 +1005,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.9.0";
+const APP_VERSION = "v6.10.0";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -1863,7 +1883,6 @@ function openChoreDetail(kind, id, dateStr) {
       const m = (state.marketChores||[]).find(x => x.id === marketId);
       if (!m) return;
       
-      // Auto assign to active profile user
       const assignTo = localDeviceProfileId || (state.people[0] ? state.people[0].id : null);
       if (!assignTo) { toast('Select a profile first', 'fa-triangle-exclamation'); return; }
 
@@ -2140,7 +2159,7 @@ function pokeFromChore() {
   openPokeModal(personId);
 }
 
-/* =========================== WALLET ADJUSTMENT (EDITING BALANCES) =========================== */
+/* =========================== WALLET ADJUSTMENT =========================== */
 function openWalletAdjustModal(personId) {
   const p = getPerson(personId);
   if (!p) return;
@@ -3035,15 +3054,11 @@ function marketScheduleLabel(x) {
 function marketListingCardHtml(x, claimedView) {
   const claim = x.claim;
   const p = claim ? getPerson(claim.personId) : null;
-  let poolBadge = '';
-  if (x.market.repeats === 'weekly') poolBadge = '<span class="text-[10px] font-bold text-pink-500 bg-pink-100 rounded-full px-1.5 py-0.5">Weekly Pool</span>';
-  else if (x.market.repeats === 'monthly') poolBadge = '<span class="text-[10px] font-bold text-purple-600 bg-purple-100 rounded-full px-1.5 py-0.5">Monthly Pool</span>';
 
   return `<div class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 ${claimedView?'bg-gray-50':'bg-gradient-to-r from-amber-50 to-pink-50 border border-pink-100'}">
     <div class="min-w-0 flex-1">
       <div class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(x.market.title)}</div>
       <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-        ${poolBadge}
         <span class="text-[10px] text-gray-500">${marketScheduleLabel(x)}</span>
         ${x.market.reward && x.market.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(x.market.reward)}</span>` : ''}
         ${claimedView && p ? personChip(p.id) : ''}
@@ -3062,8 +3077,21 @@ function renderMarketplace() {
   const open = instances.filter(x => !x.claim);
   const claimed = instances.filter(x => x.claim);
 
-  const openList = document.getElementById('marketOpenList');
-  if (openList) openList.innerHTML = open.length ? open.map(x => marketListingCardHtml(x, false)).join('') : '<div class="text-xs text-gray-400 text-center py-3">Nothing up for grabs right now 🎉</div>';
+  // Split open listings into Once, Weekly Pool, Monthly Pool
+  const onceList = open.filter(x => x.market.repeats === 'once');
+  const weeklyList = open.filter(x => x.market.repeats === 'weekly');
+  const monthlyList = open.filter(x => x.market.repeats === 'monthly');
+
+  const renderSection = (arr) => arr.length ? arr.map(x => marketListingCardHtml(x, false)).join('') : '<div class="text-xs text-gray-400 py-1.5 text-center">None available</div>';
+
+  const onceEl = document.getElementById('marketOpenOnceList');
+  const weeklyEl = document.getElementById('marketOpenWeeklyList');
+  const monthlyEl = document.getElementById('marketOpenMonthlyList');
+
+  if (onceEl) onceEl.innerHTML = renderSection(onceList);
+  if (weeklyEl) weeklyEl.innerHTML = renderSection(weeklyList);
+  if (monthlyEl) monthlyEl.innerHTML = renderSection(monthlyList);
+
   const claimedList = document.getElementById('marketClaimedList');
   if (claimedList) claimedList.innerHTML = claimed.length ? claimed.map(x => marketListingCardHtml(x, true)).join('') : '<div class="text-xs text-gray-400 text-center py-3">No claims yet in this active cycle.</div>';
 
