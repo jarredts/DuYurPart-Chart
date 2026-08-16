@@ -488,6 +488,7 @@
       <button onclick="closeModal('choreDetailModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="cdRewardBox" class="rounded-xl p-2.5 mb-3 text-sm hidden"></div>
+    <div id="cdGoalBox" class="mb-3 hidden"></div>
     <div id="cdSubtasks" class="mb-3"></div>
     <div id="cdNotes" class="text-xs text-gray-500 mb-3 hidden"></div>
     <div class="flex gap-2">
@@ -602,6 +603,43 @@
         <button type="button" onclick="addSubtaskRow()" class="text-xs font-bold text-purple-600 mt-1"><i class="fa-solid fa-plus"></i> Add step / category</button>
       </div>
 
+      <div id="goalDetailsWrapper" class="hidden space-y-2 bg-purple-50/60 rounded-lg p-2.5 border border-purple-100">
+        <label class="text-xs font-bold text-purple-700">Goal Details <span class="font-normal text-gray-400">(optional)</span></label>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] font-bold text-gray-500">Category</label>
+            <select id="taskCategory" class="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm mt-1">
+              <option value="">None</option>
+              <option value="health">🏃 Health</option>
+              <option value="work">💼 Work</option>
+              <option value="family">👨‍👩‍👧 Family</option>
+              <option value="personal">🌱 Personal</option>
+              <option value="financial">💰 Financial</option>
+              <option value="other">📌 Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] font-bold text-gray-500">Priority</label>
+            <select id="taskPriority" class="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm mt-1">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-500">Goal Deadline <span class="font-normal">(separate from the schedule above)</span></label>
+          <input id="taskDeadline" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
+        </div>
+        <div>
+          <div class="flex justify-between items-center">
+            <label class="text-[10px] font-bold text-gray-500">Progress</label>
+            <span class="text-[10px] font-bold text-purple-600" id="taskProgressLabel">0%</span>
+          </div>
+          <input id="taskProgress" type="range" min="0" max="100" step="5" value="0" oninput="document.getElementById('taskProgressLabel').textContent = this.value + '%'" class="w-full mt-1">
+        </div>
+      </div>
+
       <div id="rewardSectionWrapper" class="bg-purple-50 rounded-lg p-2.5 admin-only">
         <label class="flex items-center gap-2 text-xs font-bold text-gray-700">
           <input type="checkbox" id="rewardEnabled" onchange="updateRewardUI()" class="chk"> Assign a Reward
@@ -657,7 +695,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.3</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.5</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -719,7 +757,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.3</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.5</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -1007,7 +1045,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.29.09.3";
+const APP_VERSION = "v6.29.09.5";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -1380,7 +1418,8 @@ function getRecurringForDate(dateStr) {
         reward: r.reward,
         isTask: !!r.isTask,
         completed: !!prog.completed,
-        subtaskState: prog.subtaskState || {}
+        subtaskState: prog.subtaskState || {},
+        category: r.category || null, priority: r.priority || null, goalDeadline: r.goalDeadline || null, progress: r.progress != null ? r.progress : null
       };
     }
 
@@ -1389,7 +1428,8 @@ function getRecurringForDate(dateStr) {
     return {
       kind: 'recurring', id: r.id, dateStr, title: ruleTitleForDate(r, dateStr), personId: r.personId,
       time: r.time, subtasks: ruleSubtasksForDate(r, dateStr), reward: r.reward, isTask: !!r.isTask,
-      completed: !!comp.completed, subtaskState: comp.subtaskState || {}
+      completed: !!comp.completed, subtaskState: comp.subtaskState || {},
+      category: r.category || null, priority: r.priority || null, goalDeadline: r.goalDeadline || null, progress: r.progress != null ? r.progress : null
     };
   });
 }
@@ -1398,7 +1438,8 @@ function getSingleForDate(dateStr) {
   return (state.chores||[]).filter(c => c.date === dateStr && !c.deleted).map(c => ({
     kind: 'single', id: c.id, dateStr, title: c.title, personId: c.personId,
     time: c.time, subtasks: c.subtasks || [], reward: c.reward, isTask: !!c.isTask,
-    completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid
+    completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid,
+    category: c.category || null, priority: c.priority || null, goalDeadline: c.goalDeadline || null, progress: c.progress != null ? c.progress : null
   }));
 }
 
@@ -1549,7 +1590,8 @@ function getChoresForDate(dateStr) {
   if (calendarFilter.size) {
     items = items.filter(c => {
       if (c.isTask) {
-        if (!calendarFilter.has(c.personId)) return false;
+        if (c.personId !== localDeviceProfileId) return false;
+        return calendarFilter.has(c.personId);
       }
       return calendarFilter.has(c.personId) || (!c.personId && calendarFilter.has('__unassigned__'));
     });
@@ -1793,6 +1835,25 @@ function renderSelectedDay() {
   list.innerHTML = chores.map(choreRowHtml).join('');
 }
 
+const GOAL_CATEGORY_LABELS = { health: '🏃 Health', work: '💼 Work', family: '👨‍👩‍👧 Family', personal: '🌱 Personal', financial: '💰 Financial', other: '📌 Other' };
+const GOAL_PRIORITY_STYLES = { high: 'bg-red-100 text-red-600', medium: 'bg-amber-100 text-amber-600', low: 'bg-gray-100 text-gray-500' };
+function goalBadgesHtml(c) {
+  if (!c.isTask) return '';
+  let out = '';
+  if (c.category && GOAL_CATEGORY_LABELS[c.category]) out += `<span class="text-[10px] font-bold text-gray-500 bg-gray-100 rounded-md px-1.5 py-0.2">${GOAL_CATEGORY_LABELS[c.category]}</span>`;
+  if (c.priority && c.priority !== 'medium') out += `<span class="text-[10px] font-bold rounded-md px-1.5 py-0.2 ${GOAL_PRIORITY_STYLES[c.priority]||''}">${c.priority === 'high' ? 'High priority' : 'Low priority'}</span>`;
+  if (c.goalDeadline) {
+    const overdue = c.goalDeadline < todayStr() && !c.completed;
+    const dParts = c.goalDeadline.split('-');
+    const dLabel = dParts.length === 3 ? `${Number(dParts[1])}/${Number(dParts[2])}` : c.goalDeadline;
+    out += `<span class="text-[10px] font-bold rounded-md px-1.5 py-0.2 ${overdue?'bg-red-100 text-red-600':'bg-purple-100 text-purple-700'}">${overdue?'Overdue':'Goal by'} ${dLabel}</span>`;
+  }
+  return out;
+}
+function goalProgressBarHtml(c) {
+  if (!c.isTask || c.progress == null) return '';
+  return `<div class="mt-1 h-1.5 w-full bg-gray-200 rounded-full overflow-hidden"><div class="h-full bg-purple-500" style="width:${Math.max(0,Math.min(100,c.progress))}%"></div></div>`;
+}
 function choreRowHtml(c) {
   const p = getPerson(c.personId);
   const subCount = (c.subtasks||[]).length;
@@ -1815,7 +1876,9 @@ function choreRowHtml(c) {
         ${isDailyProg ? `<span class="text-[10px] font-bold text-purple-700 bg-purple-100 rounded-md px-1.5 py-0.2">Due: ${c.weekDueStr}</span>` : ''}
         ${subCount ? `<span class="text-[10px] ${isDailyProg?'font-bold text-purple-800':'text-gray-400'}">${subDone}/${subCount} steps</span>` : ''}
         ${c.reward && c.reward.enabled ? `<span class="text-[10px] font-bold text-purple-500">${rewardLabel(c.reward)}</span>` : ''}
+        ${goalBadgesHtml(c)}
       </div>
+      ${goalProgressBarHtml(c)}
     </div>
     <i class="fa-solid ${isUnclaimed?'fa-hand text-pink-400':(c.completed?'fa-circle-check text-emerald-500':'fa-chevron-right text-gray-300')} text-sm flex-shrink-0 ml-2"></i>
   </div>`;
@@ -1872,6 +1935,13 @@ function openChoreDetail(kind, id, dateStr) {
     rBox.className = 'rounded-xl p-2.5 mb-3 text-sm bg-purple-50 text-purple-700 font-semibold';
     rBox.innerHTML = `<i class="fa-solid fa-gift"></i> ${rewardLabel(c.reward)}`;
   } else { rBox.classList.add('hidden'); }
+
+  const gBox = document.getElementById('cdGoalBox');
+  const badges = goalBadgesHtml(c);
+  if (c.isTask && (badges || c.progress != null)) {
+    gBox.classList.remove('hidden');
+    gBox.innerHTML = `<div class="flex flex-wrap gap-1.5 mb-1.5">${badges}</div>${goalProgressBarHtml(c)}`;
+  } else { gBox.classList.add('hidden'); }
 
   const subs = c.subtasks || [];
   const subBox = document.getElementById('cdSubtasks');
@@ -1931,7 +2001,7 @@ function openChoreDetail(kind, id, dateStr) {
   // Otherwise, edit/delete buttons are governed by admin-only visibility.
   const isAdmin = isCurrentAdmin();
   const isPersonalTask = c.isTask && c.personId === localDeviceProfileId;
-  const canEditDelete = isAdmin || isPersonalTask;
+  const canEditDelete = c.isTask ? isPersonalTask : isAdmin;
 
   const editBtn = document.getElementById('cdEditBtn');
   if (editBtn) editBtn.classList.toggle('hidden', !canEditDelete || kind === 'market');
@@ -2634,6 +2704,15 @@ function openPersonalTaskModal(presetDate) {
   openChoreModal(null, presetDate, false, null, true);
 }
 
+function populateGoalFields(item) {
+  document.getElementById('taskCategory').value = item.category || '';
+  document.getElementById('taskPriority').value = item.priority || 'medium';
+  document.getElementById('taskDeadline').value = item.goalDeadline || '';
+  const p = item.progress != null ? item.progress : 0;
+  document.getElementById('taskProgress').value = p;
+  document.getElementById('taskProgressLabel').textContent = p + '%';
+}
+
 function openChoreModal(choreId, presetDate, isKidLog, recurringId, isPersonalTaskMode) {
   const isAdmin = isCurrentAdmin();
   const modalTitle = document.getElementById('choreModalTitle');
@@ -2678,6 +2757,11 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId, isPersonalTa
   document.getElementById('rewardEnabled').checked = false;
   setRewardType('tickets');
   updateRewardUI();
+  document.getElementById('taskCategory').value = '';
+  document.getElementById('taskPriority').value = 'medium';
+  document.getElementById('taskDeadline').value = '';
+  document.getElementById('taskProgress').value = 0;
+  document.getElementById('taskProgressLabel').textContent = '0%';
   setItemType(isPersonalTaskMode ? 'task' : 'chore');
 
   if (recurringId) {
@@ -2700,6 +2784,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId, isPersonalTa
     document.getElementById('recurStart').value = r.startDate;
     document.getElementById('recurEnd').value = r.endDate || '';
     document.getElementById('recurTime').value = r.time || '';
+    if (r.isTask) populateGoalFields(r);
     (r.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
     if (r.reward && r.reward.enabled && !r.isTask) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
@@ -2717,6 +2802,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId, isPersonalTa
     setItemType(c.isTask ? 'task' : 'chore');
     setChoreRepeatMode('single');
     document.getElementById('choreDate').value = c.date;
+    if (c.isTask) populateGoalFields(c);
     (c.subtasks||[]).forEach(s => addSubtaskRow(s.text, s.id));
     if (c.reward && c.reward.enabled && !c.isTask) {
       document.getElementById('rewardEnabled').checked = true; updateRewardUI();
@@ -2766,6 +2852,13 @@ function saveChore() {
   } : { enabled: false };
   const notes = document.getElementById('choreNotes').value.trim();
 
+  const goalFields = isTask ? {
+    category: document.getElementById('taskCategory').value || null,
+    priority: document.getElementById('taskPriority').value || 'medium',
+    goalDeadline: document.getElementById('taskDeadline').value || null,
+    progress: Number(document.getElementById('taskProgress').value || 0)
+  } : { category: null, priority: null, goalDeadline: null, progress: null };
+
   state.recurring = state.recurring || [];
   state.chores = state.chores || [];
 
@@ -2781,7 +2874,7 @@ function saveChore() {
       startDate: document.getElementById('recurStart').value || todayStr(),
       endDate: document.getElementById('recurEnd').value || null,
       time: document.getElementById('recurTime').value || null,
-      subtasks, reward, notes, active: true
+      subtasks, reward, notes, active: true, ...goalFields
     };
     if (isEditingRec) {
       const rid = idRaw.split(':')[1];
@@ -2795,9 +2888,9 @@ function saveChore() {
     const time = document.getElementById('choreTime').value || null;
     if (idRaw && !idRaw.startsWith('REC:')) {
       const c = state.chores.find(x => x.id === idRaw);
-      if (c) Object.assign(c, { title, personId, date, time, subtasks, reward, notes, isTask });
+      if (c) Object.assign(c, { title, personId, date, time, subtasks, reward, notes, isTask, ...goalFields });
     } else {
-      state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false, isTask });
+      state.chores.push({ id: uid('ch'), title, personId, date, time, subtasks, subtaskState:{}, reward, notes, completed:false, loggedByKid: false, isTask, ...goalFields });
     }
   }
   closeModal('choreModal');
@@ -2828,6 +2921,8 @@ function setItemType(type) {
   const tBtn = document.getElementById('itemTypeTaskBtn');
   if (cBtn) cBtn.className = isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
   if (tBtn) tBtn.className = !isChore ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-purple-700' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-gray-500';
+  const goalBox = document.getElementById('goalDetailsWrapper');
+  if (goalBox) goalBox.classList.toggle('hidden', isChore);
 }
 
 function setChoreRepeatMode(mode) {
@@ -3335,7 +3430,7 @@ function renderLog() {
   const today = todayStr();
 
   (state.chores || []).filter(c => !c.deleted).forEach(c => {
-    if (c.isTask && c.personId !== localDeviceProfileId && !isCurrentAdmin()) return;
+    if (c.isTask && c.personId !== localDeviceProfileId) return;
     items.push({ kind: 'single', id: c.id, dateStr: c.date || today, title: c.title, personId: c.personId, time: c.time, completed: !!c.completed, subtasks: c.subtasks || [], reward: c.reward, isTask: c.isTask });
   });
   
@@ -3343,7 +3438,7 @@ function renderLog() {
     const curDate = new Date(); curDate.setDate(curDate.getDate() + i);
     const ds = formatLocalDate(curDate);
     getRecurringForDate(ds).forEach(o => {
-      if (o.isTask && o.personId !== localDeviceProfileId && !isCurrentAdmin()) return;
+      if (o.isTask && o.personId !== localDeviceProfileId) return;
       items.push(o);
     });
   }
@@ -3375,7 +3470,7 @@ function completedChoresInRange(start, end) {
   const results = [];
   (state.chores||[]).forEach(c => {
     if (c.completed) {
-      if (c.isTask && c.personId !== localDeviceProfileId && !isCurrentAdmin()) return;
+      if (c.isTask && c.personId !== localDeviceProfileId) return;
       const compDate = (c.completedAt ? c.completedAt.slice(0,10) : c.date);
       if (compDate >= start && compDate <= end) results.push({ ...c, dateStr: compDate });
     }
@@ -3389,7 +3484,7 @@ function completedChoresInRange(start, end) {
     const ds = formatLocalDate(d);
     getRecurringForDate(ds).forEach(o => { 
       if (o.completed) {
-        if (o.isTask && o.personId !== localDeviceProfileId && !isCurrentAdmin()) return;
+        if (o.isTask && o.personId !== localDeviceProfileId) return;
         results.push(o);
       }
     });
@@ -3801,18 +3896,22 @@ function maybeShowLocalNotification(poke) {
     new Notification('Poke from ' + ((getPerson(poke.fromPersonId)||{}).name||'Family'), { body: poke.message, icon: 'icon-192.png' });
   }
 }
-let lastSeenPokeCount = 0;
+// Persisted cursor: only pokes with ts strictly after this get notified.
+// Defaults to "now" the very first time it runs on a device, so pre-existing
+// poke history never replays as a fresh notification after a refresh/cache clear.
+let lastSeenPokeTs = Number(localStorage.getItem('chores_last_seen_poke_ts')) || Date.now();
 function checkForNewPokesTargetingMe() {
   if (!localDeviceProfileId) return;
-  const mine = (state.pokes||[]).filter(p => p.toPersonId === localDeviceProfileId);
-  if (mine.length > lastSeenPokeCount) {
-    const newest = mine[0];
-    if (newest && Date.now() - newest.ts < 60000 && newest.id !== window._lastNotifiedPokeId) {
+  const mine = (state.pokes||[]).filter(p => p.toPersonId === localDeviceProfileId && p.ts > lastSeenPokeTs);
+  if (mine.length) {
+    const newest = mine.reduce((a, b) => (b.ts > a.ts ? b : a));
+    if (newest.id !== window._lastNotifiedPokeId) {
       window._lastNotifiedPokeId = newest.id;
       maybeShowLocalNotification(newest);
     }
+    lastSeenPokeTs = Math.max(lastSeenPokeTs, ...mine.map(p => p.ts));
+    localStorage.setItem('chores_last_seen_poke_ts', String(lastSeenPokeTs));
   }
-  lastSeenPokeCount = mine.length;
 }
 
 /* =========================== CLOUD SYNC =========================== */
@@ -3873,6 +3972,7 @@ function listenForCloudChanges() {
         const remote = JSON.parse(doc.data().data);
         state = Object.assign(state, remote);
         persist(); renderApp();
+        checkForNewPokesTargetingMe();
       }
     });
 }
