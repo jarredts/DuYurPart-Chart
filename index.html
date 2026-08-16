@@ -1945,7 +1945,6 @@ function openChoreDetail(kind, id, dateStr) {
   const badges = goalBadgesHtml(c);
   if (c.isTask && (badges || (c.subtasks||[]).length > 0)) {
     gBox.classList.remove('hidden');
-    // Pass object with current subtaskState to calculate dynamic progress in detail view
     gBox.innerHTML = `<div class="flex flex-wrap gap-1.5 mb-1.5">${badges}</div>${goalProgressBarHtml({ ...c, subtaskState: comp.subtaskState })}`;
   } else { gBox.classList.add('hidden'); }
 
@@ -2201,7 +2200,7 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice, isUndo) {
         reward: { enabled: true, type: 'tickets', tickets: tickets, amount: null },
         date: today,
         redeemed: false,
-        autoAwarded: true // flagged for cleanup pruning
+        autoAwarded: true
       });
       const p = getPerson(assignedPersonId);
       toast(`${p ? p.name : 'They'} earned 🎟️ ${tickets} Ticket${tickets===1?'':'s'}!`, 'fa-award');
@@ -2238,6 +2237,10 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice, isUndo) {
 function editCurrentChore() {
   if (currentChoreDetail.kind === 'single') openChoreModal(currentChoreDetail.id);
   else if (currentChoreDetail.kind === 'recurring' || currentChoreDetail.kind === 'weekly_daily_progress') openChoreModal(null, null, false, currentChoreDetail.id);
+  else if (currentChoreDetail.kind === 'market') {
+    const [marketId] = currentChoreDetail.id.split('::');
+    openMarketModal(marketId);
+  }
   closeModal('choreDetailModal');
 }
 
@@ -2731,7 +2734,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId, isPersonalTa
     titleLabel.textContent = 'Task Name';
     personLabel.textContent = 'Task Owner';
     repeatToggle.classList.remove('hidden');
-    rewardSec.classList.add('hidden'); // Rewards strictly hidden on Personal Tasks
+    rewardSec.classList.add('hidden');
     if (recurFreqLabel) recurFreqLabel.textContent = 'Task Repeats';
     if (recurWeeklyProgressOpt) recurWeeklyProgressOpt.style.display = 'none';
     if (recurRotationOption) recurRotationOption.style.display = 'none';
@@ -3062,7 +3065,7 @@ function openMarketModal(marketId) {
     document.getElementById('marketTitle').value = m.title;
     setMarketRepeats(m.repeats || 'once');
     if (!(m.repeats === 'weekly' && m.scheduleType === 'fixed')) setMarketSchedule(m.scheduleType);
-    document.getElementById('marketDueDate').value = m.dueDate || '';
+    document.getElementById('marketDueDate').value = m.dueDate || todayStr();
     (m.subtasks||[]).forEach(s => addMarketSubtaskRow(s.text, s.id));
     if (m.reward && m.reward.enabled) {
       document.getElementById('marketRewardEnabled').checked = true;
@@ -3109,16 +3112,28 @@ function saveMarketChore() {
   }
   closeModal('marketModal');
   saveState(); renderMarketplace();
+  toast('Market listing saved!', 'fa-check');
 }
 
 function deleteMarketChore() {
   const id = document.getElementById('marketId').value;
   if (!id) return;
-  if (!confirm('Delete this listing? Past check-off history will be preserved.')) return;
-  const m = (state.marketChores||[]).find(x => x.id === id);
-  if (m) m.deleted = true;
+  if (!confirm('Delete this listing permanently? This will remove it from the market altogether.')) return;
+  
+  state.marketChores = (state.marketChores||[]).filter(x => x.id !== id);
+  // Also clean up any active claims for this market chore
+  if (state.marketClaims) {
+    Object.keys(state.marketClaims).forEach(k => {
+      if (k.startsWith(id + '_')) {
+        delete state.marketClaims[k];
+      }
+    });
+  }
+
   closeModal('marketModal');
-  saveState(); renderMarketplace();
+  saveState(); 
+  renderMarketplace();
+  toast('Market listing deleted', 'fa-trash');
 }
 
 function openMarketClaimModal(marketId, scopeKey) {
@@ -3215,6 +3230,7 @@ function marketScheduleLabel(x) {
 function marketListingCardHtml(x, claimedView) {
   const claim = x.claim;
   const p = claim ? getPerson(claim.personId) : null;
+  const isAdmin = isCurrentAdmin();
 
   return `<div class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 ${claimedView?'bg-gray-50':'bg-gradient-to-r from-amber-50 to-pink-50 border border-pink-100'}">
     <div class="min-w-0 flex-1">
@@ -3226,6 +3242,7 @@ function marketListingCardHtml(x, claimedView) {
       </div>
     </div>
     <div class="flex items-center gap-1.5 flex-shrink-0">
+      ${isAdmin && !claimedView ? `<button onclick="openMarketModal('${x.market.id}')" class="text-[10px] font-bold bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg px-2 py-1.5" title="Edit Listing"><i class="fa-solid fa-pen"></i></button>` : ''}
       ${claimedView
         ? `<button onclick="unclaimMarket('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-gray-200 text-gray-600 rounded-lg px-2 py-1.5">Release</button>`
         : `<button onclick="openMarketClaimModal('${x.market.id}','${x.scopeKey}')" class="text-[10px] font-bold bg-pink-500 text-white rounded-lg px-2.5 py-1.5"><i class="fa-solid fa-hand"></i> Claim</button>`}
@@ -3624,7 +3641,6 @@ function renderBankList() {
   const list = document.getElementById('bankList');
   if (!list) return;
 
-  // Auto-prune old auto-awarded tickets older than 3 days to prevent overflow
   const cutoffTime = Date.now() - (3 * 86400000);
   state.bankedRewards = (state.bankedRewards || []).filter(b => {
     if (!b.autoAwarded) return true;
@@ -3693,7 +3709,6 @@ function transferAllowanceBank(personId) {
   if (!confirm(`Transfer $${cashBalance.toFixed(2)} to ${p.name}'s checking account and reset bank to $0.00?`)) return;
 
   state.bankedRewards = state.bankedRewards || [];
-  // Mark all unredeemed money entries for this person as redeemed (transferred)
   state.bankedRewards.forEach(b => {
     if (b.personId === personId && b.reward && b.reward.type === 'money' && !b.redeemed && !b.isPrizeRedemption) {
       b.redeemed = true;
