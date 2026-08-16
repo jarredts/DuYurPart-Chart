@@ -236,12 +236,12 @@
       <div id="prizeBoothList" class="space-y-2"></div>
     </div>
 
-    <!-- 3. Banked Cash & Claims -->
+    <!-- 3. Banked Cash & Claims (Individual Awards Shelves & Allowance Transfer) -->
     <div class="bg-white rounded-2xl shadow-sm p-3">
       <div class="font-bold text-xs text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
         <i class="fa-solid fa-piggy-bank text-amber-500"></i> Banked Cash & Redemptions
       </div>
-      <div id="bankList" class="space-y-2"></div>
+      <div id="bankList" class="space-y-3"></div>
     </div>
 
     <!-- 4. Stats Performance Chart -->
@@ -631,13 +631,7 @@
           <label class="text-[10px] font-bold text-gray-500">Goal Deadline <span class="font-normal">(separate from the schedule above)</span></label>
           <input id="taskDeadline" type="date" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1">
         </div>
-        <div>
-          <div class="flex justify-between items-center">
-            <label class="text-[10px] font-bold text-gray-500">Progress</label>
-            <span class="text-[10px] font-bold text-purple-600" id="taskProgressLabel">0%</span>
-          </div>
-          <input id="taskProgress" type="range" min="0" max="100" step="5" value="0" oninput="document.getElementById('taskProgressLabel').textContent = this.value + '%'" class="w-full mt-1">
-        </div>
+        <div class="text-[11px] text-purple-700 italic">💡 Progress is tracked automatically based on completed sub-tasks.</div>
       </div>
 
       <div id="rewardSectionWrapper" class="bg-purple-50 rounded-lg p-2.5 admin-only">
@@ -1419,7 +1413,7 @@ function getRecurringForDate(dateStr) {
         isTask: !!r.isTask,
         completed: !!prog.completed,
         subtaskState: prog.subtaskState || {},
-        category: r.category || null, priority: r.priority || null, goalDeadline: r.goalDeadline || null, progress: r.progress != null ? r.progress : null
+        category: r.category || null, priority: r.priority || null, goalDeadline: r.goalDeadline || null
       };
     }
 
@@ -1429,7 +1423,7 @@ function getRecurringForDate(dateStr) {
       kind: 'recurring', id: r.id, dateStr, title: ruleTitleForDate(r, dateStr), personId: r.personId,
       time: r.time, subtasks: ruleSubtasksForDate(r, dateStr), reward: r.reward, isTask: !!r.isTask,
       completed: !!comp.completed, subtaskState: comp.subtaskState || {},
-      category: r.category || null, priority: r.priority || null, goalDeadline: r.goalDeadline || null, progress: r.progress != null ? r.progress : null
+      category: r.category || null, priority: r.priority || null, goalDeadline: r.goalDeadline || null
     };
   });
 }
@@ -1439,7 +1433,7 @@ function getSingleForDate(dateStr) {
     kind: 'single', id: c.id, dateStr, title: c.title, personId: c.personId,
     time: c.time, subtasks: c.subtasks || [], reward: c.reward, isTask: !!c.isTask,
     completed: !!c.completed, subtaskState: c.subtaskState || {}, loggedByKid: c.loggedByKid,
-    category: c.category || null, priority: c.priority || null, goalDeadline: c.goalDeadline || null, progress: c.progress != null ? c.progress : null
+    category: c.category || null, priority: c.priority || null, goalDeadline: c.goalDeadline || null
   }));
 }
 
@@ -1850,10 +1844,21 @@ function goalBadgesHtml(c) {
   }
   return out;
 }
+
+// Automated Progress Bar calculated from sub-tasks (25% increments or equal step proportions)
 function goalProgressBarHtml(c) {
-  if (!c.isTask || c.progress == null) return '';
-  return `<div class="mt-1 h-1.5 w-full bg-gray-200 rounded-full overflow-hidden"><div class="h-full bg-purple-500" style="width:${Math.max(0,Math.min(100,c.progress))}%"></div></div>`;
+  if (!c.isTask) return '';
+  const subtasks = c.subtasks || [];
+  let pct = 0;
+  if (subtasks.length > 0) {
+    const completedCount = subtasks.filter(s => c.subtaskState && c.subtaskState[s.id]).length;
+    pct = Math.round((completedCount / subtasks.length) * 100);
+  } else {
+    pct = c.completed ? 100 : 0;
+  }
+  return `<div class="mt-1 flex items-center gap-2"><div class="h-1.5 flex-1 bg-gray-200 rounded-full overflow-hidden"><div class="h-full bg-purple-500 transition-all" style="width:${pct}%"></div></div><span class="text-[9px] font-bold text-purple-600 font-mono">${pct}%</span></div>`;
 }
+
 function choreRowHtml(c) {
   const p = getPerson(c.personId);
   const subCount = (c.subtasks||[]).length;
@@ -1938,9 +1943,10 @@ function openChoreDetail(kind, id, dateStr) {
 
   const gBox = document.getElementById('cdGoalBox');
   const badges = goalBadgesHtml(c);
-  if (c.isTask && (badges || c.progress != null)) {
+  if (c.isTask && (badges || (c.subtasks||[]).length > 0)) {
     gBox.classList.remove('hidden');
-    gBox.innerHTML = `<div class="flex flex-wrap gap-1.5 mb-1.5">${badges}</div>${goalProgressBarHtml(c)}`;
+    // Pass object with current subtaskState to calculate dynamic progress in detail view
+    gBox.innerHTML = `<div class="flex flex-wrap gap-1.5 mb-1.5">${badges}</div>${goalProgressBarHtml({ ...c, subtaskState: comp.subtaskState })}`;
   } else { gBox.classList.add('hidden'); }
 
   const subs = c.subtasks || [];
@@ -1996,9 +2002,6 @@ function openChoreDetail(kind, id, dateStr) {
   const pokeBtn = document.getElementById('cdPokeBtn');
   if (pokeBtn) pokeBtn.classList.toggle('hidden', !!c.isTask);
 
-  // Edit/Delete Permissions Check:
-  // Kids can only edit/delete if it's a personal task created by the active user.
-  // Otherwise, edit/delete buttons are governed by admin-only visibility.
   const isAdmin = isCurrentAdmin();
   const isPersonalTask = c.isTask && c.personId === localDeviceProfileId;
   const canEditDelete = c.isTask ? isPersonalTask : isAdmin;
@@ -2197,7 +2200,8 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice, isUndo) {
         choreTitle: choreTitle,
         reward: { enabled: true, type: 'tickets', tickets: tickets, amount: null },
         date: today,
-        redeemed: false
+        redeemed: false,
+        autoAwarded: true // flagged for cleanup pruning
       });
       const p = getPerson(assignedPersonId);
       toast(`${p ? p.name : 'They'} earned 🎟️ ${tickets} Ticket${tickets===1?'':'s'}!`, 'fa-award');
@@ -2218,7 +2222,8 @@ function finalizeCompletion(kind, id, dateStr, rewardChoice, isUndo) {
           amount: rewardChoice === 'money' ? dollarVal : null
         },
         date: today,
-        redeemed: false
+        redeemed: false,
+        autoAwarded: true
       });
 
       const p = getPerson(assignedPersonId);
@@ -2708,9 +2713,6 @@ function populateGoalFields(item) {
   document.getElementById('taskCategory').value = item.category || '';
   document.getElementById('taskPriority').value = item.priority || 'medium';
   document.getElementById('taskDeadline').value = item.goalDeadline || '';
-  const p = item.progress != null ? item.progress : 0;
-  document.getElementById('taskProgress').value = p;
-  document.getElementById('taskProgressLabel').textContent = p + '%';
 }
 
 function openChoreModal(choreId, presetDate, isKidLog, recurringId, isPersonalTaskMode) {
@@ -2729,7 +2731,7 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId, isPersonalTa
     titleLabel.textContent = 'Task Name';
     personLabel.textContent = 'Task Owner';
     repeatToggle.classList.remove('hidden');
-    rewardSec.classList.add('hidden');
+    rewardSec.classList.add('hidden'); // Rewards strictly hidden on Personal Tasks
     if (recurFreqLabel) recurFreqLabel.textContent = 'Task Repeats';
     if (recurWeeklyProgressOpt) recurWeeklyProgressOpt.style.display = 'none';
     if (recurRotationOption) recurRotationOption.style.display = 'none';
@@ -2760,8 +2762,6 @@ function openChoreModal(choreId, presetDate, isKidLog, recurringId, isPersonalTa
   document.getElementById('taskCategory').value = '';
   document.getElementById('taskPriority').value = 'medium';
   document.getElementById('taskDeadline').value = '';
-  document.getElementById('taskProgress').value = 0;
-  document.getElementById('taskProgressLabel').textContent = '0%';
   setItemType(isPersonalTaskMode ? 'task' : 'chore');
 
   if (recurringId) {
@@ -2855,9 +2855,8 @@ function saveChore() {
   const goalFields = isTask ? {
     category: document.getElementById('taskCategory').value || null,
     priority: document.getElementById('taskPriority').value || 'medium',
-    goalDeadline: document.getElementById('taskDeadline').value || null,
-    progress: Number(document.getElementById('taskProgress').value || 0)
-  } : { category: null, priority: null, goalDeadline: null, progress: null };
+    goalDeadline: document.getElementById('taskDeadline').value || null
+  } : { category: null, priority: null, goalDeadline: null };
 
   state.recurring = state.recurring || [];
   state.chores = state.chores || [];
@@ -3239,7 +3238,6 @@ function renderMarketplace() {
   const open = instances.filter(x => !x.claim);
   const claimed = instances.filter(x => x.claim);
 
-  // Split open listings into Once, Weekly Chore Market, Monthly Chore Market
   const onceList = open.filter(x => x.market.repeats === 'once');
   const weeklyList = open.filter(x => x.market.repeats === 'weekly');
   const monthlyList = open.filter(x => x.market.repeats === 'monthly');
@@ -3302,9 +3300,14 @@ function getPersonBalances(personId) {
     .filter(b => b.reward && b.reward.type === 'money' && !b.redeemed && !b.isPrizeRedemption)
     .reduce((sum, b) => sum + parseFloat(b.reward.amount || 0), 0);
 
+  const lifetimeCash = entries
+    .filter(b => b.reward && b.reward.type === 'money' && !b.isPrizeRedemption)
+    .reduce((sum, b) => sum + parseFloat(b.reward.amount || 0), 0);
+
   return {
     ticketBalance: Math.max(0, earnedTickets - spentTickets),
-    cashBalance: Math.max(0, bankedCash)
+    cashBalance: Math.max(0, bankedCash),
+    lifetimeCash: Math.max(0, lifetimeCash)
   };
 }
 
@@ -3616,30 +3619,91 @@ function openStatsPersonDetail(personId) {
   openModal('statsPersonModal');
 }
 
+// Individual Awards Shelves & Transfer allowance button implementation
 function renderBankList() {
   const list = document.getElementById('bankList');
   if (!list) return;
-  const entries = (state.bankedRewards||[]).filter(b => (!b.redeemed && !b.isPrizeRedemption) || (b.isPrizeRedemption && !b.claimedPrize));
-  if (!entries.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-1">No banked cash or prize claims yet.</div>'; return; }
-  
-  list.innerHTML = entries.slice(-15).reverse().map(b => {
-    const isRedeem = b.isPrizeRedemption;
-    return `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
-      <div class="min-w-0 flex-1">
-        <div class="text-xs font-semibold truncate ${isRedeem?'text-amber-800':'text-gray-800'}">${escapeHtml(b.choreTitle)}</div>
-        <div class="flex items-center gap-1.5 mt-0.5">${personChip(b.personId)}<span class="text-[10px] text-gray-400">${b.date}</span></div>
+
+  // Auto-prune old auto-awarded tickets older than 3 days to prevent overflow
+  const cutoffTime = Date.now() - (3 * 86400000);
+  state.bankedRewards = (state.bankedRewards || []).filter(b => {
+    if (!b.autoAwarded) return true;
+    const itemDate = new Date(b.date).getTime();
+    return itemDate >= cutoffTime || !b.redeemed;
+  });
+
+  const people = state.people || [];
+  if (!people.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-1">No family members found.</div>'; return; }
+
+  list.innerHTML = people.map(p => {
+    const { cashBalance, lifetimeCash } = getPersonBalances(p.id);
+    const entries = (state.bankedRewards || []).filter(b => b.personId === p.id && ((!b.redeemed && !b.isPrizeRedemption) || (b.isPrizeRedemption && !b.claimedPrize)));
+
+    return `
+      <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="person-dot" style="background:${p.color || '#8b5cf6'}; width:10px; height:10px;"></span>
+            <span class="text-xs font-bold text-gray-800">${escapeHtml(p.name)}'s Awards Shelf</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              Bank: $${cashBalance.toFixed(2)}
+            </div>
+            <button onclick="transferAllowanceBank('${p.id}')" class="admin-only text-[10px] font-bold bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-2.5 py-1 flex items-center gap-1 shadow-xs">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i> Transfer ($0)
+            </button>
+          </div>
+        </div>
+        <div class="text-[10px] text-gray-500 font-medium">Lifetime Earnings: <span class="font-mono font-bold text-gray-700">$${lifetimeCash.toFixed(2)}</span></div>
+        
+        <div class="space-y-1.5 pt-1">
+          ${entries.length ? entries.map(b => {
+            const isRedeem = b.isPrizeRedemption;
+            return `<div class="flex items-center justify-between bg-white rounded-lg px-2.5 py-1.5 border border-gray-100 text-xs">
+              <div class="min-w-0 flex-1 pr-2">
+                <div class="font-semibold truncate ${isRedeem?'text-amber-800':'text-gray-800'}">${escapeHtml(b.choreTitle)}</div>
+                <div class="text-[9px] text-gray-400">${b.date}</div>
+              </div>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                ${isRedeem 
+                  ? `<span class="font-bold text-amber-600">-🎟️ ${b.ticketCost}</span>
+                     <button onclick="claimPrizeRedemption('${b.id}')" class="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2 py-0.5">Claimed</button>`
+                  : `<span class="font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
+                     ${b.reward?.type === 'money' ? `<button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-0.5">Paid</button>` : ''}`
+                }
+                <button onclick="deleteBankEntry('${b.id}')" class="admin-only text-gray-400 hover:text-red-500 text-[10px] px-1"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </div>`;
+          }).join('') : '<div class="text-[11px] text-gray-400 text-center py-1 italic">Shelf is clean & empty</div>'}
+        </div>
       </div>
-      <div class="flex items-center gap-2 flex-shrink-0">
-        ${isRedeem 
-          ? `<span class="text-xs font-bold text-amber-600">-🎟️ ${b.ticketCost}</span>
-             <button onclick="claimPrizeRedemption('${b.id}')" class="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2 py-1">Mark Claimed</button>`
-          : `<span class="text-xs font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
-             ${b.reward?.type === 'money' ? `<button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-1">Mark Paid</button>` : ''}`
-        }
-        <button onclick="deleteBankEntry('${b.id}')" class="admin-only text-gray-400 hover:text-red-500 text-xs px-1"><i class="fa-solid fa-trash"></i></button>
-      </div>
-    </div>`;
+    `;
   }).join('');
+}
+
+function transferAllowanceBank(personId) {
+  const p = getPerson(personId);
+  if (!p) return;
+  const { cashBalance } = getPersonBalances(personId);
+  if (cashBalance <= 0) {
+    toast(`${p.name}'s current bank is already $0.00`, 'fa-triangle-exclamation');
+    return;
+  }
+  if (!confirm(`Transfer $${cashBalance.toFixed(2)} to ${p.name}'s checking account and reset bank to $0.00?`)) return;
+
+  state.bankedRewards = state.bankedRewards || [];
+  // Mark all unredeemed money entries for this person as redeemed (transferred)
+  state.bankedRewards.forEach(b => {
+    if (b.personId === personId && b.reward && b.reward.type === 'money' && !b.redeemed && !b.isPrizeRedemption) {
+      b.redeemed = true;
+      b.transferredAt = new Date().toISOString();
+    }
+  });
+
+  saveState();
+  renderStats();
+  toast(`Transferred $${cashBalance.toFixed(2)} for ${p.name}! Bank reset to $0.`, 'fa-check');
 }
 
 function redeemBank(id) {
@@ -3896,9 +3960,6 @@ function maybeShowLocalNotification(poke) {
     new Notification('Poke from ' + ((getPerson(poke.fromPersonId)||{}).name||'Family'), { body: poke.message, icon: 'icon-192.png' });
   }
 }
-// Persisted cursor: only pokes with ts strictly after this get notified.
-// Defaults to "now" the very first time it runs on a device, so pre-existing
-// poke history never replays as a fresh notification after a refresh/cache clear.
 let lastSeenPokeTs = Number(localStorage.getItem('chores_last_seen_poke_ts')) || Date.now();
 function checkForNewPokesTargetingMe() {
   if (!localDeviceProfileId) return;
