@@ -168,7 +168,7 @@
         <div class="font-bold text-sm" id="selectedDayLabel">Today</div>
         <div class="flex items-center gap-2">
           <button onclick="openKidChoreOfferModal(selectedDate)" class="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg flex items-center gap-1">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Log Unlisted Chore
+            <i class="fa-solid fa-star"></i> Extra Credit
           </button>
           <button onclick="openChoreModal(null, selectedDate)" class="admin-only text-xs font-bold text-purple-600 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add</button>
           <button onclick="openPersonalTaskModal(selectedDate)" class="kid-only text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 px-2 py-1 rounded-lg flex items-center gap-1"><i class="fa-solid fa-plus"></i> Add Task</button>
@@ -191,7 +191,7 @@
       
       <div class="grid grid-cols-2 gap-2 mb-2">
         <select id="logStatusFilter" onchange="renderLog()" class="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
-          <option value="all">All Statuses</option>
+          <option value="all">All</option>
           <option value="completed">Completed</option>
           <option value="pending">Pending</option>
         </select>
@@ -204,7 +204,7 @@
       </div>
 
       <button onclick="openKidChoreOfferModal(todayStr())" class="w-full text-xs font-bold border-2 border-dashed border-amber-400 bg-amber-50/50 text-amber-700 rounded-lg py-2 mb-2 flex items-center justify-center gap-1.5">
-        <i class="fa-solid fa-wand-magic-sparkles"></i> I did a chore not listed! Propose reward
+        <i class="fa-solid fa-star"></i> Log Extra Credit
       </button>
       <div id="logList" class="space-y-2"></div>
     </div>
@@ -380,7 +380,7 @@
   <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto fade-in">
     <div class="flex justify-between items-center mb-3">
       <div class="text-lg font-bold flex items-center gap-2">
-        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Offer an Unlisted Chore
+        <i class="fa-solid fa-star text-amber-500"></i> Extra Credit
       </div>
       <button onclick="closeModal('kidOfferModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -1917,7 +1917,8 @@ function openChoreDetail(kind, id, dateStr) {
     c = r ? { ...r, title: r.title + ' (Daily Progress)' } : null;
     comp = prog;
   } else if (kind === 'recurring') {
-    c = (state.recurring||[]).find(x => x.id === id);
+    const r = (state.recurring||[]).find(x => x.id === id);
+    c = r ? { ...r, title: ruleTitleForDate(r, dateStr), subtasks: ruleSubtasksForDate(r, dateStr) } : null;
     comp = (state.recurringCompletions && state.recurringCompletions[id+'_'+dateStr]) || {completed:false, subtaskState:{}};
   } else if (kind === 'market') {
     const [marketId, scopeKey] = id.split('::');
@@ -2303,10 +2304,25 @@ function saveWalletAdjustment() {
 }
 
 function deleteBankEntry(id) {
-  if (!confirm('Remove this balance entry completely?')) return;
-  state.bankedRewards = (state.bankedRewards || []).filter(b => b.id !== id);
+  if (!confirm('Remove this from the shelf? The ticket/cash amount stays in their balance and lifetime totals — this just clears the line item from view.')) return;
+  const b = (state.bankedRewards || []).find(x => x.id === id);
+  if (b) b.archived = true;
   saveState();
-  toast('Entry removed', 'fa-trash');
+  renderBankList();
+  toast('Cleared from shelf', 'fa-trash');
+}
+
+function deleteBankEntryPermanent(id) {
+  const b = (state.bankedRewards || []).find(x => x.id === id);
+  if (!b) return;
+  const warning = b.isPrizeRedemption
+    ? 'Permanently delete this prize redemption? This will refund the tickets spent on it. This cannot be undone.'
+    : 'Permanently delete this entry? This will reduce their current balance AND their lifetime total. This cannot be undone.';
+  if (!confirm(warning)) return;
+  state.bankedRewards = (state.bankedRewards || []).filter(x => x.id !== id);
+  saveState();
+  renderBankList();
+  toast('Entry permanently deleted', 'fa-trash');
 }
 
 /* =========================== KID UNLISTED CHORE SUBMISSIONS & APPROVALS =========================== */
@@ -3321,10 +3337,13 @@ function getPersonBalances(personId) {
     .filter(b => b.reward && b.reward.type === 'money' && !b.isPrizeRedemption)
     .reduce((sum, b) => sum + parseFloat(b.reward.amount || 0), 0);
 
+  const lifetimeTickets = earnedTickets;
+
   return {
     ticketBalance: Math.max(0, earnedTickets - spentTickets),
     cashBalance: Math.max(0, bankedCash),
-    lifetimeCash: Math.max(0, lifetimeCash)
+    lifetimeCash: Math.max(0, lifetimeCash),
+    lifetimeTickets: Math.max(0, lifetimeTickets)
   };
 }
 
@@ -3641,19 +3660,19 @@ function renderBankList() {
   const list = document.getElementById('bankList');
   if (!list) return;
 
-  const cutoffTime = Date.now() - (3 * 86400000);
-  state.bankedRewards = (state.bankedRewards || []).filter(b => {
-    if (!b.autoAwarded) return true;
+  const cutoffTime = Date.now() - (4 * 86400000);
+  (state.bankedRewards || []).forEach(b => {
+    if (b.archived || b.isPrizeRedemption) return; // prizes never auto-clear; only "Claimed" clears them
     const itemDate = new Date(b.date).getTime();
-    return itemDate >= cutoffTime || !b.redeemed;
+    if (itemDate < cutoffTime) b.archived = true;
   });
 
   const people = state.people || [];
   if (!people.length) { list.innerHTML = '<div class="text-xs text-gray-400 text-center py-1">No family members found.</div>'; return; }
 
   list.innerHTML = people.map(p => {
-    const { cashBalance, lifetimeCash } = getPersonBalances(p.id);
-    const entries = (state.bankedRewards || []).filter(b => b.personId === p.id && ((!b.redeemed && !b.isPrizeRedemption) || (b.isPrizeRedemption && !b.claimedPrize)));
+    const { cashBalance, lifetimeCash, lifetimeTickets } = getPersonBalances(p.id);
+    const entries = (state.bankedRewards || []).filter(b => b.personId === p.id && !b.archived && ((!b.redeemed && !b.isPrizeRedemption) || (b.isPrizeRedemption && !b.claimedPrize)));
 
     return `
       <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 space-y-2">
@@ -3667,11 +3686,11 @@ function renderBankList() {
               Bank: $${cashBalance.toFixed(2)}
             </div>
             <button onclick="transferAllowanceBank('${p.id}')" class="admin-only text-[10px] font-bold bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-2.5 py-1 flex items-center gap-1 shadow-xs">
-              <i class="fa-solid fa-arrow-right-arrow-left"></i> Transfer ($0)
+              <i class="fa-solid fa-arrow-right-arrow-left"></i> Transfer ($${cashBalance.toFixed(2)})
             </button>
           </div>
         </div>
-        <div class="text-[10px] text-gray-500 font-medium">Lifetime Earnings: <span class="font-mono font-bold text-gray-700">$${lifetimeCash.toFixed(2)}</span></div>
+        <div class="text-[10px] text-gray-500 font-medium">Lifetime Earnings: <span class="font-mono font-bold text-gray-700">$${lifetimeCash.toFixed(2)}</span> &nbsp;·&nbsp; Lifetime Tickets: <span class="font-mono font-bold text-gray-700">🎟️ ${lifetimeTickets}</span></div>
         
         <div class="space-y-1.5 pt-1">
           ${entries.length ? entries.map(b => {
@@ -3684,11 +3703,13 @@ function renderBankList() {
               <div class="flex items-center gap-1.5 flex-shrink-0">
                 ${isRedeem 
                   ? `<span class="font-bold text-amber-600">-🎟️ ${b.ticketCost}</span>
-                     <button onclick="claimPrizeRedemption('${b.id}')" class="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2 py-0.5">Claimed</button>`
+                     <button onclick="claimPrizeRedemption('${b.id}')" class="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-2 py-0.5">Claimed</button>
+                     <button onclick="deleteBankEntryPermanent('${b.id}')" class="admin-only text-gray-400 hover:text-red-500 text-[10px] px-1" title="Delete permanently (refunds tickets)"><i class="fa-solid fa-trash"></i></button>`
                   : `<span class="font-bold text-purple-600">${rewardLabel({...b.reward, banked:false})}</span>
-                     ${b.reward?.type === 'money' ? `<button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-0.5">Paid</button>` : ''}`
+                     ${b.reward?.type === 'money' ? `<button onclick="redeemBank('${b.id}')" class="text-[10px] font-bold bg-purple-600 text-white rounded-lg px-2 py-0.5">Paid</button>` : ''}
+                     <button onclick="deleteBankEntry('${b.id}')" class="admin-only text-gray-400 hover:text-purple-600 text-[10px] px-1" title="Clear from shelf (keeps balance)"><i class="fa-solid fa-box-archive"></i></button>
+                     <button onclick="deleteBankEntryPermanent('${b.id}')" class="admin-only text-gray-400 hover:text-red-500 text-[10px] px-1" title="Delete permanently (removes from balance)"><i class="fa-solid fa-trash"></i></button>`
                 }
-                <button onclick="deleteBankEntry('${b.id}')" class="admin-only text-gray-400 hover:text-red-500 text-[10px] px-1"><i class="fa-solid fa-trash"></i></button>
               </div>
             </div>`;
           }).join('') : '<div class="text-[11px] text-gray-400 text-center py-1 italic">Shelf is clean & empty</div>'}
@@ -4035,10 +4056,63 @@ async function pullFromCloud() {
     const doc = await firestoreDb.collection('chores_sync').doc('family-chores-shared').get();
     if (doc.exists && doc.data().data) {
       const remote = JSON.parse(doc.data().data);
-      state = Object.assign(state, remote);
+      mergeIncomingState(remote);
       persist(); renderApp();
     }
   } catch(e) { console.error('pull failed', e); }
+}
+function mergeIncomingState(remote) {
+  // A cloud sync pushes the FULL app state from whichever device saved last. If that device
+  // was stale (hadn't yet pulled someone else's recent completion), a naive overwrite would
+  // silently revert already-completed chores back to incomplete. To prevent that, completion
+  // records are merged instead of overwritten: once something is marked complete on ANY device,
+  // that status is preserved through sync even if a stale snapshot arrives afterward.
+  const mergedRecurringCompletions = { ...(remote.recurringCompletions || {}) };
+  Object.keys(state.recurringCompletions || {}).forEach(key => {
+    const localEntry = state.recurringCompletions[key];
+    const remoteEntry = mergedRecurringCompletions[key];
+    mergedRecurringCompletions[key] = remoteEntry ? {
+      completed: !!(localEntry.completed || remoteEntry.completed),
+      subtaskState: { ...(remoteEntry.subtaskState || {}), ...(localEntry.subtaskState || {}) }
+    } : localEntry;
+  });
+
+  const mergedWeeklyProgress = { ...(remote.weeklyDailyProgress || {}) };
+  Object.keys(state.weeklyDailyProgress || {}).forEach(key => {
+    const localEntry = state.weeklyDailyProgress[key];
+    const remoteEntry = mergedWeeklyProgress[key];
+    mergedWeeklyProgress[key] = remoteEntry ? {
+      completed: !!(localEntry.completed || remoteEntry.completed),
+      subtaskState: { ...(remoteEntry.subtaskState || {}), ...(localEntry.subtaskState || {}) }
+    } : localEntry;
+  });
+
+  const mergedMarketClaims = { ...(remote.marketClaims || {}) };
+  Object.keys(state.marketClaims || {}).forEach(key => {
+    const localEntry = state.marketClaims[key];
+    const remoteEntry = mergedMarketClaims[key];
+    mergedMarketClaims[key] = remoteEntry ? {
+      ...remoteEntry,
+      completed: !!(localEntry.completed || remoteEntry.completed),
+      subtaskState: { ...(remoteEntry.subtaskState || {}), ...(localEntry.subtaskState || {}) }
+    } : localEntry;
+  });
+
+  const localChoresById = {};
+  (state.chores || []).forEach(c => { localChoresById[c.id] = c; });
+  const remoteIds = new Set((remote.chores || []).map(c => c.id));
+  const mergedChores = (remote.chores || []).map(rc => {
+    const lc = localChoresById[rc.id];
+    if (!lc) return rc;
+    return { ...rc, completed: !!(rc.completed || lc.completed), subtaskState: { ...(rc.subtaskState || {}), ...(lc.subtaskState || {}) } };
+  });
+  (state.chores || []).forEach(lc => { if (!remoteIds.has(lc.id)) mergedChores.push(lc); });
+
+  state = Object.assign(state, remote);
+  state.recurringCompletions = mergedRecurringCompletions;
+  state.weeklyDailyProgress = mergedWeeklyProgress;
+  state.marketClaims = mergedMarketClaims;
+  state.chores = mergedChores;
 }
 function listenForCloudChanges() {
   if (!firestoreDb || unsubscribeSync) return;
@@ -4046,7 +4120,7 @@ function listenForCloudChanges() {
     .onSnapshot(doc => {
       if (doc.exists && doc.data().data) {
         const remote = JSON.parse(doc.data().data);
-        state = Object.assign(state, remote);
+        mergeIncomingState(remote);
         persist(); renderApp();
         checkForNewPokesTargetingMe();
       }
