@@ -689,7 +689,7 @@
     <div class="flex justify-between items-center mb-3">
       <div>
         <div class="text-lg font-bold">Profiles & Settings</div>
-        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.1.1</div>
+        <div class="text-[10px] text-purple-600 font-mono font-bold" id="appVersionDisplay">v6.29.09.1.2</div>
       </div>
       <button onclick="closeModal('profilesModal')" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -751,7 +751,7 @@
     <div class="bg-purple-50 rounded-xl p-3 mb-4 space-y-2 border border-purple-100">
       <div class="flex justify-between items-center">
         <span class="text-xs text-gray-600 font-semibold">Installed Version:</span>
-        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.1.1</span>
+        <span class="text-xs font-mono font-bold text-purple-700" id="appVersionBadge">v6.29.09.1.2</span>
       </div>
       <button onclick="forceAppUpdate()" class="w-full rounded-lg py-2.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm flex items-center justify-center gap-2">
         <i class="fa-solid fa-rotate"></i> Force Update & Clear Cache
@@ -1039,7 +1039,7 @@
 
 <script>
 /* =========================== STATE & APP VERSION =========================== */
-const APP_VERSION = "v6.29.09.1.1";
+const APP_VERSION = "v6.29.09.1.2";
 
 const DEFAULT_COLORS = [
   {name:'Green', hex:'#10B981'},
@@ -3933,6 +3933,8 @@ function removePerson(id) {
 function setMyProfile(id) { 
   localDeviceProfileId = id || null;
   localStorage.setItem('chores_local_profile_id', localDeviceProfileId || '');
+  lastSeenPokeProfileId = localDeviceProfileId;
+  lastSeenPokeTs = Number(localStorage.getItem(pokeCursorKey(localDeviceProfileId))) || Date.now();
   renderApp(); 
   toast('Profile switched', 'fa-check'); 
   registerDeviceToken();
@@ -3996,9 +3998,18 @@ function maybeShowLocalNotification(poke) {
     new Notification('Poke from ' + ((getPerson(poke.fromPersonId)||{}).name||'Family'), { body: poke.message, icon: 'icon-192.png' });
   }
 }
-let lastSeenPokeTs = Number(localStorage.getItem('chores_last_seen_poke_ts')) || Date.now();
+function pokeCursorKey(profileId) { return 'chores_last_seen_poke_ts_' + (profileId || 'none'); }
+let lastSeenPokeProfileId = localDeviceProfileId;
+let lastSeenPokeTs = Number(localStorage.getItem(pokeCursorKey(localDeviceProfileId))) || Date.now();
 function checkForNewPokesTargetingMe() {
   if (!localDeviceProfileId) return;
+  // The active profile on this device/browser can change (profile switcher, shared tablet).
+  // Each profile needs its own "last seen" cursor, or switching to a profile that hasn't
+  // been active recently would replay their entire poke history as if it just arrived.
+  if (localDeviceProfileId !== lastSeenPokeProfileId) {
+    lastSeenPokeProfileId = localDeviceProfileId;
+    lastSeenPokeTs = Number(localStorage.getItem(pokeCursorKey(localDeviceProfileId))) || Date.now();
+  }
   const mine = (state.pokes||[]).filter(p => p.toPersonId === localDeviceProfileId && p.ts > lastSeenPokeTs);
   if (mine.length) {
     const newest = mine.reduce((a, b) => (b.ts > a.ts ? b : a));
@@ -4007,7 +4018,7 @@ function checkForNewPokesTargetingMe() {
       maybeShowLocalNotification(newest);
     }
     lastSeenPokeTs = Math.max(lastSeenPokeTs, ...mine.map(p => p.ts));
-    localStorage.setItem('chores_last_seen_poke_ts', String(lastSeenPokeTs));
+    localStorage.setItem(pokeCursorKey(localDeviceProfileId), String(lastSeenPokeTs));
   }
 }
 
@@ -4108,11 +4119,32 @@ function mergeIncomingState(remote) {
   });
   (state.chores || []).forEach(lc => { if (!remoteIds.has(lc.id)) mergedChores.push(lc); });
 
+  // bankedRewards holds every earned dollar/ticket entry — the actual source of each
+  // person's balance. It was missing from this merge, which meant a stale device's
+  // push could silently erase a recently-earned entry (balance drops with no visible
+  // cause). Union by id, and once any flag (redeemed/archived/claimedPrize) is set true
+  // on either side, keep it true — those only ever move in one direction intentionally.
+  const localBankById = {};
+  (state.bankedRewards || []).forEach(b => { localBankById[b.id] = b; });
+  const remoteBankIds = new Set((remote.bankedRewards || []).map(b => b.id));
+  const mergedBankedRewards = (remote.bankedRewards || []).map(rb => {
+    const lb = localBankById[rb.id];
+    if (!lb) return rb;
+    return {
+      ...rb,
+      redeemed: !!(rb.redeemed || lb.redeemed),
+      archived: !!(rb.archived || lb.archived),
+      claimedPrize: !!(rb.claimedPrize || lb.claimedPrize)
+    };
+  });
+  (state.bankedRewards || []).forEach(lb => { if (!remoteBankIds.has(lb.id)) mergedBankedRewards.push(lb); });
+
   state = Object.assign(state, remote);
   state.recurringCompletions = mergedRecurringCompletions;
   state.weeklyDailyProgress = mergedWeeklyProgress;
   state.marketClaims = mergedMarketClaims;
   state.chores = mergedChores;
+  state.bankedRewards = mergedBankedRewards;
 }
 function listenForCloudChanges() {
   if (!firestoreDb || unsubscribeSync) return;
